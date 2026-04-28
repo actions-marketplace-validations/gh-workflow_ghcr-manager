@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { collectRepeatedOption, findOption, requireOption, resolveGitHubToken } from "../../src/cli/_args.js";
+import {
+  collectRepeatedOption,
+  findOption,
+  requireOption,
+  resolveGitHubToken,
+  resolveLogLevel,
+} from "../../src/cli/_args.js";
 
 test("findOption and requireOption read single-value options", () => {
   const args = ["--db", "scan.sqlite", "--source", "file"];
@@ -25,4 +31,10 @@ test("resolveGitHubToken falls back to the environment", () => {
 
 test("requireOption throws for a missing value", () => {
   assert.throws(() => requireOption([], "--db"), /missing required option: --db/);
+});
+
+test("resolveLogLevel defaults to info and rejects unknown values", () => {
+  assert.equal(resolveLogLevel([]), "info");
+  assert.equal(resolveLogLevel(["--log-level", "debug"]), "debug");
+  assert.throws(() => resolveLogLevel(["--log-level", "verbose"]), /invalid log level: verbose/);
 });

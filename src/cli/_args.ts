@@ -1,3 +1,5 @@
+import { isLogLevel, type LogLevel } from "./_logger.js";
+
 export function requireOption(args: string[], name: string): string {
   const value = findOption(args, name);
   if (!value) {
@@ -47,4 +49,13 @@ export function resolveOptionalGitHubToken(args: string[]): string | undefined {
   }
 
   return process.env.GITHUB_TOKEN;
+}
+
+export function resolveLogLevel(args: string[]): LogLevel {
+  const rawLevel = findOption(args, "--log-level") ?? "info";
+  if (!isLogLevel(rawLevel)) {
+    throw new Error(`invalid log level: ${rawLevel}`);
+  }
+
+  return rawLevel;
 }

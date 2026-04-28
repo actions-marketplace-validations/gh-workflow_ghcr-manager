@@ -6,6 +6,14 @@ export interface GitHubScanOptions {
   registryBaseUrl?: string;
   username?: string;
   fetchImpl?: FetchLike;
+  logger?: GitHubScanLogger;
+}
+
+export interface GitHubScanLogger {
+  debug(message: string): void;
+  info(message: string): void;
+  warn(message: string): void;
+  error(message: string): void;
 }
 
 export interface FetchLikeResponse {

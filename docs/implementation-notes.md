@@ -51,6 +51,12 @@ This section is the canonical place for session-to-session continuity.
   - SQLite is the integration surface between ingest stages
   - avoid package-level in-memory aggregate models as the ingest contract
 - Current action shape: thin composite wrapper that invokes the shared CLI.
+- Scan logging:
+  - progress logs go to stderr
+  - final scan summary JSON stays on stdout
+  - supported levels: `debug`, `info`, `warn`, `error`, `silent`
+- Debug helpers:
+  - `scripts/debug/scan-ghcr-gh-auth.sh` does the same with `GITHUB_TOKEN` sourced from `gh auth token`
 - Working tree expectation at the end of the last session: clean after `e33d011`.
 - Commit policy: do not commit agent changes until the user has reviewed and explicitly asked for a commit.
 - File size guideline for production TypeScript:
@@ -140,6 +146,8 @@ src/
   package-level in-memory aggregate objects as the primary ingest boundary.
 - Switched GHCR manifest reads to the registry bearer-token flow and split token acquisition into a dedicated internal
   client so public registries work without GitHub auth while authenticated reads remain available.
+- Added CLI logging with explicit levels and periodic scan progress so long GitHub/GHCR imports are observable without
+  corrupting stdout JSON output.
 
 ## Next Increment
 

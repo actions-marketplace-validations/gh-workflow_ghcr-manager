@@ -18,6 +18,8 @@ test("handleScan loads a file snapshot and prints counts", async () => {
     const exitCode = await handleScan([
       "--db",
       databasePath,
+      "--log-level",
+      "silent",
       "--source",
       "file",
       "--snapshot",

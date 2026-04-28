@@ -4,6 +4,7 @@ import { openDatabase, ScanWriter, SnapshotRepository } from "../../../src/db/in
 import { importGitHubScan } from "../../../src/ingest/github/index.js";
 
 test("GitHub ingest writes package and manifest data directly into SQLite", async () => {
+  const progressMessages: string[] = [];
   const responses = new Map<
     string,
     {
@@ -97,6 +98,20 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
       owner: "acme",
       packageName: "example",
       token: "test-token",
+      logger: {
+        debug(message) {
+          progressMessages.push(`debug:${message}`);
+        },
+        info(message) {
+          progressMessages.push(`info:${message}`);
+        },
+        warn(message) {
+          progressMessages.push(`warn:${message}`);
+        },
+        error(message) {
+          progressMessages.push(`error:${message}`);
+        },
+      },
       githubApiBaseUrl: "https://api.github.test",
       registryBaseUrl: "https://ghcr.test",
       fetchImpl: async (input, init) => {
@@ -129,6 +144,16 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
   assert.equal(repository.countTags(), 1);
   assert.equal(repository.countManifests(), 3);
   assert.equal(repository.countManifestEdges(), 2);
+  assert.deepEqual(
+    progressMessages.filter((message) => message.startsWith("info:")),
+    [
+      "info:Starting GitHub package scan for acme/example",
+      "info:Loaded 2 package versions and 1 tags",
+      "info:Fetching manifests for 2 package versions",
+      "info:Fetched manifests 2/2",
+      "info:Completed GitHub package scan for acme/example",
+    ],
+  );
 
   database.close();
 });
