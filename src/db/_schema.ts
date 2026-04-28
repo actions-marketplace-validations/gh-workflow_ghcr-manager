@@ -1,6 +1,7 @@
 import type Database from "better-sqlite3";
 
 const _schemaStatements = [
+  `PRAGMA foreign_keys = ON`,
   `
     CREATE TABLE IF NOT EXISTS package_scans (
       package_name TEXT NOT NULL,
@@ -21,7 +22,8 @@ const _schemaStatements = [
       tag TEXT PRIMARY KEY,
       digest TEXT NOT NULL,
       version_id INTEGER NOT NULL,
-      FOREIGN KEY(version_id) REFERENCES package_versions(version_id)
+      FOREIGN KEY(version_id) REFERENCES package_versions(version_id),
+      FOREIGN KEY(digest) REFERENCES package_versions(digest)
     )
   `,
   `
@@ -39,7 +41,9 @@ const _schemaStatements = [
       parent_digest TEXT NOT NULL,
       child_digest TEXT NOT NULL,
       edge_kind TEXT NOT NULL,
-      PRIMARY KEY(parent_digest, child_digest, edge_kind)
+      PRIMARY KEY(parent_digest, child_digest, edge_kind),
+      FOREIGN KEY(parent_digest) REFERENCES manifests(digest),
+      FOREIGN KEY(child_digest) REFERENCES manifests(digest)
     )
   `,
   `CREATE INDEX IF NOT EXISTS idx_package_versions_created_at ON package_versions(created_at)`,

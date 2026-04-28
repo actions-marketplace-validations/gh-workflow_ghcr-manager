@@ -51,12 +51,16 @@ This section is the canonical place for session-to-session continuity.
   - supports anonymous GHCR manifest reads for public registries and optional GitHub auth for better access
   - uses a shared paginated ingest helper for GitHub Packages version/tag enumeration, writing each page directly to
     SQLite
+  - writes manifest edges only after all manifests are present so the DB can enforce edge foreign keys cleanly
 - Ingest architecture direction:
   - full remote traversal may still be required for correctness
   - SQLite is the integration surface between ingest stages
   - avoid package-level in-memory aggregate models as the ingest contract
   - repeated paginated API ingestion should use one generic request -> normalize -> write pipeline, with per-endpoint
     hooks only where necessary
+- Relational integrity direction:
+  - add FKs by default and satisfy them via ingest order
+  - only relax constraints later if a demonstrated ingest problem requires it
 - Current action shape: thin composite wrapper that invokes the shared CLI.
 - Scan logging:
   - progress logs go to stderr
@@ -159,6 +163,8 @@ src/
   writing, while manifest ingestion writes incrementally.
 - Replaced the buffered package version path with a generic paginated ingest helper so version/tag enumeration now
   follows the same request -> normalize -> write shape as the rest of the DB-first ingest flow.
+- Tightened the schema with foreign keys for `tags -> package_versions` and `manifest_edges -> manifests`, and aligned
+  ingest order so manifests are written before edges.
 
 ## Next Increment
 

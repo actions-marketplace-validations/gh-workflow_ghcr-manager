@@ -23,6 +23,10 @@ test("scan writer stores scan metadata and rows incrementally", () => {
     digest: "sha256:index",
     mediaType: "application/vnd.oci.image.index.v1+json",
   });
+  writer.insertManifest({
+    digest: "sha256:child",
+    mediaType: "application/vnd.oci.image.manifest.v1+json",
+  });
   writer.insertManifestEdge({
     parentDigest: "sha256:index",
     childDigest: "sha256:child",
@@ -32,7 +36,7 @@ test("scan writer stores scan metadata and rows incrementally", () => {
   assert.equal(repository.getPackageMetadata().packageName, "acme/example");
   assert.equal(repository.countPackageVersions(), 1);
   assert.equal(repository.countTags(), 1);
-  assert.equal(repository.countManifests(), 1);
+  assert.equal(repository.countManifests(), 2);
   assert.equal(repository.countManifestEdges(), 1);
 
   database.close();
