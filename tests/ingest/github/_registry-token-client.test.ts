@@ -73,3 +73,17 @@ test("registry token client surfaces auth challenge details", async () => {
     /GHCR token request failed - status 401 - authentication required - www-authenticate: Bearer realm="https:\/\/ghcr\.io\/token"/,
   );
 });
+
+test("registry token client surfaces fetch transport failures", async () => {
+  await assert.rejects(
+    () =>
+      loadRegistryPullToken(
+        async () => {
+          throw new TypeError("fetch failed");
+        },
+        "https://ghcr.test",
+        { owner: "acme", packageName: "example" },
+      ),
+    /GHCR token request failed - fetch failed/,
+  );
+});

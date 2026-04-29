@@ -1,4 +1,10 @@
-import { buildHttpErrorMessage, type FetchLike, type GitHubScanOptions } from "./_shared.js";
+import {
+  buildFetchTransportErrorMessage,
+  buildHttpErrorMessage,
+  type FetchLike,
+  type GitHubScanOptions,
+  withFetchRetry,
+} from "./_shared.js";
 
 export interface RegistryPullToken {
   token: string;
@@ -10,9 +16,29 @@ export async function loadRegistryPullToken(
   registryBaseUrl: string,
   options: GitHubScanOptions,
 ): Promise<RegistryPullToken> {
-  const response = await fetchImpl(_buildRegistryTokenUrl(registryBaseUrl, options), {
-    headers: _buildTokenHeaders(options),
-  });
+  const url = _buildRegistryTokenUrl(registryBaseUrl, options);
+  const response = await withFetchRetry(
+    async () => {
+      try {
+        const response = await fetchImpl(url, {
+          headers: _buildTokenHeaders(options),
+        });
+        if (!response.ok && _shouldRetryStatus(response.status)) {
+          throw new Error(`GHCR token request failed - status ${response.status}`);
+        }
+        return response;
+      } catch (error) {
+        throw new Error(buildFetchTransportErrorMessage(error, "GHCR token request failed"), {
+          cause: error,
+        });
+      }
+    },
+    {
+      logger: options.logger,
+      label: "GHCR token request",
+      shouldRetry: (error) => _shouldRetryError(error),
+    },
+  );
   if (!response.ok) {
     throw new Error(await buildHttpErrorMessage(response, "GHCR token request failed"));
   }
@@ -58,4 +84,16 @@ function _getExpiresAt(expiresIn: unknown, issuedAt: unknown): number {
   const issuedAtMilliseconds =
     typeof issuedAt === "string" && !Number.isNaN(Date.parse(issuedAt)) ? Date.parse(issuedAt) : Date.now();
   return issuedAtMilliseconds + expiresInSeconds * 1000;
+}
+
+function _shouldRetryStatus(status: number): boolean {
+  return status === 429 || status === 502 || status === 503 || status === 504;
+}
+
+function _shouldRetryError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /fetch failed|status 429|status 502|status 503|status 504/.test(error.message);
 }

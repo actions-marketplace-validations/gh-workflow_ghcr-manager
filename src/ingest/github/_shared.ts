@@ -1,3 +1,5 @@
+import { ingestRequestRetryCount, ingestRequestRetryDelayMs } from "../../tuning/index.js";
+
 export interface GitHubScanOptions {
   owner: string;
   packageName: string;
@@ -37,6 +39,16 @@ export async function defaultFetch(input: string, init?: RequestInit): Promise<F
   return fetch(input, init);
 }
 
+export function buildFetchTransportErrorMessage(error: unknown, fallback: string): string {
+  const details = [fallback];
+  if (error instanceof Error && error.message) {
+    details.push(error.message);
+  } else {
+    details.push(String(error));
+  }
+  return details.join(" - ");
+}
+
 export async function buildHttpErrorMessage(response: FetchLikeResponse, fallback: string): Promise<string> {
   const details: string[] = [fallback, `status ${response.status}`];
   const body = await _readJsonErrorBody(response);
@@ -55,6 +67,33 @@ export async function buildHttpErrorMessage(response: FetchLikeResponse, fallbac
   }
 
   return details.join(" - ");
+}
+
+export async function withFetchRetry<T>(
+  run: () => Promise<T>,
+  options: {
+    logger?: GitHubScanLogger;
+    label: string;
+    shouldRetry?: (error: unknown) => boolean;
+  },
+): Promise<T> {
+  let attempt = 0;
+  for (;;) {
+    try {
+      return await run();
+    } catch (error) {
+      attempt += 1;
+      const shouldRetry = options.shouldRetry ? options.shouldRetry(error) : true;
+      if (!shouldRetry || attempt > ingestRequestRetryCount) {
+        throw error;
+      }
+
+      options.logger?.warn(
+        `${options.label} failed on attempt ${attempt}/${ingestRequestRetryCount + 1}; retrying in ${ingestRequestRetryDelayMs}ms`,
+      );
+      await _sleep(ingestRequestRetryDelayMs);
+    }
+  }
 }
 
 async function _readJsonErrorBody(response: FetchLikeResponse): Promise<
@@ -79,4 +118,8 @@ async function _readJsonErrorBody(response: FetchLikeResponse): Promise<
   }
 
   return undefined;
+}
+
+function _sleep(delayMs: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, delayMs));
 }

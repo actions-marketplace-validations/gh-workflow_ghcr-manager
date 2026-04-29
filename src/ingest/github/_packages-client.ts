@@ -1,19 +1,9 @@
 import type { PackageVersionRecord, TagRecord } from "../../core/index.js";
 import type { ScanWriter } from "../../db/index.js";
-import { ingestPaginated } from "./_paginated-ingest.js";
-import { buildHttpErrorMessage, type FetchLike, type GitHubScanOptions } from "./_shared.js";
-
-interface _GitHubPackageVersion {
-  id: number;
-  name: string;
-  created_at: string;
-  updated_at: string;
-  metadata?: {
-    container?: {
-      tags?: string[];
-    };
-  };
-}
+import { packageVersionPageFetchConcurrency } from "../../tuning/index.js";
+import { loadPackageVersionPage, type GitHubPackageVersionPageItem } from "./_package-version-page-load.js";
+import { ingestParallelPaginated } from "./_parallel-paginated-ingest.js";
+import { type FetchLike, type GitHubScanOptions } from "./_shared.js";
 
 export async function ingestPackageVersions(
   fetchImpl: FetchLike,
@@ -22,41 +12,16 @@ export async function ingestPackageVersions(
   writer: ScanWriter,
 ): Promise<{ packageVersions: number; tags: number }> {
   let tagCount = 0;
-
-  const result = await ingestPaginated<_GitHubPackageVersion>({
+  const result = await ingestParallelPaginated<GitHubPackageVersionPageItem>({
+    concurrency: packageVersionPageFetchConcurrency,
     logger: options.logger,
     progressLabel: "GitHub package-version pages",
-    async loadPage(page) {
-      const response = await fetchImpl(_buildPageUrl(githubApiBaseUrl, options, page), {
-        headers: {
-          Accept: "application/vnd.github+json",
-          Authorization: `Bearer ${options.token}`,
-          "User-Agent": "ghcr-manager",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-      });
-      if (!response.ok) {
-        throw new Error(await buildHttpErrorMessage(response, "GitHub Packages request failed"));
-      }
-
-      return (await response.json()) as _GitHubPackageVersion[];
+    loadPage(page) {
+      return loadPackageVersionPage(fetchImpl, githubApiBaseUrl, options, page);
     },
     writePage(pageItems) {
-      const versions = normalizePackageVersions(pageItems);
-      const rawItemsByVersionId = new Map(pageItems.map((pageItem) => [pageItem.id, pageItem]));
-      for (const version of versions) {
-        writer.insertPackageVersion(version);
-        writer.insertPackageVersionPayload(
-          version.versionId,
-          JSON.stringify(rawItemsByVersionId.get(version.versionId)),
-        );
-      }
-
-      const tags = buildTags(versions);
-      for (const tag of tags) {
-        writer.insertTag(tag);
-      }
-      tagCount += tags.length;
+      _writePage(writer, pageItems);
+      tagCount += _countTags(pageItems);
     },
   });
 
@@ -84,7 +49,7 @@ export function buildTags(packageVersions: PackageVersionRecord[]): TagRecord[] 
   return tags.sort((left, right) => left.tag.localeCompare(right.tag));
 }
 
-export function normalizePackageVersions(packageVersions: _GitHubPackageVersion[]): PackageVersionRecord[] {
+export function normalizePackageVersions(packageVersions: GitHubPackageVersionPageItem[]): PackageVersionRecord[] {
   return packageVersions
     .map((version) => ({
       versionId: version.id,
@@ -96,12 +61,20 @@ export function normalizePackageVersions(packageVersions: _GitHubPackageVersion[
     .sort((left, right) => left.versionId - right.versionId);
 }
 
-function _buildPageUrl(githubApiBaseUrl: string, options: GitHubScanOptions, page: number): string {
-  const url = new URL(
-    `/orgs/${encodeURIComponent(options.owner)}/packages/container/${encodeURIComponent(options.packageName)}/versions`,
-    githubApiBaseUrl,
-  );
-  url.searchParams.set("per_page", "100");
-  url.searchParams.set("page", String(page));
-  return url.toString();
+function _writePage(writer: ScanWriter, pageItems: GitHubPackageVersionPageItem[]): void {
+  const versions = normalizePackageVersions(pageItems);
+  const rawItemsByVersionId = new Map(pageItems.map((pageItem) => [pageItem.id, pageItem]));
+  for (const version of versions) {
+    writer.insertPackageVersion(version);
+    writer.insertPackageVersionPayload(version.versionId, JSON.stringify(rawItemsByVersionId.get(version.versionId)));
+  }
+
+  const tags = buildTags(versions);
+  for (const tag of tags) {
+    writer.insertTag(tag);
+  }
+}
+
+function _countTags(pageItems: GitHubPackageVersionPageItem[]): number {
+  return buildTags(normalizePackageVersions(pageItems)).length;
 }

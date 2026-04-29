@@ -1,10 +1,9 @@
 import type { ManifestEdgeRecord } from "../../core/index.js";
 import type { ScanWriter, SnapshotRepository } from "../../db/index.js";
+import { manifestFetchConcurrency } from "../../tuning/index.js";
 import { loadManifestGraph } from "./_manifest-client.js";
 import { loadRegistryPullToken, type RegistryPullToken } from "./_registry-token-client.js";
 import { type FetchLike, type GitHubScanOptions } from "./_shared.js";
-
-const _manifestFetchConcurrency = 16;
 
 interface _RegistryPullTokenState {
   token?: RegistryPullToken;
@@ -28,7 +27,7 @@ export async function ingestManifests(
   const activeLoads = new Set<Promise<void>>();
 
   while (pendingDigests.length > 0 || activeLoads.size > 0) {
-    while (pendingDigests.length > 0 && activeLoads.size < _manifestFetchConcurrency) {
+    while (pendingDigests.length > 0 && activeLoads.size < manifestFetchConcurrency) {
       const digest = pendingDigests.shift();
       if (!digest || fetchedDigests.has(digest)) {
         continue;

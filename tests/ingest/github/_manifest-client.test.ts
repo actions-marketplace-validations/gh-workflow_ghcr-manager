@@ -77,3 +77,19 @@ test("manifest client maps child and referrer edges", async () => {
     { parentDigest: "sha256:subject", childDigest: "sha256:index", edgeKind: "referrer" },
   ]);
 });
+
+test("manifest client surfaces fetch transport failures with digest context", async () => {
+  await assert.rejects(
+    () =>
+      loadManifestGraph(
+        async () => {
+          throw new TypeError("fetch failed");
+        },
+        "https://ghcr.test",
+        "sha256:index",
+        "registry-token",
+        { owner: "acme", packageName: "example", token: "token" },
+      ),
+    /GHCR manifest request for sha256:index failed - fetch failed/,
+  );
+});

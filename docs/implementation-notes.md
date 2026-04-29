@@ -50,6 +50,10 @@ This section is the canonical place for session-to-session continuity.
   manifest.
 - ☑ Fetch GHCR manifests with bounded parallelism instead of strictly one-by-one, with a code-local concurrency constant
   for easy tuning.
+- ☑ Fetch GitHub package-version pages with bounded parallelism instead of strict sequential paging, with a code-local
+  concurrency constant for easy tuning.
+- ☑ Add bounded retry handling for GitHub/GHCR requests; after the retry budget is exhausted, the scan fails immediately
+  with context-rich errors.
 - ☐ Expand planner output so it explains why versions are protected or deletable.
 - ☐ Add tests for multi-arch images, referrers, and explicit tag exclusion behavior.
 - ☐ Revisit action packaging after the live ingest path exists.
@@ -207,8 +211,10 @@ src/
   common image-vs-artifact classification can be done without JSON-path expressions in every query.
 - GHCR pull tokens are now cached per scan and reused until shortly before expiry; when the token response omits
   explicit expiry fields, the client falls back to a 60-second lifetime per the registry token spec.
-- GHCR manifest fetches now run with a bounded worker pool instead of one-by-one; the concurrency is currently a local
-  constant set to `16` in `src/ingest/github/index.ts`.
+- GHCR manifest fetches and GitHub package-version page fetches both use bounded parallelism; the tuning constants now
+  live together near the code root in `src/tuning/index.ts`.
+- GitHub package pages, GHCR manifest fetches, and GHCR token fetches now retry a small bounded number of times for
+  transport failures and selected transient HTTP statuses before failing the scan.
 
 ## Next Increment
 

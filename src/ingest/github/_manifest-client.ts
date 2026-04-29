@@ -1,9 +1,11 @@
 import type { ManifestDescriptorRecord, ManifestEdgeRecord, ManifestRecord } from "../../core/index.js";
 import {
   acceptedManifestMediaTypes,
+  buildFetchTransportErrorMessage,
   buildHttpErrorMessage,
   type FetchLike,
   type GitHubScanOptions,
+  withFetchRetry,
 } from "./_shared.js";
 
 interface _RegistryPlatform {
@@ -45,13 +47,32 @@ export async function loadManifestGraph(
   rawJson: string;
 }> {
   const url = new URL(`/v2/${options.owner}/${options.packageName}/manifests/${digest}`, registryBaseUrl);
-  const response = await fetchImpl(url.toString(), {
-    headers: {
-      Accept: acceptedManifestMediaTypes,
-      Authorization: `Bearer ${registryToken}`,
-      "User-Agent": "ghcr-manager",
+  const response = await withFetchRetry(
+    async () => {
+      try {
+        const response = await fetchImpl(url.toString(), {
+          headers: {
+            Accept: acceptedManifestMediaTypes,
+            Authorization: `Bearer ${registryToken}`,
+            "User-Agent": "ghcr-manager",
+          },
+        });
+        if (!response.ok && _shouldRetryStatus(response.status)) {
+          throw new Error(`GHCR manifest request for ${digest} failed - status ${response.status}`);
+        }
+        return response;
+      } catch (error) {
+        throw new Error(buildFetchTransportErrorMessage(error, `GHCR manifest request for ${digest} failed`), {
+          cause: error,
+        });
+      }
     },
-  });
+    {
+      logger: options.logger,
+      label: `GHCR manifest request for ${digest}`,
+      shouldRetry: (error) => _shouldRetryError(error),
+    },
+  );
   if (!response.ok) {
     throw new Error(await buildHttpErrorMessage(response, `GHCR manifest request for ${digest} failed`));
   }
@@ -124,4 +145,16 @@ function _buildEdges(parentDigest: string, document: _RegistryManifestDocument):
   }
 
   return edges;
+}
+
+function _shouldRetryStatus(status: number): boolean {
+  return status === 429 || status === 502 || status === 503 || status === 504;
+}
+
+function _shouldRetryError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /fetch failed|status 429|status 502|status 503|status 504/.test(error.message);
 }
