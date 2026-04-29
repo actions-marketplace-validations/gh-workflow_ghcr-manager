@@ -48,3 +48,30 @@ test("scan writer stores scan metadata and rows incrementally", () => {
 
   database.close();
 });
+
+test("markScanFailed records failed status and completion timestamp", () => {
+  const database = openDatabase(":memory:");
+  const writer = new ScanWriter(database);
+
+  writer.resetScan("acme/example", "2026-04-20T12:00:00.000Z");
+  writer.markScanFailed("2026-04-20T12:00:42.000Z");
+  const scanId = writer.getActiveScanId();
+
+  const scanRow = database
+    .prepare(
+      `
+        SELECT status, scan_completed_at
+        FROM package_scans
+        WHERE scan_id = ?
+      `
+    )
+    .get(scanId) as {
+    status: string;
+    scan_completed_at: string | null;
+  };
+
+  assert.equal(scanRow.status, "failed");
+  assert.equal(scanRow.scan_completed_at, "2026-04-20T12:00:42.000Z");
+
+  database.close();
+});
