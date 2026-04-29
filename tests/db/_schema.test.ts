@@ -21,7 +21,7 @@ test("initializeSchema creates manifest_reachability for precomputed graph reads
         SELECT sql
         FROM sqlite_master
         WHERE type = 'table' AND name = 'manifest_reachability'
-      `,
+      `
     )
     .get() as { sql?: string } | undefined;
 

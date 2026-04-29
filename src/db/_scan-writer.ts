@@ -4,7 +4,7 @@ import type {
   ManifestEdgeRecord,
   ManifestRecord,
   PackageVersionRecord,
-  TagRecord,
+  TagRecord
 } from "../core/index.js";
 import { rebuildManifestReachability } from "./_manifest-reachability.js";
 
@@ -22,7 +22,7 @@ export class ScanWriter {
         `
         INSERT INTO package_scans(package_name, scan_started_at, scan_completed_at, status)
         VALUES(?, ?, NULL, 'running')
-      `,
+      `
       )
       .run(packageName, scanStartedAt);
 
@@ -36,7 +36,7 @@ export class ScanWriter {
         UPDATE package_scans
         SET scan_completed_at = ?, status = 'completed'
         WHERE scan_id = ?
-      `,
+      `
       )
       .run(scanCompletedAt, this.#requireScanId());
   }
@@ -48,7 +48,7 @@ export class ScanWriter {
         UPDATE package_scans
         SET scan_completed_at = ?, status = 'failed'
         WHERE scan_id = ?
-      `,
+      `
       )
       .run(scanCompletedAt, this.#requireScanId());
   }
@@ -59,14 +59,14 @@ export class ScanWriter {
         `
         INSERT OR REPLACE INTO package_versions(scan_id, version_id, digest, created_at, updated_at)
         VALUES(@scanId, @versionId, @digest, @createdAt, @updatedAt)
-      `,
+      `
       )
       .run({
         scanId: this.#requireScanId(),
         versionId: version.versionId,
         digest: version.digest,
         createdAt: version.createdAt,
-        updatedAt: version.updatedAt,
+        updatedAt: version.updatedAt
       });
 
     this.#database
@@ -74,12 +74,12 @@ export class ScanWriter {
         `
         INSERT OR REPLACE INTO package_version_metadata(scan_id, version_id, metadata_json)
         VALUES(@scanId, @versionId, @metadataJson)
-      `,
+      `
       )
       .run({
         scanId: this.#requireScanId(),
         versionId: version.versionId,
-        metadataJson: JSON.stringify(version.metadata ?? {}),
+        metadataJson: JSON.stringify(version.metadata ?? {})
       });
   }
 
@@ -89,7 +89,7 @@ export class ScanWriter {
         `
         INSERT OR REPLACE INTO package_version_payloads(scan_id, version_id, raw_json)
         VALUES(?, ?, ?)
-      `,
+      `
       )
       .run(this.#requireScanId(), versionId, rawJson);
   }
@@ -100,11 +100,11 @@ export class ScanWriter {
         `
         INSERT OR REPLACE INTO tags(scan_id, tag, digest, version_id)
         VALUES(@scanId, @tag, @digest, @versionId)
-      `,
+      `
       )
       .run({
         scanId: this.#requireScanId(),
-        ...tag,
+        ...tag
       });
   }
 
@@ -136,7 +136,7 @@ export class ScanWriter {
           @platformArchitecture,
           @platformVariant
         )
-      `,
+      `
       )
       .run({
         scanId: this.#requireScanId(),
@@ -148,7 +148,7 @@ export class ScanWriter {
         annotationsJson: manifest.annotations ? JSON.stringify(manifest.annotations) : null,
         platformOs: manifest.platform?.os ?? null,
         platformArchitecture: manifest.platform?.architecture ?? null,
-        platformVariant: manifest.platform?.variant ?? null,
+        platformVariant: manifest.platform?.variant ?? null
       });
   }
 
@@ -158,7 +158,7 @@ export class ScanWriter {
         `
         INSERT OR REPLACE INTO manifest_payloads(scan_id, digest, raw_json)
         VALUES(?, ?, ?)
-      `,
+      `
       )
       .run(this.#requireScanId(), digest, rawJson);
   }
@@ -187,7 +187,7 @@ export class ScanWriter {
           @platformArchitecture,
           @platformVariant
         )
-      `,
+      `
       )
       .run({
         scanId: this.#requireScanId(),
@@ -197,7 +197,7 @@ export class ScanWriter {
         artifactType: descriptor.artifactType ?? null,
         platformOs: descriptor.platform?.os ?? null,
         platformArchitecture: descriptor.platform?.architecture ?? null,
-        platformVariant: descriptor.platform?.variant ?? null,
+        platformVariant: descriptor.platform?.variant ?? null
       });
   }
 
@@ -207,11 +207,11 @@ export class ScanWriter {
         `
         INSERT OR IGNORE INTO manifest_edges(scan_id, parent_digest, child_digest, edge_kind)
         VALUES(@scanId, @parentDigest, @childDigest, @edgeKind)
-      `,
+      `
       )
       .run({
         scanId: this.#requireScanId(),
-        ...edge,
+        ...edge
       });
   }
 

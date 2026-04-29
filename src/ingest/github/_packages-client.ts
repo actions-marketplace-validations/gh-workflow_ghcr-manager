@@ -8,7 +8,7 @@ export async function ingestPackageVersions(
   fetchImpl: FetchLike,
   githubApiBaseUrl: string,
   options: GitHubScanOptions,
-  writer: ScanWriter,
+  writer: ScanWriter
 ): Promise<{ packageVersions: number; tags: number }> {
   let tagCount = 0;
   const result = await ingestParallelPaginated<GitHubPackageVersionPageItem>({
@@ -19,7 +19,7 @@ export async function ingestPackageVersions(
     writePage(pageItems) {
       _writePage(writer, pageItems);
       tagCount += _countTags(pageItems);
-    },
+    }
   });
 
   return { packageVersions: result.items, tags: tagCount };
@@ -38,7 +38,7 @@ export function buildTags(packageVersions: PackageVersionRecord[]): TagRecord[] 
       tags.push({
         tag: tagName,
         digest: version.digest,
-        versionId: version.versionId,
+        versionId: version.versionId
       });
     }
   }
@@ -53,7 +53,7 @@ export function normalizePackageVersions(packageVersions: GitHubPackageVersionPa
       digest: version.name,
       createdAt: version.created_at,
       updatedAt: version.updated_at,
-      metadata: version.metadata as Record<string, unknown> | undefined,
+      metadata: version.metadata as Record<string, unknown> | undefined
     }))
     .sort((left, right) => left.versionId - right.versionId);
 }

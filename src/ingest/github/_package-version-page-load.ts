@@ -3,7 +3,7 @@ import {
   buildHttpErrorMessage,
   type FetchLike,
   type GitHubScanOptions,
-  withFetchRetry,
+  withFetchRetry
 } from "./_shared.js";
 
 export interface GitHubPackageVersionPageItem {
@@ -22,7 +22,7 @@ export async function loadPackageVersionPage(
   fetchImpl: FetchLike,
   githubApiBaseUrl: string,
   options: GitHubScanOptions,
-  page: number,
+  page: number
 ): Promise<GitHubPackageVersionPageItem[]> {
   const startTime = Date.now();
   const url = buildPackageVersionPageUrl(githubApiBaseUrl, options, page);
@@ -35,8 +35,8 @@ export async function loadPackageVersionPage(
             Accept: "application/vnd.github+json",
             Authorization: `Bearer ${options.token}`,
             "User-Agent": "ghcr-manager",
-            "X-GitHub-Api-Version": "2022-11-28",
-          },
+            "X-GitHub-Api-Version": "2022-11-28"
+          }
         });
         if (!pageResponse.ok && _shouldRetryStatus(pageResponse.status)) {
           throw new Error(await buildHttpErrorMessage(pageResponse, `GitHub Packages request for page ${page} failed`));
@@ -46,12 +46,12 @@ export async function loadPackageVersionPage(
       {
         logger: options.logger,
         label: `GitHub Packages request for page ${page}`,
-        shouldRetry: (error) => _shouldRetryError(error),
-      },
+        shouldRetry: (error) => _shouldRetryError(error)
+      }
     );
   } catch (error) {
     throw new Error(buildFetchTransportErrorMessage(error, `GitHub Packages request for page ${page} failed`), {
-      cause: error,
+      cause: error
     });
   }
 
@@ -61,7 +61,7 @@ export async function loadPackageVersionPage(
 
   const pageItems = (await response.json()) as GitHubPackageVersionPageItem[];
   options.logger.debug(
-    `Loaded GitHub package-version page ${page} in ${Date.now() - startTime}ms (${pageItems.length} items)`,
+    `Loaded GitHub package-version page ${page} in ${Date.now() - startTime}ms (${pageItems.length} items)`
   );
   return pageItems;
 }
@@ -69,7 +69,7 @@ export async function loadPackageVersionPage(
 function buildPackageVersionPageUrl(githubApiBaseUrl: string, options: GitHubScanOptions, page: number): string {
   const url = new URL(
     `/orgs/${encodeURIComponent(options.owner)}/packages/container/${encodeURIComponent(options.packageName)}/versions`,
-    githubApiBaseUrl,
+    githubApiBaseUrl
   );
   url.searchParams.set("per_page", "100");
   url.searchParams.set("page", String(page));

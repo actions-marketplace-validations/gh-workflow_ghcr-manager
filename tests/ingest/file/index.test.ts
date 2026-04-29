@@ -16,7 +16,7 @@ test("file ingest writes fixture data directly into SQLite", async () => {
   assert.equal(repository.countManifestEdges(scanId), 2);
   assert.equal(
     (database.prepare("SELECT COUNT(*) AS total FROM manifest_reachability").get() as { total: number }).total,
-    7,
+    7
   );
 
   database.close();

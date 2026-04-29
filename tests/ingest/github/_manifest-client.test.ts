@@ -10,22 +10,22 @@ test("manifest client maps child and referrer edges", async () => {
       {
         mediaType: "application/vnd.oci.image.index.v1+json",
         annotations: {
-          "org.opencontainers.image.ref.name": "latest",
+          "org.opencontainers.image.ref.name": "latest"
         },
         config: {
-          mediaType: "application/vnd.oci.empty.v1+json",
+          mediaType: "application/vnd.oci.empty.v1+json"
         },
         manifests: [
           {
             digest: "sha256:child",
-            mediaType: "application/vnd.oci.image.manifest.v1+json",
-          },
+            mediaType: "application/vnd.oci.image.manifest.v1+json"
+          }
         ],
         subject: {
-          digest: "sha256:subject",
-        },
-      },
-    ],
+          digest: "sha256:subject"
+        }
+      }
+    ]
   ]);
 
   const manifest = await loadManifestGraph(
@@ -42,7 +42,7 @@ test("manifest client maps child and referrer edges", async () => {
         headers: new Headers({ "content-type": "application/vnd.oci.image.index.v1+json" }),
         async json() {
           return body;
-        },
+        }
       };
     },
     "https://ghcr.test",
@@ -52,8 +52,8 @@ test("manifest client maps child and referrer edges", async () => {
       owner: "acme",
       packageName: "example",
       token: "token",
-      logger: { debug() {}, info() {}, warn() {}, error() {} },
-    },
+      logger: { debug() {}, info() {}, warn() {}, error() {} }
+    }
   );
 
   assert.equal(manifest.record.digest, "sha256:index");
@@ -64,8 +64,8 @@ test("manifest client maps child and referrer edges", async () => {
     configMediaType: "application/vnd.oci.empty.v1+json",
     subjectDigest: "sha256:subject",
     annotations: {
-      "org.opencontainers.image.ref.name": "latest",
-    },
+      "org.opencontainers.image.ref.name": "latest"
+    }
   });
   assert.match(manifest.rawJson, /"mediaType":"application\/vnd\.oci\.image\.index\.v1\+json"/);
   assert.deepEqual(manifest.descriptorRecords, [
@@ -74,12 +74,12 @@ test("manifest client maps child and referrer edges", async () => {
       childDigest: "sha256:child",
       mediaType: "application/vnd.oci.image.manifest.v1+json",
       artifactType: undefined,
-      platform: undefined,
-    },
+      platform: undefined
+    }
   ]);
   assert.deepEqual(manifest.edgeRecords, [
     { parentDigest: "sha256:index", childDigest: "sha256:child", edgeKind: "image-child" },
-    { parentDigest: "sha256:subject", childDigest: "sha256:index", edgeKind: "referrer" },
+    { parentDigest: "sha256:subject", childDigest: "sha256:index", edgeKind: "referrer" }
   ]);
 });
 
@@ -97,9 +97,9 @@ test("manifest client surfaces fetch transport failures with digest context", as
           owner: "acme",
           packageName: "example",
           token: "token",
-          logger: { debug() {}, info() {}, warn() {}, error() {} },
-        },
+          logger: { debug() {}, info() {}, warn() {}, error() {} }
+        }
       ),
-    /GHCR manifest request for sha256:index failed - fetch failed/,
+    /GHCR manifest request for sha256:index failed - fetch failed/
   );
 });

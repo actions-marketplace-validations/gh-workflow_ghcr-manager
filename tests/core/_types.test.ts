@@ -9,7 +9,7 @@ test("core types describe a valid snapshot shape", () => {
     packageVersions: [],
     tags: [],
     manifests: [],
-    manifestEdges: [],
+    manifestEdges: []
   };
 
   assert.equal(snapshot.packageName, "acme/example");

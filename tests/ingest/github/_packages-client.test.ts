@@ -19,7 +19,7 @@ test("package client writes package versions and tags with bounded parallel page
     },
     insertTag(tag: { tag: string }) {
       insertedTags.push(tag.tag);
-    },
+    }
   } as unknown as ScanWriter;
 
   const counts = await ingestPackageVersions(
@@ -41,7 +41,7 @@ test("package client writes package versions and tags with bounded parallel page
               name: `sha256:${index + 1}`,
               created_at: "2026-04-01T00:00:00.000Z",
               updated_at: "2026-04-01T00:00:00.000Z",
-              metadata: { container: { tags: [`tag-${index + 1}`] } },
+              metadata: { container: { tags: [`tag-${index + 1}`] } }
             }));
           }
           if (page === 2) {
@@ -51,12 +51,12 @@ test("package client writes package versions and tags with bounded parallel page
                 name: "sha256:101",
                 created_at: "2026-04-01T00:00:00.000Z",
                 updated_at: "2026-04-01T00:00:00.000Z",
-                metadata: { container: { tags: ["tag-101"] } },
-              },
+                metadata: { container: { tags: ["tag-101"] } }
+              }
             ];
           }
           return [];
-        },
+        }
       };
     },
     "https://api.github.test",
@@ -64,9 +64,9 @@ test("package client writes package versions and tags with bounded parallel page
       owner: "acme",
       packageName: "example",
       token: "token",
-      logger: { debug() {}, info() {}, warn() {}, error() {} },
+      logger: { debug() {}, info() {}, warn() {}, error() {} }
     },
-    writer,
+    writer
   );
 
   assert.deepEqual(counts, { packageVersions: 101, tags: 101 });
@@ -80,7 +80,7 @@ test("package client surfaces GitHub error details", async () => {
   const writer = {
     insertPackageVersion() {},
     insertPackageVersionPayload() {},
-    insertTag() {},
+    insertTag() {}
   } as unknown as ScanWriter;
 
   await assert.rejects(
@@ -93,20 +93,20 @@ test("package client surfaces GitHub error details", async () => {
           async json() {
             return {
               message: "Requires authentication",
-              documentation_url: "https://docs.github.com/rest/packages/packages",
+              documentation_url: "https://docs.github.com/rest/packages/packages"
             };
-          },
+          }
         }),
         "https://api.github.test",
         {
           owner: "acme",
           packageName: "example",
           token: "token",
-          logger: { debug() {}, info() {}, warn() {}, error() {} },
+          logger: { debug() {}, info() {}, warn() {}, error() {} }
         },
-        writer,
+        writer
       ),
-    /GitHub Packages request failed - status 401 - Requires authentication - https:\/\/docs\.github\.com\/rest\/packages\/packages/,
+    /GitHub Packages request failed - status 401 - Requires authentication - https:\/\/docs\.github\.com\/rest\/packages\/packages/
   );
 });
 
@@ -114,7 +114,7 @@ test("package client surfaces fetch transport failures with page context", async
   const writer = {
     insertPackageVersion() {},
     insertPackageVersionPayload() {},
-    insertTag() {},
+    insertTag() {}
   } as unknown as ScanWriter;
 
   await assert.rejects(
@@ -128,10 +128,10 @@ test("package client surfaces fetch transport failures with page context", async
           owner: "acme",
           packageName: "example",
           token: "token",
-          logger: { debug() {}, info() {}, warn() {}, error() {} },
+          logger: { debug() {}, info() {}, warn() {}, error() {} }
         },
-        writer,
+        writer
       ),
-    /GitHub Packages request for page 1 failed - fetch failed/,
+    /GitHub Packages request for page 1 failed - fetch failed/
   );
 });

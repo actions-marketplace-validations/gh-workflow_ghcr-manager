@@ -83,7 +83,7 @@ export function rebuildManifestReachability(database: Database.Database, scanId:
         min_distance
       )
       VALUES(?, ?, ?, ?)
-    `,
+    `
   );
 
   const rebuild = database.transaction(() => {
@@ -114,7 +114,7 @@ function _loadManifestEdges(database: Database.Database, scanId: number): _Manif
         FROM manifest_edges
         WHERE scan_id = ?
         ORDER BY parent_digest, child_digest
-      `,
+      `
     )
     .all(scanId) as _ManifestEdgeRow[];
 }

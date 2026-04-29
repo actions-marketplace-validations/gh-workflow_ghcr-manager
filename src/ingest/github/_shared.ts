@@ -28,7 +28,7 @@ export const acceptedManifestMediaTypes = [
   "application/vnd.oci.image.manifest.v1+json",
   "application/vnd.docker.distribution.manifest.list.v2+json",
   "application/vnd.docker.distribution.manifest.v2+json",
-  "application/vnd.oci.artifact.manifest.v1+json",
+  "application/vnd.oci.artifact.manifest.v1+json"
 ].join(", ");
 
 export async function defaultFetch(input: string, init?: RequestInit): Promise<FetchLikeResponse> {
@@ -67,7 +67,7 @@ export async function withFetchRetry<T>(
     logger: GitHubScanLogger;
     label: string;
     shouldRetry?: (error: unknown) => boolean;
-  },
+  }
 ): Promise<T> {
   let attempt = 0;
   for (;;) {
@@ -82,7 +82,7 @@ export async function withFetchRetry<T>(
 
       const errorMessage = error instanceof Error ? error.message : String(error);
       options.logger.warn(
-        `${options.label} failed on attempt ${attempt}/${ingestRequestRetryCount + 1}; retrying in ${ingestRequestRetryDelayMs}ms - ${errorMessage}`,
+        `${options.label} failed on attempt ${attempt}/${ingestRequestRetryCount + 1}; retrying in ${ingestRequestRetryDelayMs}ms - ${errorMessage}`
       );
       await _sleep(ingestRequestRetryDelayMs);
     }

@@ -16,10 +16,10 @@ export async function handleScan(args: string[]): Promise<number> {
       owner,
       packageName,
       token: resolveGitHubToken(args),
-      logger,
+      logger
     },
     writer,
-    repository,
+    repository
   );
   const scanId = writer.getActiveScanId();
   const metadata = repository.getPackageMetadata(scanId);
@@ -31,11 +31,11 @@ export async function handleScan(args: string[]): Promise<number> {
         packageVersions: repository.countPackageVersions(scanId),
         tags: repository.countTags(scanId),
         manifests: repository.countManifests(scanId),
-        manifestEdges: repository.countManifestEdges(scanId),
+        manifestEdges: repository.countManifestEdges(scanId)
       },
       null,
-      2,
-    ),
+      2
+    )
   );
 
   database.close();

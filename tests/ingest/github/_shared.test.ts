@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   acceptedManifestMediaTypes,
   buildFetchTransportErrorMessage,
-  withFetchRetry,
+  withFetchRetry
 } from "../../../src/ingest/github/_shared.js";
 
 test("shared GitHub ingest constants include OCI artifact manifests", () => {
@@ -29,9 +29,9 @@ test("shared retry helper retries and then succeeds", async () => {
         warn(message) {
           warnings.push(message);
         },
-        error() {},
-      },
-    },
+        error() {}
+      }
+    }
   );
 
   assert.equal(result, "ok");
@@ -41,11 +41,11 @@ test("shared retry helper retries and then succeeds", async () => {
 
 test("shared transport error formatter includes nested cause details", () => {
   const transportError = new TypeError("fetch failed", {
-    cause: Object.assign(new Error("socket hang up"), { code: "ECONNRESET" }),
+    cause: Object.assign(new Error("socket hang up"), { code: "ECONNRESET" })
   });
 
   assert.equal(
     buildFetchTransportErrorMessage(transportError, "request failed"),
-    "request failed - fetch failed - socket hang up (ECONNRESET)",
+    "request failed - fetch failed - socket hang up (ECONNRESET)"
   );
 });

@@ -10,7 +10,7 @@ const _tsRecommendedConfigs = /** @type {any[]} */ (tseslint.configs.recommended
 
 export default defineConfig(
   {
-    ignores: [".venv/**", "dist/**", "node_modules/**"],
+    ignores: [".venv/**", "dist/**", "node_modules/**"]
   },
   js.configs.recommended,
   ..._tsRecommendedConfigs,
@@ -18,31 +18,31 @@ export default defineConfig(
     files: ["src/**/*.ts", "tests/**/*.ts"],
     languageOptions: {
       globals: {
-        ...globals.node,
-      },
+        ...globals.node
+      }
     },
     plugins: {
       architecture: {
         rules: {
-          "only-index-cross-folder": onlyIndexCrossFolderRule,
-        },
-      },
+          "only-index-cross-folder": onlyIndexCrossFolderRule
+        }
+      }
     },
     rules: {
-      "architecture/only-index-cross-folder": "error",
-    },
+      "architecture/only-index-cross-folder": "error"
+    }
   },
   ...yml.configs["flat/recommended"],
   {
     files: ["**/*.{yml,yaml}"],
     rules: {
-      "yml/file-extension": ["error", { extension: "yml" }],
-    },
+      "yml/file-extension": ["error", { extension: "yml" }]
+    }
   },
   {
     files: [".github/workflows/*.yml"],
     rules: {
-      "yml/no-empty-mapping-value": "off",
-    },
-  },
+      "yml/no-empty-mapping-value": "off"
+    }
+  }
 );

@@ -26,7 +26,7 @@ export class SnapshotRepository {
           SELECT package_name, scan_completed_at
           FROM package_scans
           WHERE scan_id = ?
-        `,
+        `
       )
       .get(scanId) as Pick<_ScanRow, "package_name" | "scan_completed_at"> | undefined;
     if (!row) {
@@ -38,7 +38,7 @@ export class SnapshotRepository {
 
     return {
       packageName: row.package_name,
-      scanCompletedAt: row.scan_completed_at,
+      scanCompletedAt: row.scan_completed_at
     };
   }
 
@@ -47,7 +47,7 @@ export class SnapshotRepository {
       this.#database.prepare("SELECT DISTINCT digest FROM tags WHERE scan_id = ?").all(scanId) as Array<{
         digest: string;
       }>,
-      "digest",
+      "digest"
     );
   }
 
@@ -84,13 +84,13 @@ export class SnapshotRepository {
           FROM package_versions
           WHERE scan_id = ? AND created_at < ?
           ORDER BY version_id
-        `,
+        `
       )
       .all(scanId, cutoffTimestamp) as _VersionRow[];
 
     return rows.map((row) => ({
       versionId: row.version_id,
-      digest: row.digest,
+      digest: row.digest
     }));
   }
 
@@ -110,7 +110,7 @@ export class SnapshotRepository {
       this.#database,
       "SELECT COUNT(DISTINCT version_id) AS total FROM tags WHERE scan_id = ?",
       "total",
-      scanId,
+      scanId
     );
   }
 

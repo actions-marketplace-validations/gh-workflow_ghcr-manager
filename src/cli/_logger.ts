@@ -12,7 +12,7 @@ const _logLevelPriority: Record<LogLevel, number> = {
   info: 20,
   warn: 30,
   error: 40,
-  silent: 50,
+  silent: 50
 };
 
 export function isLogLevel(value: string): value is LogLevel {
@@ -24,7 +24,7 @@ export function createLogger(level: LogLevel, sink: NodeJS.WritableStream = proc
     debug: _write.bind(null, "debug", level, sink),
     info: _write.bind(null, "info", level, sink),
     warn: _write.bind(null, "warn", level, sink),
-    error: _write.bind(null, "error", level, sink),
+    error: _write.bind(null, "error", level, sink)
   };
 }
 

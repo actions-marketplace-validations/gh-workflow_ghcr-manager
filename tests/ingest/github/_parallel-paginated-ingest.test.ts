@@ -25,13 +25,13 @@ test("parallel paginated ingest loads later pages concurrently", async () => {
     },
     writePage(_pageItems, page) {
       loadedPages.push(page);
-    },
+    }
   });
 
   assert.deepEqual(result, { pages: 2, items: 101 });
   assert.deepEqual(
     loadedPages.sort((left, right) => left - right),
-    [1, 2],
+    [1, 2]
   );
   assert.ok(maxActiveLoads > 1);
 });

@@ -5,6 +5,6 @@ import { handleScan } from "../../src/cli/_scan-command.js";
 test("handleScan requires an owner for GitHub scans", async () => {
   await assert.rejects(
     () => handleScan(["--db", "scan.sqlite", "--log-level", "silent", "--package", "example"]),
-    /missing required option: --owner/,
+    /missing required option: --owner/
   );
 });

@@ -16,7 +16,7 @@ export async function ingestManifests(
   options: GitHubScanOptions,
   writer: ScanWriter,
   repository: SnapshotRepository,
-  scanId: number,
+  scanId: number
 ): Promise<void> {
   const pendingDigests = repository.listPackageVersionDigests(scanId);
   const initialDigestCount = pendingDigests.length;
@@ -53,7 +53,7 @@ export async function ingestManifests(
           if (completed % progressStep === 0 || pendingDigests.length === 0) {
             options.logger.info(`Fetched manifests ${completed}/${queuedDigests.size}`);
           }
-        },
+        }
       ).finally(() => {
         activeLoads.delete(load);
       });
@@ -83,7 +83,7 @@ async function _loadQueuedManifest(
   edgeRecords: ManifestEdgeRecord[],
   completed: number,
   getRegistryToken: () => Promise<string>,
-  onComplete: () => void,
+  onComplete: () => void
 ): Promise<void> {
   options.logger.debug(`Fetching manifest ${completed + 1}/${queuedDigests.size}: ${digest}`);
   const manifest = await loadManifestGraph(fetchImpl, registryBaseUrl, digest, await getRegistryToken(), options);
@@ -106,7 +106,7 @@ async function _getRegistryPullToken(
   fetchImpl: FetchLike,
   registryBaseUrl: string,
   options: GitHubScanOptions,
-  registryPullTokenState: _RegistryPullTokenState,
+  registryPullTokenState: _RegistryPullTokenState
 ): Promise<RegistryPullToken> {
   if (registryPullTokenState.token && Date.now() < registryPullTokenState.token.expiresAt - 5000) {
     return registryPullTokenState.token;
@@ -127,7 +127,7 @@ function _enqueueDigest(
   digest: string,
   pendingDigests: string[],
   queuedDigests: Set<string>,
-  fetchedDigests: Set<string>,
+  fetchedDigests: Set<string>
 ): void {
   if (queuedDigests.has(digest) || fetchedDigests.has(digest)) {
     return;

@@ -5,7 +5,7 @@ import {
   buildHttpErrorMessage,
   type FetchLike,
   type GitHubScanOptions,
-  withFetchRetry,
+  withFetchRetry
 } from "./_shared.js";
 
 interface _RegistryPlatform {
@@ -39,7 +39,7 @@ export async function loadManifestGraph(
   registryBaseUrl: string,
   digest: string,
   registryToken: string,
-  options: GitHubScanOptions,
+  options: GitHubScanOptions
 ): Promise<{
   record: ManifestRecord;
   descriptorRecords: ManifestDescriptorRecord[];
@@ -56,8 +56,8 @@ export async function loadManifestGraph(
           headers: {
             Accept: acceptedManifestMediaTypes,
             Authorization: `Bearer ${registryToken}`,
-            "User-Agent": "ghcr-manager",
-          },
+            "User-Agent": "ghcr-manager"
+          }
         });
         if (!manifestResponse.ok && _shouldRetryStatus(manifestResponse.status)) {
           throw new Error(await buildHttpErrorMessage(manifestResponse, `GHCR manifest request for ${digest} failed`));
@@ -67,12 +67,12 @@ export async function loadManifestGraph(
       {
         logger: options.logger,
         label: `GHCR manifest request for ${digest}`,
-        shouldRetry: (error) => _shouldRetryError(error),
-      },
+        shouldRetry: (error) => _shouldRetryError(error)
+      }
     );
   } catch (error) {
     throw new Error(buildFetchTransportErrorMessage(error, `GHCR manifest request for ${digest} failed`), {
-      cause: error,
+      cause: error
     });
   }
 
@@ -97,16 +97,16 @@ export async function loadManifestGraph(
       artifactType: document.artifactType,
       configMediaType: document.config?.mediaType,
       subjectDigest: document.subject?.digest,
-      annotations: document.annotations,
+      annotations: document.annotations
     },
     descriptorRecords: _buildDescriptorRecords(digest, document),
-    edgeRecords: _buildEdges(digest, document),
+    edgeRecords: _buildEdges(digest, document)
   };
 }
 
 function _buildDescriptorRecords(
   parentDigest: string,
-  document: _RegistryManifestDocument,
+  document: _RegistryManifestDocument
 ): ManifestDescriptorRecord[] {
   const records: ManifestDescriptorRecord[] = [];
   for (const child of document.manifests ?? []) {
@@ -119,7 +119,7 @@ function _buildDescriptorRecords(
       childDigest: child.digest,
       mediaType: child.mediaType,
       artifactType: child.artifactType,
-      platform: child.platform,
+      platform: child.platform
     });
   }
   return records;
@@ -136,7 +136,7 @@ function _buildEdges(parentDigest: string, document: _RegistryManifestDocument):
     edges.push({
       parentDigest,
       childDigest: child.digest,
-      edgeKind: "image-child",
+      edgeKind: "image-child"
     });
   }
 
@@ -144,7 +144,7 @@ function _buildEdges(parentDigest: string, document: _RegistryManifestDocument):
     edges.push({
       parentDigest: document.subject.digest,
       childDigest: parentDigest,
-      edgeKind: "referrer",
+      edgeKind: "referrer"
     });
   }
 

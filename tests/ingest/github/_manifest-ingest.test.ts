@@ -19,13 +19,13 @@ test("manifest ingest fetches manifests with shared token reuse", async () => {
     insertManifestEdge(edge: { parentDigest: string; childDigest: string; edgeKind: string }) {
       insertedEdges.push(edge);
     },
-    rebuildManifestReachability() {},
+    rebuildManifestReachability() {}
   } as unknown as ScanWriter;
 
   const repository = {
     listPackageVersionDigests() {
       return [...manifestDigests];
-    },
+    }
   } as unknown as SnapshotRepository;
 
   await ingestManifests(
@@ -38,7 +38,7 @@ test("manifest ingest fetches manifests with shared token reuse", async () => {
           headers: new Headers(),
           async json() {
             return { token: "registry-token", expires_in: 3600 };
-          },
+          }
         };
       }
 
@@ -56,7 +56,7 @@ test("manifest ingest fetches manifests with shared token reuse", async () => {
           headers: new Headers({ "content-type": "application/vnd.oci.image.manifest.v1+json" }),
           async json() {
             return { mediaType: "application/vnd.oci.image.manifest.v1+json" };
-          },
+          }
         };
       }
 
@@ -71,12 +71,12 @@ test("manifest ingest fetches manifests with shared token reuse", async () => {
         debug() {},
         info() {},
         warn() {},
-        error() {},
-      },
+        error() {}
+      }
     },
     writer,
     repository,
-    scanId,
+    scanId
   );
 
   assert.equal(tokenRequests, 1);

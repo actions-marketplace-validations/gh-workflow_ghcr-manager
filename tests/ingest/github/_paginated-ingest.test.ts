@@ -14,7 +14,7 @@ test("paginated ingest writes each page and reports progress", async () => {
         progressMessages.push(message);
       },
       warn() {},
-      error() {},
+      error() {}
     },
     async loadPage(page) {
       if (page === 1) {
@@ -28,14 +28,14 @@ test("paginated ingest writes each page and reports progress", async () => {
     writePage(pageItems, page) {
       writtenPages.push(page);
       writtenItems.push(...pageItems);
-    },
+    }
   });
 
   assert.deepEqual(writtenPages, [1, 2]);
   assert.equal(writtenItems.length, 101);
   assert.deepEqual(progressMessages, [
     "Loaded GitHub package-version pages 1 (100 items total)",
-    "Loaded GitHub package-version pages 2 (101 items total)",
+    "Loaded GitHub package-version pages 2 (101 items total)"
   ]);
   assert.deepEqual(result, { pages: 2, items: 101 });
 });

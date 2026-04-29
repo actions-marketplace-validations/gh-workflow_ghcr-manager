@@ -121,7 +121,7 @@ const _schemaStatements = [
   `CREATE INDEX IF NOT EXISTS idx_manifest_descriptors_scan_child ON manifest_descriptors(scan_id, child_digest)`,
   `CREATE INDEX IF NOT EXISTS idx_manifest_edges_scan_parent ON manifest_edges(scan_id, parent_digest)`,
   `CREATE INDEX IF NOT EXISTS idx_manifest_edges_scan_child ON manifest_edges(scan_id, child_digest)`,
-  `CREATE INDEX IF NOT EXISTS idx_manifest_reachability_scan_descendant ON manifest_reachability(scan_id, descendant_digest)`,
+  `CREATE INDEX IF NOT EXISTS idx_manifest_reachability_scan_descendant ON manifest_reachability(scan_id, descendant_digest)`
 ];
 
 export function initializeSchema(database: Database.Database): void {

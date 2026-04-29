@@ -16,7 +16,7 @@ test("registry token client requests a pull token with basic auth", async () => 
         headers: new Headers(),
         async json() {
           return { token: "registry-token", expires_in: 120 };
-        },
+        }
       };
     },
     "https://ghcr.test",
@@ -24,8 +24,8 @@ test("registry token client requests a pull token with basic auth", async () => 
       owner: "acme",
       packageName: "example",
       token: "secret-token",
-      logger: { debug() {}, info() {}, warn() {}, error() {} },
-    },
+      logger: { debug() {}, info() {}, warn() {}, error() {} }
+    }
   );
 
   assert.equal(token.token, "registry-token");
@@ -45,7 +45,7 @@ test("registry token client includes basic auth with owner and token", async () 
         headers: new Headers(),
         async json() {
           return { token: "public-token", issued_at: "2026-04-29T00:00:00.000Z", expires_in: 60 };
-        },
+        }
       };
     },
     "https://ghcr.test",
@@ -53,8 +53,8 @@ test("registry token client includes basic auth with owner and token", async () 
       owner: "acme",
       packageName: "example",
       token: "secret-token",
-      logger: { debug() {}, info() {}, warn() {}, error() {} },
-    },
+      logger: { debug() {}, info() {}, warn() {}, error() {} }
+    }
   );
 
   assert.equal(token.token, "public-token");
@@ -71,23 +71,23 @@ test("registry token client surfaces auth challenge details", async () => {
           status: 401,
           headers: new Headers({
             "content-type": "application/json",
-            "www-authenticate": 'Bearer realm="https://ghcr.io/token"',
+            "www-authenticate": 'Bearer realm="https://ghcr.io/token"'
           }),
           async json() {
             return {
-              message: "authentication required",
+              message: "authentication required"
             };
-          },
+          }
         }),
         "https://ghcr.test",
         {
           owner: "acme",
           packageName: "example",
           token: "secret-token",
-          logger: { debug() {}, info() {}, warn() {}, error() {} },
-        },
+          logger: { debug() {}, info() {}, warn() {}, error() {} }
+        }
       ),
-    /GHCR token request failed - status 401 - authentication required - www-authenticate: Bearer realm="https:\/\/ghcr\.io\/token"/,
+    /GHCR token request failed - status 401 - authentication required - www-authenticate: Bearer realm="https:\/\/ghcr\.io\/token"/
   );
 });
 
@@ -103,9 +103,9 @@ test("registry token client surfaces fetch transport failures", async () => {
           owner: "acme",
           packageName: "example",
           token: "secret-token",
-          logger: { debug() {}, info() {}, warn() {}, error() {} },
-        },
+          logger: { debug() {}, info() {}, warn() {}, error() {} }
+        }
       ),
-    /GHCR token request failed - fetch failed/,
+    /GHCR token request failed - fetch failed/
   );
 });

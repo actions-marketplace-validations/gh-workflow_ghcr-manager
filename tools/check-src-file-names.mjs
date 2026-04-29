@@ -31,7 +31,7 @@ async function walk(directoryPath) {
     }
 
     violations.push(
-      `Non-public TypeScript source files in src/ must start with _: ${path.relative(process.cwd(), entryPath)}`,
+      `Non-public TypeScript source files in src/ must start with _: ${path.relative(process.cwd(), entryPath)}`
     );
   }
 }

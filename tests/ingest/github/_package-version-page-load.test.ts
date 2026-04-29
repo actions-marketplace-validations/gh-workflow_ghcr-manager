@@ -20,10 +20,10 @@ test("package version page loader requests the expected page", async () => {
               name: "sha256:x",
               created_at: "2026-04-01T00:00:00.000Z",
               updated_at: "2026-04-01T00:00:00.000Z",
-              metadata: { container: { tags: ["latest"] } },
-            },
+              metadata: { container: { tags: ["latest"] } }
+            }
           ];
-        },
+        }
       };
     },
     "https://api.github.test",
@@ -31,9 +31,9 @@ test("package version page loader requests the expected page", async () => {
       owner: "acme",
       packageName: "example",
       token: "token",
-      logger: { debug() {}, info() {}, warn() {}, error() {} },
+      logger: { debug() {}, info() {}, warn() {}, error() {} }
     },
-    3,
+    3
   );
 
   assert.equal(seenUrl, "https://api.github.test/orgs/acme/packages/container/example/versions?per_page=100&page=3");
@@ -52,10 +52,10 @@ test("package version page loader surfaces fetch transport failures with page co
           owner: "acme",
           packageName: "example",
           token: "token",
-          logger: { debug() {}, info() {}, warn() {}, error() {} },
+          logger: { debug() {}, info() {}, warn() {}, error() {} }
         },
-        9,
+        9
       ),
-    /GitHub Packages request for page 9 failed - fetch failed/,
+    /GitHub Packages request for page 9 failed - fetch failed/
   );
 });

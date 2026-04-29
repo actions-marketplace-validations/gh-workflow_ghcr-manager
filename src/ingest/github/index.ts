@@ -16,7 +16,7 @@ export async function importGitHubScan(
   options: GitHubScanOptions,
   writer: ScanWriter,
   repository: SnapshotRepository,
-  runtime?: _GitHubScanRuntime,
+  runtime?: _GitHubScanRuntime
 ): Promise<void> {
   const fetchImpl = runtime?.fetchImpl ?? defaultFetch;
   const scanStartedAt = new Date().toISOString();

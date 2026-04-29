@@ -24,9 +24,9 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
             updated_at: "2026-04-02T00:00:00.000Z",
             metadata: {
               container: {
-                tags: ["latest"],
-              },
-            },
+                tags: ["latest"]
+              }
+            }
           },
           {
             id: 102,
@@ -35,21 +35,21 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
             updated_at: "2026-03-02T00:00:00.000Z",
             metadata: {
               container: {
-                tags: [],
-              },
-            },
-          },
-        ],
-      },
+                tags: []
+              }
+            }
+          }
+        ]
+      }
     ],
     [
       "https://ghcr.io/token?service=ghcr.io&scope=repository%3Aacme%2Fexample%3Apull",
       {
         body: {
           token: "registry-token",
-          expires_in: 3600,
-        },
-      },
+          expires_in: 3600
+        }
+      }
     ],
     [
       "https://ghcr.io/v2/acme/example/manifests/sha256:index",
@@ -63,12 +63,12 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
               mediaType: "application/vnd.oci.image.manifest.v1+json",
               platform: {
                 architecture: "amd64",
-                os: "linux",
-              },
-            },
-          ],
-        },
-      },
+                os: "linux"
+              }
+            }
+          ]
+        }
+      }
     ],
     [
       "https://ghcr.io/v2/acme/example/manifests/sha256:child",
@@ -77,10 +77,10 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
         body: {
           mediaType: "application/vnd.oci.image.manifest.v1+json",
           config: {
-            mediaType: "application/vnd.oci.image.config.v1+json",
-          },
-        },
-      },
+            mediaType: "application/vnd.oci.image.config.v1+json"
+          }
+        }
+      }
     ],
     [
       "https://ghcr.io/v2/acme/example/manifests/sha256:attestation",
@@ -90,23 +90,23 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
           mediaType: "application/vnd.oci.artifact.manifest.v1+json",
           artifactType: "application/vnd.in-toto+json",
           annotations: {
-            "dev.sigstore.bundle.content": "dsse-envelope",
+            "dev.sigstore.bundle.content": "dsse-envelope"
           },
           config: {
-            mediaType: "application/vnd.oci.empty.v1+json",
+            mediaType: "application/vnd.oci.empty.v1+json"
           },
           subject: {
-            digest: "sha256:index",
-          },
-        },
-      },
+            digest: "sha256:index"
+          }
+        }
+      }
     ],
     [
       "https://api.github.com/orgs/acme/packages/container/example/versions?per_page=100&page=2",
       {
-        body: [],
-      },
-    ],
+        body: []
+      }
+    ]
   ]);
 
   const database = openDatabase(":memory:");
@@ -130,8 +130,8 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
         },
         error(message) {
           progressMessages.push(`error:${message}`);
-        },
-      },
+        }
+      }
     },
     writer,
     repository,
@@ -156,10 +156,10 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
           headers: new Headers(response.contentType ? { "content-type": response.contentType } : {}),
           async json() {
             return response.body;
-          },
+          }
         };
-      },
-    },
+      }
+    }
   );
   const scanId = writer.getActiveScanId();
 
@@ -171,15 +171,15 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
   assert.equal(tokenRequestCount, 1);
   assert.equal(
     (database.prepare("SELECT COUNT(*) AS total FROM manifest_descriptors").get() as { total: number }).total,
-    1,
+    1
   );
   assert.equal(
     (database.prepare("SELECT COUNT(*) AS total FROM package_version_payloads").get() as { total: number }).total,
-    2,
+    2
   );
   assert.equal(
     (database.prepare("SELECT COUNT(*) AS total FROM manifest_payloads").get() as { total: number }).total,
-    3,
+    3
   );
   assert.match(
     (
@@ -187,7 +187,7 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
         raw_json: string;
       }
     ).raw_json,
-    /"manifests":\[/,
+    /"manifests":\[/
   );
   assert.deepEqual(
     database
@@ -196,18 +196,18 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
           SELECT config_media_type, subject_digest, annotations_json
           FROM manifests
           WHERE digest = 'sha256:attestation'
-        `,
+        `
       )
       .get(),
     {
       config_media_type: "application/vnd.oci.empty.v1+json",
       subject_digest: "sha256:index",
-      annotations_json: '{"dev.sigstore.bundle.content":"dsse-envelope"}',
-    },
+      annotations_json: '{"dev.sigstore.bundle.content":"dsse-envelope"}'
+    }
   );
   assert.equal(
     (database.prepare("SELECT COUNT(*) AS total FROM manifest_reachability").get() as { total: number }).total,
-    5,
+    5
   );
   assert.deepEqual(
     progressMessages.filter((message) => message.startsWith("info:")),
@@ -219,8 +219,8 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
       "info:Fetched manifests 1/3",
       "info:Fetched manifests 2/3",
       "info:Fetched manifests 3/3",
-      "info:Completed GitHub package scan for acme/example",
-    ],
+      "info:Completed GitHub package scan for acme/example"
+    ]
   );
 
   database.close();

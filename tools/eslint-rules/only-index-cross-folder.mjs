@@ -16,7 +16,7 @@ function resolveImportTarget(importerPath, importPath) {
     `${resolvedBasePath}.ts`,
     `${resolvedBasePath}.js`,
     path.join(resolvedBasePath, "index.ts"),
-    path.join(resolvedBasePath, "index.js"),
+    path.join(resolvedBasePath, "index.js")
   ];
 
   return candidates.find((candidate) => path.extname(candidate) !== "");
@@ -41,13 +41,13 @@ export const onlyIndexCrossFolderRule = {
   meta: {
     type: "problem",
     docs: {
-      description: "Require imports from outside a folder to go through that folder's index file.",
+      description: "Require imports from outside a folder to go through that folder's index file."
     },
     schema: [],
     messages: {
       onlyIndex:
-        "Imports from outside a folder must go through that folder's index file. Import '{{requested}}' via the folder entrypoint instead.",
-    },
+        "Imports from outside a folder must go through that folder's index file. Import '{{requested}}' via the folder entrypoint instead."
+    }
   },
 
   create(context) {
@@ -77,15 +77,15 @@ export const onlyIndexCrossFolderRule = {
         node: node.source,
         messageId: "onlyIndex",
         data: {
-          requested: importPath,
-        },
+          requested: importPath
+        }
       });
     }
 
     return {
       ImportDeclaration: checkSource,
       ExportAllDeclaration: checkSource,
-      ExportNamedDeclaration: checkSource,
+      ExportNamedDeclaration: checkSource
     };
-  },
+  }
 };

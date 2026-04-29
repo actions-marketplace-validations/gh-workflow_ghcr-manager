@@ -9,7 +9,7 @@ test("core index re-exports public types", () => {
     packageVersions: [],
     tags: [],
     manifests: [],
-    manifestEdges: [],
+    manifestEdges: []
   };
 
   assert.equal(snapshot.packageName, "acme/example");

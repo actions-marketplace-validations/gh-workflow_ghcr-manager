@@ -5,7 +5,7 @@ import {
   findOption,
   requireOption,
   resolveGitHubToken,
-  resolveLogLevel,
+  resolveLogLevel
 } from "../../src/cli/_args.js";
 
 test("findOption and requireOption read single-value options", () => {
