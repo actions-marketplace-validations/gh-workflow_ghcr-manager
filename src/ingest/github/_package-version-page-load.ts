@@ -24,6 +24,7 @@ export async function loadPackageVersionPage(
   options: GitHubScanOptions,
   page: number,
 ): Promise<GitHubPackageVersionPageItem[]> {
+  const startTime = Date.now();
   const url = buildPackageVersionPageUrl(githubApiBaseUrl, options, page);
   const response = await withFetchRetry(
     async () => {
@@ -57,7 +58,11 @@ export async function loadPackageVersionPage(
     throw new Error(await buildHttpErrorMessage(response, "GitHub Packages request failed"));
   }
 
-  return (await response.json()) as GitHubPackageVersionPageItem[];
+  const pageItems = (await response.json()) as GitHubPackageVersionPageItem[];
+  options.logger?.debug(
+    `Loaded GitHub package-version page ${page} in ${Date.now() - startTime}ms (${pageItems.length} items)`,
+  );
+  return pageItems;
 }
 
 function buildPackageVersionPageUrl(githubApiBaseUrl: string, options: GitHubScanOptions, page: number): string {

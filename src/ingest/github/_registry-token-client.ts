@@ -16,6 +16,7 @@ export async function loadRegistryPullToken(
   registryBaseUrl: string,
   options: GitHubScanOptions,
 ): Promise<RegistryPullToken> {
+  const startTime = Date.now();
   const url = _buildRegistryTokenUrl(registryBaseUrl, options);
   const response = await withFetchRetry(
     async () => {
@@ -52,10 +53,14 @@ export async function loadRegistryPullToken(
     throw new Error("GHCR token response did not include a token");
   }
 
-  return {
+  const registryPullToken = {
     token: body.token,
     expiresAt: _getExpiresAt(body.expires_in, body.issued_at),
   };
+  options.logger?.debug(
+    `Loaded GHCR pull token in ${Date.now() - startTime}ms (expires in ${Math.max(0, Math.round((registryPullToken.expiresAt - Date.now()) / 1000))}s)`,
+  );
+  return registryPullToken;
 }
 
 function _buildRegistryTokenUrl(registryBaseUrl: string, options: GitHubScanOptions): string {

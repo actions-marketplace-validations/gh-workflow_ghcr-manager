@@ -46,6 +46,7 @@ export async function loadManifestGraph(
   edgeRecords: ManifestEdgeRecord[];
   rawJson: string;
 }> {
+  const startTime = Date.now();
   const url = new URL(`/v2/${options.owner}/${options.packageName}/manifests/${digest}`, registryBaseUrl);
   const response = await withFetchRetry(
     async () => {
@@ -84,6 +85,7 @@ export async function loadManifestGraph(
   if (!mediaType) {
     throw new Error(`manifest response for ${digest} did not include a media type`);
   }
+  options.logger?.debug(`Loaded GHCR manifest ${digest} in ${Date.now() - startTime}ms (${mediaType})`);
 
   return {
     rawJson,
