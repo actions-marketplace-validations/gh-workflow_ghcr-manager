@@ -44,5 +44,6 @@ export async function importGitHubScan(
   for (const edge of edgeRecords) {
     writer.insertManifestEdge(edge);
   }
+  writer.rebuildManifestReachability();
   logger?.info(`Completed GitHub package scan for ${packageName}`);
 }

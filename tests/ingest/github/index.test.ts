@@ -144,6 +144,10 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
   assert.equal(repository.countTags(), 1);
   assert.equal(repository.countManifests(), 3);
   assert.equal(repository.countManifestEdges(), 2);
+  assert.equal(
+    (database.prepare("SELECT COUNT(*) AS total FROM manifest_reachability").get() as { total: number }).total,
+    5,
+  );
   assert.deepEqual(
     progressMessages.filter((message) => message.startsWith("info:")),
     [

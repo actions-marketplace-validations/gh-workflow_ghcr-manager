@@ -105,7 +105,7 @@ src/
 - `cli/` contains command dispatch and command-specific argument handling.
 - `core/` contains stable shared types and planner logic.
 - `db/` contains SQLite schema, database opening, and snapshot persistence/query code.
-- `ingest/` contains input-source adapters, currently `file/` and `github/`.
+- `ingest/` contains input-source adapters, currently `f ile/` and `github/`.
 
 ## Current Direction
 

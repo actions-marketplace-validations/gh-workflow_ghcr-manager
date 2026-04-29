@@ -28,4 +28,5 @@ export async function importFileScan(snapshotPath: string, writer: ScanWriter): 
   for (const edge of document.manifestEdges) {
     writer.insertManifestEdge(edge);
   }
+  writer.rebuildManifestReachability();
 }

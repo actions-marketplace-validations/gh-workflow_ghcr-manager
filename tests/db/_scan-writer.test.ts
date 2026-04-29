@@ -32,12 +32,17 @@ test("scan writer stores scan metadata and rows incrementally", () => {
     childDigest: "sha256:child",
     edgeKind: "image-child",
   });
+  writer.rebuildManifestReachability();
 
   assert.equal(repository.getPackageMetadata().packageName, "acme/example");
   assert.equal(repository.countPackageVersions(), 1);
   assert.equal(repository.countTags(), 1);
   assert.equal(repository.countManifests(), 2);
   assert.equal(repository.countManifestEdges(), 1);
+  assert.equal(
+    (database.prepare("SELECT COUNT(*) AS total FROM manifest_reachability").get() as { total: number }).total,
+    3,
+  );
 
   database.close();
 });

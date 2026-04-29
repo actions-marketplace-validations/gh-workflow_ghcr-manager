@@ -1,5 +1,6 @@
 import type Database from "better-sqlite3";
 import type { ManifestEdgeRecord, ManifestRecord, PackageVersionRecord, TagRecord } from "../core/index.js";
+import { rebuildManifestReachability } from "./_manifest-reachability.js";
 
 export class ScanWriter {
   readonly #database: Database.Database;
@@ -12,6 +13,7 @@ export class ScanWriter {
     this.#database.exec(`
       DELETE FROM package_scans;
       DELETE FROM tags;
+      DELETE FROM manifest_reachability;
       DELETE FROM manifest_edges;
       DELETE FROM manifests;
       DELETE FROM package_versions;
@@ -91,5 +93,9 @@ export class ScanWriter {
       `,
       )
       .run(edge);
+  }
+
+  rebuildManifestReachability(): void {
+    rebuildManifestReachability(this.#database);
   }
 }
