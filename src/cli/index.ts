@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { openDatabase } from "../db/index.js";
 import { requireOption } from "./_args.js";
 import { handlePlanSummary } from "./_plan-summary-command.js";
@@ -38,7 +40,11 @@ function printUsage(): void {
   ghcr-manager plan-summary --db <path> --older-than-days <days> [--delete-untagged] [--exclude-tag <tag>]`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+const _entryPath = process.argv[1];
+const _isDirectExecution =
+  typeof _entryPath === "string" && realpathSync(_entryPath) === realpathSync(fileURLToPath(import.meta.url));
+
+if (_isDirectExecution) {
   main(process.argv.slice(2)).catch((error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
     console.error(message);

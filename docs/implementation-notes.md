@@ -92,8 +92,8 @@ This section is the canonical place for session-to-session continuity.
   - final scan summary JSON stays on stdout
   - supported levels: `debug`, `info`, `warn`, `error`, `silent`
 - Debug helpers:
-  - `scripts/debug/scan-ghcr-gh-auth.sh --image <owner/package> --db <path> [--log-level <level>]` runs the live
-    GitHub/GHCR scan with `GITHUB_TOKEN` sourced from `gh auth token`
+  - `GITHUB_TOKEN="$(gh auth token)" ghcr-manager scan --db <path> --owner <owner> --package <package> [--log-level <level>]`
+    runs the live GitHub/GHCR scan directly via the CLI binary
 - Working tree expectation at the end of the last session: clean after `e33d011`.
 - Commit policy: do not commit agent changes until the user has reviewed and explicitly asked for a commit.
 - File size guideline for production TypeScript:
