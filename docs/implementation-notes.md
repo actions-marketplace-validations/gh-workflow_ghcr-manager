@@ -48,6 +48,8 @@ This section is the canonical place for session-to-session continuity.
 - ☑ Extract `config_media_type`, `subject_digest`, and `annotations_json` from fetched manifest JSON into `manifests`.
 - ☑ Cache and reuse GHCR pull tokens during manifest scans, refreshing based on token expiry instead of reloading per
   manifest.
+- ☑ Fetch GHCR manifests with bounded parallelism instead of strictly one-by-one, with a code-local concurrency constant
+  for easy tuning.
 - ☐ Expand planner output so it explains why versions are protected or deletable.
 - ☐ Add tests for multi-arch images, referrers, and explicit tag exclusion behavior.
 - ☐ Revisit action packaging after the live ingest path exists.
@@ -205,6 +207,8 @@ src/
   common image-vs-artifact classification can be done without JSON-path expressions in every query.
 - GHCR pull tokens are now cached per scan and reused until shortly before expiry; when the token response omits
   explicit expiry fields, the client falls back to a 60-second lifetime per the registry token spec.
+- GHCR manifest fetches now run with a bounded worker pool instead of one-by-one; the concurrency is currently a local
+  constant set to `16` in `src/ingest/github/index.ts`.
 
 ## Next Increment
 
