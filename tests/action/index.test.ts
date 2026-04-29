@@ -13,7 +13,6 @@ test("runAction forwards action inputs to the CLI", async () => {
     {
       INPUT_COMMAND: "scan",
       INPUT_DB_PATH: "scan.sqlite",
-      INPUT_SOURCE: "github",
       INPUT_OWNER: "acme",
       INPUT_PACKAGE: "example",
       INPUT_TOKEN: "token",
@@ -29,8 +28,6 @@ test("runAction forwards action inputs to the CLI", async () => {
     "scan",
     "--db",
     "scan.sqlite",
-    "--source",
-    "github",
     "--owner",
     "acme",
     "--package",

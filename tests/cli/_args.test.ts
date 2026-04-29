@@ -9,9 +9,9 @@ import {
 } from "../../src/cli/_args.js";
 
 test("findOption and requireOption read single-value options", () => {
-  const args = ["--db", "scan.sqlite", "--source", "file"];
+  const args = ["--db", "scan.sqlite", "--package", "example"];
   assert.equal(findOption(args, "--db"), "scan.sqlite");
-  assert.equal(requireOption(args, "--source"), "file");
+  assert.equal(requireOption(args, "--package"), "example");
 });
 
 test("collectRepeatedOption reads repeated options in order", () => {

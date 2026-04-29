@@ -64,8 +64,8 @@ This section is the canonical place for session-to-session continuity.
 - Linting: ESLint, `eslint-plugin-yml`, `markdownlint-cli2`, and Prettier.
 - Persistence model: local SQLite database per run.
 - Current ingest sources:
-  - local JSON snapshot fixture
   - live GitHub Packages plus GHCR manifest scan for one org-owned container package
+  - local JSON snapshot fixture as an internal test helper only
 - Current ingest implementation:
   - writes fixture and live GitHub/GHCR results incrementally into SQLite
   - uses a dedicated GHCR registry token client for bearer-token acquisition
@@ -91,8 +91,8 @@ This section is the canonical place for session-to-session continuity.
   - final scan summary JSON stays on stdout
   - supported levels: `debug`, `info`, `warn`, `error`, `silent`
 - Debug helpers:
-  - `scripts/debug/scan-ghcr-gh-auth.sh --image <owner/package> --db <path> [--log-level <level>]` does the same with
-    `GITHUB_TOKEN` sourced from `gh auth token`
+  - `scripts/debug/scan-ghcr-gh-auth.sh --image <owner/package> --db <path> [--log-level <level>]` runs the live
+    GitHub/GHCR scan with `GITHUB_TOKEN` sourced from `gh auth token`
 - Working tree expectation at the end of the last session: clean after `e33d011`.
 - Commit policy: do not commit agent changes until the user has reviewed and explicitly asked for a commit.
 - File size guideline for production TypeScript:
@@ -120,7 +120,7 @@ src/
 - `cli/` contains command dispatch and command-specific argument handling.
 - `core/` contains stable shared types and planner logic.
 - `db/` contains SQLite schema, database opening, and snapshot persistence/query code.
-- `ingest/` contains input-source adapters, currently `f ile/` and `github/`.
+- `ingest/` contains live GitHub/GHCR ingest plus the internal file-fixture import helper used by tests.
 
 ## Current Direction
 
@@ -170,7 +170,7 @@ src/
 ### 2026-04-29
 
 - Strengthened the handoff documentation and made it the canonical session continuity record.
-- Added a live `scan --source github` path backed by the GitHub Packages API and GHCR manifest fetches.
+- Added a live `scan` path backed by the GitHub Packages API and GHCR manifest fetches.
 - Normalized live package versions, tags, manifests, and edges into the existing SQLite-backed snapshot model.
 - Added a focused ingest test covering tagged indexes, image child manifests, and referrer edges.
 - Extended the planner fixture coverage so a tagged manifest graph now protects both child manifests and referrers.
@@ -216,6 +216,8 @@ src/
   live together near the code root in `src/tuning/index.ts`.
 - GitHub package pages, GHCR manifest fetches, and GHCR token fetches now retry a small bounded number of times for
   transport failures and selected transient HTTP statuses before failing the scan.
+- Removed the public `--source` / `--snapshot` scan mode split; the app now exposes only the real GitHub/GHCR scan path
+  while keeping the file fixture loader as an internal test helper.
 
 ## Next Increment
 

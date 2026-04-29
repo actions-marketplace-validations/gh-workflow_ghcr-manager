@@ -46,6 +46,5 @@ package_name="${image_registry#*/}"
 GITHUB_TOKEN="$(gh auth token)" node dist/cli/index.js scan \
   --db "$target_db" \
   --log-level "$log_level" \
-  --source github \
   --owner "$owner" \
   --package "$package_name"

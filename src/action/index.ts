@@ -19,8 +19,6 @@ export async function runAction(
 function _buildActionArgs(environment: NodeJS.ProcessEnv): string[] {
   const args: string[] = [];
   _pushOption(args, "--db", environment.INPUT_DB_PATH);
-  _pushOption(args, "--snapshot", environment.INPUT_SNAPSHOT);
-  _pushOption(args, "--source", environment.INPUT_SOURCE);
   _pushOption(args, "--owner", environment.INPUT_OWNER);
   _pushOption(args, "--package", environment.INPUT_PACKAGE);
   _pushOption(args, "--token", environment.INPUT_TOKEN);

@@ -34,8 +34,7 @@ async function handleInitDb(args: string[]): Promise<number> {
 function printUsage(): void {
   console.error(`Usage:
   ghcr-manager init-db --db <path>
-  ghcr-manager scan --db <path> [--log-level <debug|info|warn|error|silent>] [--source file --snapshot <path>]
-  ghcr-manager scan --db <path> [--log-level <debug|info|warn|error|silent>] --source github --owner <org> --package <name> [--token <token>]
+  ghcr-manager scan --db <path> [--log-level <debug|info|warn|error|silent>] --owner <org> --package <name> [--token <token>]
   ghcr-manager plan-summary --db <path> --older-than-days <days> [--delete-untagged] [--exclude-tag <tag>]`);
 }
 
