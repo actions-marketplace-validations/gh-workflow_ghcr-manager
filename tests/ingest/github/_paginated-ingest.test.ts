@@ -8,8 +8,6 @@ test("paginated ingest writes each page and reports progress", async () => {
   const progressMessages: string[] = [];
 
   const result = await ingestPaginated<number>({
-    progressLabel: "test pages",
-    progressIntervalPages: 2,
     logger: {
       debug() {},
       info(message) {
@@ -20,10 +18,10 @@ test("paginated ingest writes each page and reports progress", async () => {
     },
     async loadPage(page) {
       if (page === 1) {
-        return [1, 2];
+        return Array.from({ length: 100 }, (_, index) => index + 1);
       }
       if (page === 2) {
-        return [3];
+        return [101];
       }
       return [];
     },
@@ -31,11 +29,13 @@ test("paginated ingest writes each page and reports progress", async () => {
       writtenPages.push(page);
       writtenItems.push(...pageItems);
     },
-    pageSize: 2,
   });
 
   assert.deepEqual(writtenPages, [1, 2]);
-  assert.deepEqual(writtenItems, [1, 2, 3]);
-  assert.deepEqual(progressMessages, ["Loaded test pages 1 (2 items total)", "Loaded test pages 2 (3 items total)"]);
-  assert.deepEqual(result, { pages: 2, items: 3 });
+  assert.equal(writtenItems.length, 101);
+  assert.deepEqual(progressMessages, [
+    "Loaded GitHub package-version pages 1 (100 items total)",
+    "Loaded GitHub package-version pages 2 (101 items total)",
+  ]);
+  assert.deepEqual(result, { pages: 2, items: 101 });
 });

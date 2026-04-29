@@ -60,7 +60,12 @@ test("package client writes package versions and tags with bounded parallel page
       };
     },
     "https://api.github.test",
-    { owner: "acme", packageName: "example", token: "token" },
+    {
+      owner: "acme",
+      packageName: "example",
+      token: "token",
+      logger: { debug() {}, info() {}, warn() {}, error() {} },
+    },
     writer,
   );
 
@@ -93,7 +98,12 @@ test("package client surfaces GitHub error details", async () => {
           },
         }),
         "https://api.github.test",
-        { owner: "acme", packageName: "example" },
+        {
+          owner: "acme",
+          packageName: "example",
+          token: "token",
+          logger: { debug() {}, info() {}, warn() {}, error() {} },
+        },
         writer,
       ),
     /GitHub Packages request failed - status 401 - Requires authentication - https:\/\/docs\.github\.com\/rest\/packages\/packages/,
@@ -114,7 +124,12 @@ test("package client surfaces fetch transport failures with page context", async
           throw new TypeError("fetch failed");
         },
         "https://api.github.test",
-        { owner: "acme", packageName: "example", token: "token" },
+        {
+          owner: "acme",
+          packageName: "example",
+          token: "token",
+          logger: { debug() {}, info() {}, warn() {}, error() {} },
+        },
         writer,
       ),
     /GitHub Packages request for page 1 failed - fetch failed/,

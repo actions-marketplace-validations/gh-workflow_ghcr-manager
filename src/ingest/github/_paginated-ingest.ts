@@ -1,12 +1,13 @@
 import type { GitHubScanLogger } from "./_shared.js";
+import { paginatedIngestProgressIntervalPages } from "../../tuning/index.js";
+
+const _DEFAULT_PAGE_SIZE = 100;
+const _PROGRESS_LABEL = "GitHub package-version pages";
 
 export interface PaginatedIngestOptions<T> {
   loadPage(page: number): Promise<T[]>;
   writePage(pageItems: T[], page: number): Promise<void> | void;
-  logger?: GitHubScanLogger;
-  progressLabel: string;
-  pageSize?: number;
-  progressIntervalPages?: number;
+  logger: GitHubScanLogger;
 }
 
 export interface PaginatedIngestResult {
@@ -15,8 +16,6 @@ export interface PaginatedIngestResult {
 }
 
 export async function ingestPaginated<T>(options: PaginatedIngestOptions<T>): Promise<PaginatedIngestResult> {
-  const pageSize = options.pageSize ?? 100;
-  const progressIntervalPages = options.progressIntervalPages ?? 10;
   let pages = 0;
   let items = 0;
   let lastLoggedPage = 0;
@@ -31,18 +30,18 @@ export async function ingestPaginated<T>(options: PaginatedIngestOptions<T>): Pr
     pages = page;
     items += pageItems.length;
 
-    if (page === 1 || page % progressIntervalPages === 0 || pageItems.length < pageSize) {
-      options.logger?.info(`Loaded ${options.progressLabel} ${page} (${items} items total)`);
+    if (page === 1 || page % paginatedIngestProgressIntervalPages === 0 || pageItems.length < _DEFAULT_PAGE_SIZE) {
+      options.logger.info(`Loaded ${_PROGRESS_LABEL} ${page} (${items} items total)`);
       lastLoggedPage = page;
     }
 
-    if (pageItems.length < pageSize) {
+    if (pageItems.length < _DEFAULT_PAGE_SIZE) {
       break;
     }
   }
 
   if (pages > 0 && lastLoggedPage !== pages) {
-    options.logger?.info(`Loaded ${options.progressLabel} ${pages} (${items} items total)`);
+    options.logger.info(`Loaded ${_PROGRESS_LABEL} ${pages} (${items} items total)`);
   }
 
   return { pages, items };

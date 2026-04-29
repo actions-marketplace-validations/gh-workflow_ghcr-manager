@@ -5,12 +5,15 @@ import tseslint from "typescript-eslint";
 import yml from "eslint-plugin-yml";
 import { onlyIndexCrossFolderRule } from "./tools/eslint-rules/only-index-cross-folder.mjs";
 
+/** @type {any[]} */
+const _tsRecommendedConfigs = /** @type {any[]} */ (tseslint.configs.recommended);
+
 export default defineConfig(
   {
     ignores: [".venv/**", "dist/**", "node_modules/**"],
   },
   js.configs.recommended,
-  ...tseslint.configs.recommended,
+  ..._tsRecommendedConfigs,
   {
     files: ["src/**/*.ts", "tests/**/*.ts"],
     languageOptions: {

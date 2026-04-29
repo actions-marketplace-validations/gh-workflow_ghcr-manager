@@ -8,8 +8,7 @@ test("parallel paginated ingest loads later pages concurrently", async () => {
   let maxActiveLoads = 0;
 
   const result = await ingestParallelPaginated({
-    concurrency: 4,
-    progressLabel: "pages",
+    logger: { debug() {}, info() {}, warn() {}, error() {} },
     async loadPage(page) {
       activeLoads += 1;
       maxActiveLoads = Math.max(maxActiveLoads, activeLoads);

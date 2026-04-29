@@ -26,10 +26,11 @@ export async function loadPackageVersionPage(
 ): Promise<GitHubPackageVersionPageItem[]> {
   const startTime = Date.now();
   const url = buildPackageVersionPageUrl(githubApiBaseUrl, options, page);
-  const response = await withFetchRetry(
-    async () => {
-      try {
-        const response = await fetchImpl(url, {
+  let response;
+  try {
+    response = await withFetchRetry(
+      async () => {
+        const pageResponse = await fetchImpl(url, {
           headers: {
             Accept: "application/vnd.github+json",
             Authorization: `Bearer ${options.token}`,
@@ -37,29 +38,29 @@ export async function loadPackageVersionPage(
             "X-GitHub-Api-Version": "2022-11-28",
           },
         });
-        if (!response.ok && _shouldRetryStatus(response.status)) {
-          throw new Error(await buildHttpErrorMessage(response, `GitHub Packages request for page ${page} failed`));
+        if (!pageResponse.ok && _shouldRetryStatus(pageResponse.status)) {
+          throw new Error(await buildHttpErrorMessage(pageResponse, `GitHub Packages request for page ${page} failed`));
         }
-        return response;
-      } catch (error) {
-        throw new Error(buildFetchTransportErrorMessage(error, `GitHub Packages request for page ${page} failed`), {
-          cause: error,
-        });
-      }
-    },
-    {
-      logger: options.logger,
-      label: `GitHub Packages request for page ${page}`,
-      shouldRetry: (error) => _shouldRetryError(error),
-    },
-  );
+        return pageResponse;
+      },
+      {
+        logger: options.logger,
+        label: `GitHub Packages request for page ${page}`,
+        shouldRetry: (error) => _shouldRetryError(error),
+      },
+    );
+  } catch (error) {
+    throw new Error(buildFetchTransportErrorMessage(error, `GitHub Packages request for page ${page} failed`), {
+      cause: error,
+    });
+  }
 
   if (!response.ok) {
     throw new Error(await buildHttpErrorMessage(response, "GitHub Packages request failed"));
   }
 
   const pageItems = (await response.json()) as GitHubPackageVersionPageItem[];
-  options.logger?.debug(
+  options.logger.debug(
     `Loaded GitHub package-version page ${page} in ${Date.now() - startTime}ms (${pageItems.length} items)`,
   );
   return pageItems;

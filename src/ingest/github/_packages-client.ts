@@ -1,6 +1,5 @@
 import type { PackageVersionRecord, TagRecord } from "../../core/index.js";
 import type { ScanWriter } from "../../db/index.js";
-import { packageVersionPageFetchConcurrency } from "../../tuning/index.js";
 import { loadPackageVersionPage, type GitHubPackageVersionPageItem } from "./_package-version-page-load.js";
 import { ingestParallelPaginated } from "./_parallel-paginated-ingest.js";
 import { type FetchLike, type GitHubScanOptions } from "./_shared.js";
@@ -13,9 +12,7 @@ export async function ingestPackageVersions(
 ): Promise<{ packageVersions: number; tags: number }> {
   let tagCount = 0;
   const result = await ingestParallelPaginated<GitHubPackageVersionPageItem>({
-    concurrency: packageVersionPageFetchConcurrency,
     logger: options.logger,
-    progressLabel: "GitHub package-version pages",
     loadPage(page) {
       return loadPackageVersionPage(fetchImpl, githubApiBaseUrl, options, page);
     },

@@ -1,6 +1,6 @@
 import type { ManifestEdgeRecord } from "../../core/index.js";
 import type { ScanWriter, SnapshotRepository } from "../../db/index.js";
-import { manifestFetchConcurrency } from "../../tuning/index.js";
+import { manifestFetchConcurrency, manifestIngestProgressStepRatio } from "../../tuning/index.js";
 import { loadManifestGraph } from "./_manifest-client.js";
 import { loadRegistryPullToken, type RegistryPullToken } from "./_registry-token-client.js";
 import { type FetchLike, type GitHubScanOptions } from "./_shared.js";
@@ -20,13 +20,11 @@ export async function ingestManifests(
 ): Promise<void> {
   const pendingDigests = repository.listPackageVersionDigests(scanId);
   const initialDigestCount = pendingDigests.length;
+  const progressStep = Math.max(1, Math.ceil(initialDigestCount * manifestIngestProgressStepRatio));
   const queuedDigests = new Set(pendingDigests);
   const fetchedDigests = new Set<string>();
   const registryPullTokenState: _RegistryPullTokenState = {};
-  options.logger?.info(`Fetching manifests for ${pendingDigests.length} package versions`);
-  const progressStepPercent = 5;
-  const usePercentProgressLogs = initialDigestCount >= 1000;
-  let nextProgressPercent = progressStepPercent;
+  options.logger.info(`Fetching manifests for ${pendingDigests.length} package versions`);
   let completed = 0;
   const edgeRecords: ManifestEdgeRecord[] = [];
   const activeLoads = new Set<Promise<void>>();
@@ -52,20 +50,8 @@ export async function ingestManifests(
         async () => (await _getRegistryPullToken(fetchImpl, registryBaseUrl, options, registryPullTokenState)).token,
         () => {
           completed += 1;
-          let logged = false;
-          if (usePercentProgressLogs && initialDigestCount > 0) {
-            const percent = Math.floor((completed * 100) / initialDigestCount);
-            if (percent >= nextProgressPercent) {
-              options.logger?.info(`Fetched manifests ${completed}/${queuedDigests.size}`);
-              logged = true;
-              while (nextProgressPercent <= percent) {
-                nextProgressPercent += progressStepPercent;
-              }
-            }
-          }
-
-          if (!logged && pendingDigests.length === 0) {
-            options.logger?.info(`Fetched manifests ${completed}/${queuedDigests.size}`);
+          if (completed % progressStep === 0 || pendingDigests.length === 0) {
+            options.logger.info(`Fetched manifests ${completed}/${queuedDigests.size}`);
           }
         },
       ).finally(() => {
@@ -99,7 +85,7 @@ async function _loadQueuedManifest(
   getRegistryToken: () => Promise<string>,
   onComplete: () => void,
 ): Promise<void> {
-  options.logger?.debug(`Fetching manifest ${completed + 1}/${queuedDigests.size}: ${digest}`);
+  options.logger.debug(`Fetching manifest ${completed + 1}/${queuedDigests.size}: ${digest}`);
   const manifest = await loadManifestGraph(fetchImpl, registryBaseUrl, digest, await getRegistryToken(), options);
   writer.insertManifest(manifest.record);
   writer.insertManifestPayload(manifest.record.digest, manifest.rawJson);

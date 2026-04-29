@@ -37,10 +37,6 @@ export function resolveGitHubToken(args: string[]): string {
   throw new Error("missing required option: --token");
 }
 
-export function resolveOptionalGitHubToken(args: string[]): string | undefined {
-  return findOption(args, "--token");
-}
-
 export function resolveLogLevel(args: string[]): LogLevel {
   const rawLevel = findOption(args, "--log-level") ?? "info";
   if (!isLogLevel(rawLevel)) {

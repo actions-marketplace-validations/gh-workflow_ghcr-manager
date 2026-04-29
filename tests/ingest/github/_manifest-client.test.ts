@@ -48,7 +48,12 @@ test("manifest client maps child and referrer edges", async () => {
     "https://ghcr.test",
     "sha256:index",
     "registry-token",
-    { owner: "acme", packageName: "example", token: "token" },
+    {
+      owner: "acme",
+      packageName: "example",
+      token: "token",
+      logger: { debug() {}, info() {}, warn() {}, error() {} },
+    },
   );
 
   assert.equal(manifest.record.digest, "sha256:index");
@@ -88,7 +93,12 @@ test("manifest client surfaces fetch transport failures with digest context", as
         "https://ghcr.test",
         "sha256:index",
         "registry-token",
-        { owner: "acme", packageName: "example", token: "token" },
+        {
+          owner: "acme",
+          packageName: "example",
+          token: "token",
+          logger: { debug() {}, info() {}, warn() {}, error() {} },
+        },
       ),
     /GHCR manifest request for sha256:index failed - fetch failed/,
   );

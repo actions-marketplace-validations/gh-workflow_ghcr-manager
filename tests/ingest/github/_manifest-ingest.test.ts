@@ -23,7 +23,7 @@ test("manifest ingest fetches manifests with shared token reuse", async () => {
   } as unknown as ScanWriter;
 
   const repository = {
-    listPackageVersionDigestsByScanId() {
+    listPackageVersionDigests() {
       return [...manifestDigests];
     },
   } as unknown as SnapshotRepository;

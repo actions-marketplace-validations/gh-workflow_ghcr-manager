@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { loadRegistryPullToken } from "../../../src/ingest/github/_registry-token-client.js";
 
-test("registry token client requests a pull token with optional basic auth", async () => {
+test("registry token client requests a pull token with basic auth", async () => {
   let seenAuthorization: string | undefined;
 
   const token = await loadRegistryPullToken(
@@ -20,7 +20,12 @@ test("registry token client requests a pull token with optional basic auth", asy
       };
     },
     "https://ghcr.test",
-    { owner: "acme", packageName: "example", token: "secret-token" },
+    {
+      owner: "acme",
+      packageName: "example",
+      token: "secret-token",
+      logger: { debug() {}, info() {}, warn() {}, error() {} },
+    },
   );
 
   assert.equal(token.token, "registry-token");
@@ -28,10 +33,11 @@ test("registry token client requests a pull token with optional basic auth", asy
   assert.equal(seenAuthorization, `Basic ${Buffer.from("acme:secret-token").toString("base64")}`);
 });
 
-test("registry token client omits auth for anonymous access", async () => {
+test("registry token client includes basic auth with owner and token", async () => {
+  let seenAuthorization: string | undefined;
   const token = await loadRegistryPullToken(
     async (_input, init) => {
-      assert.equal((init?.headers as Record<string, string>).Authorization, undefined);
+      seenAuthorization = (init?.headers as Record<string, string>).Authorization;
 
       return {
         ok: true,
@@ -43,11 +49,17 @@ test("registry token client omits auth for anonymous access", async () => {
       };
     },
     "https://ghcr.test",
-    { owner: "acme", packageName: "example" },
+    {
+      owner: "acme",
+      packageName: "example",
+      token: "secret-token",
+      logger: { debug() {}, info() {}, warn() {}, error() {} },
+    },
   );
 
   assert.equal(token.token, "public-token");
   assert.equal(token.expiresAt, Date.parse("2026-04-29T00:00:00.000Z") + 60_000);
+  assert.equal(seenAuthorization, `Basic ${Buffer.from("acme:secret-token").toString("base64")}`);
 });
 
 test("registry token client surfaces auth challenge details", async () => {
@@ -68,7 +80,12 @@ test("registry token client surfaces auth challenge details", async () => {
           },
         }),
         "https://ghcr.test",
-        { owner: "acme", packageName: "example" },
+        {
+          owner: "acme",
+          packageName: "example",
+          token: "secret-token",
+          logger: { debug() {}, info() {}, warn() {}, error() {} },
+        },
       ),
     /GHCR token request failed - status 401 - authentication required - www-authenticate: Bearer realm="https:\/\/ghcr\.io\/token"/,
   );
@@ -82,7 +99,12 @@ test("registry token client surfaces fetch transport failures", async () => {
           throw new TypeError("fetch failed");
         },
         "https://ghcr.test",
-        { owner: "acme", packageName: "example" },
+        {
+          owner: "acme",
+          packageName: "example",
+          token: "secret-token",
+          logger: { debug() {}, info() {}, warn() {}, error() {} },
+        },
       ),
     /GHCR token request failed - fetch failed/,
   );

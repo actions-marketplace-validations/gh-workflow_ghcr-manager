@@ -27,7 +27,12 @@ test("package version page loader requests the expected page", async () => {
       };
     },
     "https://api.github.test",
-    { owner: "acme", packageName: "example", token: "token" },
+    {
+      owner: "acme",
+      packageName: "example",
+      token: "token",
+      logger: { debug() {}, info() {}, warn() {}, error() {} },
+    },
     3,
   );
 
@@ -43,7 +48,12 @@ test("package version page loader surfaces fetch transport failures with page co
           throw new TypeError("fetch failed");
         },
         "https://api.github.test",
-        { owner: "acme", packageName: "example", token: "token" },
+        {
+          owner: "acme",
+          packageName: "example",
+          token: "token",
+          logger: { debug() {}, info() {}, warn() {}, error() {} },
+        },
         9,
       ),
     /GitHub Packages request for page 9 failed - fetch failed/,

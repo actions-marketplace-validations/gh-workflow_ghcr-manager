@@ -37,8 +37,7 @@ function printUsage(): void {
 }
 
 const _entryPath = process.argv[1];
-const _isDirectExecution =
-  typeof _entryPath === "string" && realpathSync(_entryPath) === realpathSync(fileURLToPath(import.meta.url));
+const _isDirectExecution = realpathSync(_entryPath) === realpathSync(fileURLToPath(import.meta.url));
 
 if (_isDirectExecution) {
   main(process.argv.slice(2)).catch((error: unknown) => {

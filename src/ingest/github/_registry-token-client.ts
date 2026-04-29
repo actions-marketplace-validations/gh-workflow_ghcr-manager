@@ -18,28 +18,30 @@ export async function loadRegistryPullToken(
 ): Promise<RegistryPullToken> {
   const startTime = Date.now();
   const url = _buildRegistryTokenUrl(registryBaseUrl, options);
-  const response = await withFetchRetry(
-    async () => {
-      try {
-        const response = await fetchImpl(url, {
+  let response;
+  try {
+    response = await withFetchRetry(
+      async () => {
+        const tokenResponse = await fetchImpl(url, {
           headers: _buildTokenHeaders(options),
         });
-        if (!response.ok && _shouldRetryStatus(response.status)) {
-          throw new Error(await buildHttpErrorMessage(response, "GHCR token request failed"));
+        if (!tokenResponse.ok && _shouldRetryStatus(tokenResponse.status)) {
+          throw new Error(await buildHttpErrorMessage(tokenResponse, "GHCR token request failed"));
         }
-        return response;
-      } catch (error) {
-        throw new Error(buildFetchTransportErrorMessage(error, "GHCR token request failed"), {
-          cause: error,
-        });
-      }
-    },
-    {
-      logger: options.logger,
-      label: "GHCR token request",
-      shouldRetry: (error) => _shouldRetryError(error),
-    },
-  );
+        return tokenResponse;
+      },
+      {
+        logger: options.logger,
+        label: "GHCR token request",
+        shouldRetry: (error) => _shouldRetryError(error),
+      },
+    );
+  } catch (error) {
+    throw new Error(buildFetchTransportErrorMessage(error, "GHCR token request failed"), {
+      cause: error,
+    });
+  }
+
   if (!response.ok) {
     throw new Error(await buildHttpErrorMessage(response, "GHCR token request failed"));
   }
@@ -57,7 +59,7 @@ export async function loadRegistryPullToken(
     token: body.token,
     expiresAt: _getExpiresAt(body.expires_in, body.issued_at),
   };
-  options.logger?.debug(
+  options.logger.debug(
     `Loaded GHCR pull token in ${Date.now() - startTime}ms (expires in ${Math.max(0, Math.round((registryPullToken.expiresAt - Date.now()) / 1000))}s)`,
   );
   return registryPullToken;
@@ -72,16 +74,11 @@ function _buildRegistryTokenUrl(registryBaseUrl: string, options: GitHubScanOpti
 }
 
 function _buildTokenHeaders(options: GitHubScanOptions): Record<string, string> {
-  const headers: Record<string, string> = {
+  const basicAuth = Buffer.from(`${options.owner}:${options.token}`).toString("base64");
+  return {
     "User-Agent": "ghcr-manager",
+    Authorization: `Basic ${basicAuth}`,
   };
-
-  if (options.token) {
-    const basicAuth = Buffer.from(`${options.username ?? options.owner}:${options.token}`).toString("base64");
-    headers.Authorization = `Basic ${basicAuth}`;
-  }
-
-  return headers;
 }
 
 function _getExpiresAt(expiresIn: unknown, issuedAt: unknown): number {

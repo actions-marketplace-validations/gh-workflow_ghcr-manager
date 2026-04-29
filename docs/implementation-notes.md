@@ -70,7 +70,7 @@ This section is the canonical place for session-to-session continuity.
 - Current ingest implementation:
   - writes fixture and live GitHub/GHCR results incrementally into SQLite
   - uses a dedicated GHCR registry token client for bearer-token acquisition
-  - supports anonymous GHCR manifest reads for public registries and optional GitHub auth for better access
+  - requires explicit GitHub token input for all live scans (no anonymous path)
   - uses a shared paginated ingest helper for GitHub Packages version/tag enumeration, writing each page directly to
     SQLite
   - writes manifest edges only after all manifests are present so the DB can enforce edge foreign keys cleanly
@@ -258,6 +258,15 @@ src/
 ### 2026-04-29 (action vs CLI responsibility split)
 
 - Decision: keep artifact upload behavior in the GitHub Action layer, not in the CLI/tool layer.
+
+### 2026-04-29 (ingest options de-bloat)
+
+- Tightened `GitHubScanOptions` to required scan inputs only: `owner`, `packageName`, `token`, and `logger`.
+- Removed optional scan-option fields that were internal/test-only concerns: `githubApiBaseUrl`, `registryBaseUrl`,
+  `username`, and `fetchImpl`.
+- Moved transport/base-url overrides into an internal runtime argument on `importGitHubScan(...)` so tests can still
+  inject fake HTTP without polluting the scan input contract.
+- Required logger usage across ingest internals (removed optional logger chaining), matching CLI behavior.
 - Rationale:
   - CLI should stay platform-agnostic and usable outside GitHub Actions.
   - GitHub-specific concerns (artifact retention, upload policy, conditional publish flags) belong to action wiring.

@@ -3,12 +3,8 @@ import { ingestRequestRetryCount, ingestRequestRetryDelayMs } from "../../tuning
 export interface GitHubScanOptions {
   owner: string;
   packageName: string;
-  token?: string;
-  githubApiBaseUrl?: string;
-  registryBaseUrl?: string;
-  username?: string;
-  fetchImpl?: FetchLike;
-  logger?: GitHubScanLogger;
+  token: string;
+  logger: GitHubScanLogger;
 }
 
 export interface GitHubScanLogger {
@@ -68,7 +64,7 @@ export async function buildHttpErrorMessage(response: FetchLikeResponse, fallbac
 export async function withFetchRetry<T>(
   run: () => Promise<T>,
   options: {
-    logger?: GitHubScanLogger;
+    logger: GitHubScanLogger;
     label: string;
     shouldRetry?: (error: unknown) => boolean;
   },
@@ -85,7 +81,7 @@ export async function withFetchRetry<T>(
       }
 
       const errorMessage = error instanceof Error ? error.message : String(error);
-      options.logger?.warn(
+      options.logger.warn(
         `${options.label} failed on attempt ${attempt}/${ingestRequestRetryCount + 1}; retrying in ${ingestRequestRetryDelayMs}ms - ${errorMessage}`,
       );
       await _sleep(ingestRequestRetryDelayMs);

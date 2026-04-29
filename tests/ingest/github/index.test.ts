@@ -14,7 +14,7 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
     }
   >([
     [
-      "https://api.github.test/orgs/acme/packages/container/example/versions?per_page=100&page=1",
+      "https://api.github.com/orgs/acme/packages/container/example/versions?per_page=100&page=1",
       {
         body: [
           {
@@ -43,7 +43,7 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
       },
     ],
     [
-      "https://ghcr.test/token?service=ghcr.test&scope=repository%3Aacme%2Fexample%3Apull",
+      "https://ghcr.io/token?service=ghcr.io&scope=repository%3Aacme%2Fexample%3Apull",
       {
         body: {
           token: "registry-token",
@@ -52,7 +52,7 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
       },
     ],
     [
-      "https://ghcr.test/v2/acme/example/manifests/sha256:index",
+      "https://ghcr.io/v2/acme/example/manifests/sha256:index",
       {
         contentType: "application/vnd.oci.image.index.v1+json",
         body: {
@@ -71,7 +71,7 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
       },
     ],
     [
-      "https://ghcr.test/v2/acme/example/manifests/sha256:child",
+      "https://ghcr.io/v2/acme/example/manifests/sha256:child",
       {
         contentType: "application/vnd.oci.image.manifest.v1+json",
         body: {
@@ -83,7 +83,7 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
       },
     ],
     [
-      "https://ghcr.test/v2/acme/example/manifests/sha256:attestation",
+      "https://ghcr.io/v2/acme/example/manifests/sha256:attestation",
       {
         contentType: "application/vnd.oci.artifact.manifest.v1+json",
         body: {
@@ -102,7 +102,7 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
       },
     ],
     [
-      "https://api.github.test/orgs/acme/packages/container/example/versions?per_page=100&page=2",
+      "https://api.github.com/orgs/acme/packages/container/example/versions?per_page=100&page=2",
       {
         body: [],
       },
@@ -132,8 +132,10 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
           progressMessages.push(`error:${message}`);
         },
       },
-      githubApiBaseUrl: "https://api.github.test",
-      registryBaseUrl: "https://ghcr.test",
+    },
+    writer,
+    repository,
+    {
       fetchImpl: async (input, init) => {
         const response = responses.get(input);
         if (!response) {
@@ -158,8 +160,6 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
         };
       },
     },
-    writer,
-    repository,
   );
   const scanId = writer.getActiveScanId();
 
@@ -216,6 +216,8 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
       "info:Loaded GitHub package-version pages 1 (2 items total)",
       "info:Loaded 2 package versions and 1 tags",
       "info:Fetching manifests for 2 package versions",
+      "info:Fetched manifests 1/3",
+      "info:Fetched manifests 2/3",
       "info:Fetched manifests 3/3",
       "info:Completed GitHub package scan for acme/example",
     ],

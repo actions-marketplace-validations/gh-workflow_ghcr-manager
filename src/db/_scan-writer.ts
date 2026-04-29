@@ -26,10 +26,6 @@ export class ScanWriter {
       )
       .run(packageName, scanStartedAt);
 
-    if (typeof result.lastInsertRowid !== "number" && typeof result.lastInsertRowid !== "bigint") {
-      throw new Error("unable to create scan row");
-    }
-
     this.#activeScanId = Number(result.lastInsertRowid);
   }
 

@@ -48,32 +48,34 @@ export async function loadManifestGraph(
 }> {
   const startTime = Date.now();
   const url = new URL(`/v2/${options.owner}/${options.packageName}/manifests/${digest}`, registryBaseUrl);
-  const response = await withFetchRetry(
-    async () => {
-      try {
-        const response = await fetchImpl(url.toString(), {
+  let response;
+  try {
+    response = await withFetchRetry(
+      async () => {
+        const manifestResponse = await fetchImpl(url.toString(), {
           headers: {
             Accept: acceptedManifestMediaTypes,
             Authorization: `Bearer ${registryToken}`,
             "User-Agent": "ghcr-manager",
           },
         });
-        if (!response.ok && _shouldRetryStatus(response.status)) {
-          throw new Error(await buildHttpErrorMessage(response, `GHCR manifest request for ${digest} failed`));
+        if (!manifestResponse.ok && _shouldRetryStatus(manifestResponse.status)) {
+          throw new Error(await buildHttpErrorMessage(manifestResponse, `GHCR manifest request for ${digest} failed`));
         }
-        return response;
-      } catch (error) {
-        throw new Error(buildFetchTransportErrorMessage(error, `GHCR manifest request for ${digest} failed`), {
-          cause: error,
-        });
-      }
-    },
-    {
-      logger: options.logger,
-      label: `GHCR manifest request for ${digest}`,
-      shouldRetry: (error) => _shouldRetryError(error),
-    },
-  );
+        return manifestResponse;
+      },
+      {
+        logger: options.logger,
+        label: `GHCR manifest request for ${digest}`,
+        shouldRetry: (error) => _shouldRetryError(error),
+      },
+    );
+  } catch (error) {
+    throw new Error(buildFetchTransportErrorMessage(error, `GHCR manifest request for ${digest} failed`), {
+      cause: error,
+    });
+  }
+
   if (!response.ok) {
     throw new Error(await buildHttpErrorMessage(response, `GHCR manifest request for ${digest} failed`));
   }
@@ -85,7 +87,7 @@ export async function loadManifestGraph(
   if (!mediaType) {
     throw new Error(`manifest response for ${digest} did not include a media type`);
   }
-  options.logger?.debug(`Loaded GHCR manifest ${digest} in ${Date.now() - startTime}ms (${mediaType})`);
+  options.logger.debug(`Loaded GHCR manifest ${digest} in ${Date.now() - startTime}ms (${mediaType})`);
 
   return {
     rawJson,
