@@ -75,25 +75,45 @@ runs:
         RUNNER_TEMP: ${{ runner.temp }}
       run: |
         set -euo pipefail
+        scan_uuid="$(cat /proc/sys/kernel/random/uuid)"
         safe_owner="$(printf '%s' "$INPUT_OWNER" | sed -E 's/[^a-zA-Z0-9._-]/_/g')"
         safe_package="$(printf '%s' "$INPUT_PACKAGE" | sed -E 's/[^a-zA-Z0-9._-]/_/g')"
-        db_dir="$RUNNER_TEMP/ghcr-manager"
+        db_dir="$RUNNER_TEMP/ghcr-manager/$scan_uuid"
         db_path="$db_dir/${safe_owner}__${safe_package}.sqlite"
         mkdir -p "$db_dir"
         echo "db_path=$db_path" >> "$GITHUB_OUTPUT"
 
     - name: Run ghcr-manager
       shell: bash
-      env:
-        INPUT_COMMAND: ${{ inputs.command }}
-        RUNNER_TEMP: ${{ runner.temp }}
-        INPUT_OWNER: ${{ inputs.owner }}
-        INPUT_PACKAGE: ${{ inputs.package }}
-        INPUT_TOKEN: ${{ inputs.token }}
-        INPUT_OLDER_THAN_DAYS: ${{ inputs.older-than-days }}
-        INPUT_DELETE_UNTAGGED: ${{ inputs.delete-untagged }}
-        INPUT_EXCLUDE_TAGS: ${{ inputs.exclude-tags }}
-      run: node dist/action/_main.js
+      run: |
+        set -euo pipefail
+        args=("${{ inputs.command }}")
+        if [[ "${{ inputs.command }}" == "scan" ]]; then
+          args+=("--db" "${{ steps.derive-db-path.outputs.db_path }}")
+        fi
+        if [[ -n "${{ inputs.owner }}" ]]; then
+          args+=("--owner" "${{ inputs.owner }}")
+        fi
+        if [[ -n "${{ inputs.package }}" ]]; then
+          args+=("--package" "${{ inputs.package }}")
+        fi
+        if [[ -n "${{ inputs.token }}" ]]; then
+          args+=("--token" "${{ inputs.token }}")
+        fi
+        if [[ -n "${{ inputs.older-than-days }}" ]]; then
+          args+=("--older-than-days" "${{ inputs.older-than-days }}")
+        fi
+        if [[ "${{ inputs.delete-untagged }}" == "true" ]]; then
+          args+=("--delete-untagged")
+        fi
+        IFS=',' read -ra raw_tags <<< "${{ inputs.exclude-tags }}"
+        for raw_tag in "${raw_tags[@]}"; do
+          trimmed_tag="$(printf '%s' "$raw_tag" | xargs)"
+          if [[ -n "$trimmed_tag" ]]; then
+            args+=("--exclude-tag" "$trimmed_tag")
+          fi
+        done
+        node dist/cli/index.js "${args[@]}"
 
     - name: Prepare DB artifact
       id: prepare-db-artifact
