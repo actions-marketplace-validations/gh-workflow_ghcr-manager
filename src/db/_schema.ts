@@ -14,8 +14,21 @@ const _schemaStatements = [
       digest TEXT NOT NULL UNIQUE,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
-      metadata_json TEXT NOT NULL,
       UNIQUE(version_id, digest)
+    )
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS package_version_metadata (
+      version_id INTEGER PRIMARY KEY,
+      metadata_json TEXT NOT NULL,
+      FOREIGN KEY(version_id) REFERENCES package_versions(version_id)
+    )
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS package_version_payloads (
+      version_id INTEGER PRIMARY KEY,
+      raw_json TEXT NOT NULL,
+      FOREIGN KEY(version_id) REFERENCES package_versions(version_id)
     )
   `,
   `
@@ -34,6 +47,26 @@ const _schemaStatements = [
       platform_os TEXT,
       platform_architecture TEXT,
       platform_variant TEXT
+    )
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS manifest_descriptors (
+      parent_digest TEXT NOT NULL,
+      child_digest TEXT NOT NULL,
+      media_type TEXT NOT NULL,
+      artifact_type TEXT,
+      platform_os TEXT,
+      platform_architecture TEXT,
+      platform_variant TEXT,
+      PRIMARY KEY(parent_digest, child_digest),
+      FOREIGN KEY(parent_digest) REFERENCES manifests(digest)
+    )
+  `,
+  `
+    CREATE TABLE IF NOT EXISTS manifest_payloads (
+      digest TEXT PRIMARY KEY,
+      raw_json TEXT NOT NULL,
+      FOREIGN KEY(digest) REFERENCES manifests(digest)
     )
   `,
   `
@@ -59,6 +92,7 @@ const _schemaStatements = [
   `,
   `CREATE INDEX IF NOT EXISTS idx_package_versions_created_at ON package_versions(created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_tags_digest ON tags(digest)`,
+  `CREATE INDEX IF NOT EXISTS idx_manifest_descriptors_child ON manifest_descriptors(child_digest)`,
   `CREATE INDEX IF NOT EXISTS idx_manifest_edges_parent ON manifest_edges(parent_digest)`,
   `CREATE INDEX IF NOT EXISTS idx_manifest_edges_child ON manifest_edges(child_digest)`,
   `CREATE INDEX IF NOT EXISTS idx_manifest_reachability_descendant ON manifest_reachability(descendant_digest)`,

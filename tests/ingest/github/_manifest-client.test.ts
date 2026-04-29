@@ -45,6 +45,16 @@ test("manifest client maps child and referrer edges", async () => {
   );
 
   assert.equal(manifest.record.digest, "sha256:index");
+  assert.match(manifest.rawJson, /"mediaType":"application\/vnd\.oci\.image\.index\.v1\+json"/);
+  assert.deepEqual(manifest.descriptorRecords, [
+    {
+      parentDigest: "sha256:index",
+      childDigest: "sha256:child",
+      mediaType: "application/vnd.oci.image.manifest.v1+json",
+      artifactType: undefined,
+      platform: undefined,
+    },
+  ]);
   assert.deepEqual(manifest.edgeRecords, [
     { parentDigest: "sha256:index", childDigest: "sha256:child", edgeKind: "image-child" },
     { parentDigest: "sha256:subject", childDigest: "sha256:index", edgeKind: "referrer" },

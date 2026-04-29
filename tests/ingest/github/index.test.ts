@@ -69,6 +69,15 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
       },
     ],
     [
+      "https://ghcr.test/v2/acme/example/manifests/sha256:child",
+      {
+        contentType: "application/vnd.oci.image.manifest.v1+json",
+        body: {
+          mediaType: "application/vnd.oci.image.manifest.v1+json",
+        },
+      },
+    ],
+    [
       "https://ghcr.test/v2/acme/example/manifests/sha256:attestation",
       {
         contentType: "application/vnd.oci.artifact.manifest.v1+json",
@@ -145,6 +154,26 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
   assert.equal(repository.countManifests(), 3);
   assert.equal(repository.countManifestEdges(), 2);
   assert.equal(
+    (database.prepare("SELECT COUNT(*) AS total FROM manifest_descriptors").get() as { total: number }).total,
+    1,
+  );
+  assert.equal(
+    (database.prepare("SELECT COUNT(*) AS total FROM package_version_payloads").get() as { total: number }).total,
+    2,
+  );
+  assert.equal(
+    (database.prepare("SELECT COUNT(*) AS total FROM manifest_payloads").get() as { total: number }).total,
+    3,
+  );
+  assert.match(
+    (
+      database.prepare("SELECT raw_json FROM manifest_payloads WHERE digest = 'sha256:index'").get() as {
+        raw_json: string;
+      }
+    ).raw_json,
+    /"manifests":\[/,
+  );
+  assert.equal(
     (database.prepare("SELECT COUNT(*) AS total FROM manifest_reachability").get() as { total: number }).total,
     5,
   );
@@ -155,7 +184,7 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
       "info:Loaded GitHub package-version pages 1 (2 items total)",
       "info:Loaded 2 package versions and 1 tags",
       "info:Fetching manifests for 2 package versions",
-      "info:Fetched manifests 2/2",
+      "info:Fetched manifests 3/3",
       "info:Completed GitHub package scan for acme/example",
     ],
   );

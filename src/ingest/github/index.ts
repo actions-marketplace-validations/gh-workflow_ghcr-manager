@@ -24,21 +24,35 @@ export async function importGitHubScan(
   const counts = await ingestPackageVersions(fetchImpl, githubApiBaseUrl, options, writer);
   logger?.info(`Loaded ${counts.packageVersions} package versions and ${counts.tags} tags`);
 
-  const digests = repository.listPackageVersionDigests();
-  logger?.info(`Fetching manifests for ${digests.length} package versions`);
+  const pendingDigests = repository.listPackageVersionDigests();
+  const queuedDigests = new Set(pendingDigests);
+  const fetchedDigests = new Set<string>();
+  logger?.info(`Fetching manifests for ${pendingDigests.length} package versions`);
   let completed = 0;
   const edgeRecords: ManifestEdgeRecord[] = [];
-  for (const digest of digests) {
-    logger?.debug(`Fetching manifest ${completed + 1}/${digests.length}: ${digest}`);
+  while (pendingDigests.length > 0) {
+    const digest = pendingDigests.shift();
+    if (!digest || fetchedDigests.has(digest)) {
+      continue;
+    }
+
+    logger?.debug(`Fetching manifest ${completed + 1}/${queuedDigests.size}: ${digest}`);
     const manifest = await loadManifestGraph(fetchImpl, registryBaseUrl, digest, options);
     writer.insertManifest(manifest.record);
-    for (const child of manifest.childRecords) {
-      writer.insertManifest(child);
+    writer.insertManifestPayload(manifest.record.digest, manifest.rawJson);
+    for (const descriptor of manifest.descriptorRecords) {
+      writer.insertManifestDescriptor(descriptor);
+      _enqueueDigest(descriptor.childDigest, pendingDigests, queuedDigests, fetchedDigests);
     }
     edgeRecords.push(...manifest.edgeRecords);
+    for (const edge of manifest.edgeRecords) {
+      _enqueueDigest(edge.parentDigest, pendingDigests, queuedDigests, fetchedDigests);
+      _enqueueDigest(edge.childDigest, pendingDigests, queuedDigests, fetchedDigests);
+    }
+    fetchedDigests.add(digest);
     completed += 1;
-    if (completed === digests.length || completed % 25 === 0) {
-      logger?.info(`Fetched manifests ${completed}/${digests.length}`);
+    if (pendingDigests.length === 0 || completed % 25 === 0) {
+      logger?.info(`Fetched manifests ${completed}/${queuedDigests.size}`);
     }
   }
   for (const edge of edgeRecords) {
@@ -46,4 +60,18 @@ export async function importGitHubScan(
   }
   writer.rebuildManifestReachability();
   logger?.info(`Completed GitHub package scan for ${packageName}`);
+}
+
+function _enqueueDigest(
+  digest: string,
+  pendingDigests: string[],
+  queuedDigests: Set<string>,
+  fetchedDigests: Set<string>,
+): void {
+  if (queuedDigests.has(digest) || fetchedDigests.has(digest)) {
+    return;
+  }
+
+  pendingDigests.push(digest);
+  queuedDigests.add(digest);
 }

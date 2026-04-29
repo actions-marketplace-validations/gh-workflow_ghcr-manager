@@ -23,6 +23,18 @@ export interface ManifestRecord {
   };
 }
 
+export interface ManifestDescriptorRecord {
+  parentDigest: string;
+  childDigest: string;
+  mediaType: string;
+  artifactType?: string;
+  platform?: {
+    architecture?: string;
+    os?: string;
+    variant?: string;
+  };
+}
+
 export interface ManifestEdgeRecord {
   parentDigest: string;
   childDigest: string;

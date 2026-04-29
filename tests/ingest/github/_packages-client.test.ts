@@ -38,6 +38,18 @@ test("package client writes package versions and tags page by page", async () =>
   assert.deepEqual(counts, { packageVersions: 1, tags: 1 });
   assert.deepEqual(repository.listPackageVersionDigests(), ["sha256:b"]);
   assert.equal(repository.countTags(), 1);
+  assert.equal(
+    (database.prepare("SELECT COUNT(*) AS total FROM package_version_payloads").get() as { total: number }).total,
+    1,
+  );
+  assert.match(
+    (
+      database.prepare("SELECT raw_json FROM package_version_payloads WHERE version_id = 2").get() as {
+        raw_json: string;
+      }
+    ).raw_json,
+    /"name":"sha256:b"/,
+  );
 
   database.close();
 });

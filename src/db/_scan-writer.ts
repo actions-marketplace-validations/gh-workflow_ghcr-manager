@@ -1,5 +1,11 @@
 import type Database from "better-sqlite3";
-import type { ManifestEdgeRecord, ManifestRecord, PackageVersionRecord, TagRecord } from "../core/index.js";
+import type {
+  ManifestDescriptorRecord,
+  ManifestEdgeRecord,
+  ManifestRecord,
+  PackageVersionRecord,
+  TagRecord,
+} from "../core/index.js";
 import { rebuildManifestReachability } from "./_manifest-reachability.js";
 
 export class ScanWriter {
@@ -13,7 +19,11 @@ export class ScanWriter {
     this.#database.exec(`
       DELETE FROM package_scans;
       DELETE FROM tags;
+      DELETE FROM package_version_payloads;
+      DELETE FROM package_version_metadata;
       DELETE FROM manifest_reachability;
+      DELETE FROM manifest_payloads;
+      DELETE FROM manifest_descriptors;
       DELETE FROM manifest_edges;
       DELETE FROM manifests;
       DELETE FROM package_versions;
@@ -28,8 +38,8 @@ export class ScanWriter {
     this.#database
       .prepare(
         `
-        INSERT OR REPLACE INTO package_versions(version_id, digest, created_at, updated_at, metadata_json)
-        VALUES(@versionId, @digest, @createdAt, @updatedAt, @metadataJson)
+        INSERT OR REPLACE INTO package_versions(version_id, digest, created_at, updated_at)
+        VALUES(@versionId, @digest, @createdAt, @updatedAt)
       `,
       )
       .run({
@@ -37,8 +47,30 @@ export class ScanWriter {
         digest: version.digest,
         createdAt: version.createdAt,
         updatedAt: version.updatedAt,
+      });
+
+    this.#database
+      .prepare(
+        `
+        INSERT OR REPLACE INTO package_version_metadata(version_id, metadata_json)
+        VALUES(@versionId, @metadataJson)
+      `,
+      )
+      .run({
+        versionId: version.versionId,
         metadataJson: JSON.stringify(version.metadata ?? {}),
       });
+  }
+
+  insertPackageVersionPayload(versionId: number, rawJson: string): void {
+    this.#database
+      .prepare(
+        `
+        INSERT OR REPLACE INTO package_version_payloads(version_id, raw_json)
+        VALUES(?, ?)
+      `,
+      )
+      .run(versionId, rawJson);
   }
 
   insertTag(tag: TagRecord): void {
@@ -81,6 +113,52 @@ export class ScanWriter {
         platformOs: manifest.platform?.os ?? null,
         platformArchitecture: manifest.platform?.architecture ?? null,
         platformVariant: manifest.platform?.variant ?? null,
+      });
+  }
+
+  insertManifestPayload(digest: string, rawJson: string): void {
+    this.#database
+      .prepare(
+        `
+        INSERT OR REPLACE INTO manifest_payloads(digest, raw_json)
+        VALUES(?, ?)
+      `,
+      )
+      .run(digest, rawJson);
+  }
+
+  insertManifestDescriptor(descriptor: ManifestDescriptorRecord): void {
+    this.#database
+      .prepare(
+        `
+        INSERT OR REPLACE INTO manifest_descriptors(
+          parent_digest,
+          child_digest,
+          media_type,
+          artifact_type,
+          platform_os,
+          platform_architecture,
+          platform_variant
+        )
+        VALUES(
+          @parentDigest,
+          @childDigest,
+          @mediaType,
+          @artifactType,
+          @platformOs,
+          @platformArchitecture,
+          @platformVariant
+        )
+      `,
+      )
+      .run({
+        parentDigest: descriptor.parentDigest,
+        childDigest: descriptor.childDigest,
+        mediaType: descriptor.mediaType,
+        artifactType: descriptor.artifactType ?? null,
+        platformOs: descriptor.platform?.os ?? null,
+        platformArchitecture: descriptor.platform?.architecture ?? null,
+        platformVariant: descriptor.platform?.variant ?? null,
       });
   }
 

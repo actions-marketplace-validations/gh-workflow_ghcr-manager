@@ -1,4 +1,4 @@
-import type { ManifestEdgeRecord, ManifestRecord } from "../../core/index.js";
+import type { ManifestDescriptorRecord, ManifestEdgeRecord, ManifestRecord } from "../../core/index.js";
 import { loadRegistryPullToken } from "./_registry-token-client.js";
 import {
   acceptedManifestMediaTypes,
@@ -34,7 +34,12 @@ export async function loadManifestGraph(
   registryBaseUrl: string,
   digest: string,
   options: GitHubScanOptions,
-): Promise<{ record: ManifestRecord; childRecords: ManifestRecord[]; edgeRecords: ManifestEdgeRecord[] }> {
+): Promise<{
+  record: ManifestRecord;
+  descriptorRecords: ManifestDescriptorRecord[];
+  edgeRecords: ManifestEdgeRecord[];
+  rawJson: string;
+}> {
   const url = new URL(`/v2/${options.owner}/${options.packageName}/manifests/${digest}`, registryBaseUrl);
   const registryToken = await loadRegistryPullToken(fetchImpl, registryBaseUrl, options);
   const response = await fetchImpl(url.toString(), {
@@ -50,31 +55,37 @@ export async function loadManifestGraph(
 
   const mediaTypeHeader = response.headers.get("content-type")?.split(";")[0];
   const document = (await response.json()) as _RegistryManifestDocument;
+  const rawJson = JSON.stringify(document);
   const mediaType = document.mediaType ?? mediaTypeHeader;
   if (!mediaType) {
     throw new Error(`manifest response for ${digest} did not include a media type`);
   }
 
   return {
+    rawJson,
     record: {
       digest,
       mediaType,
       artifactType: document.artifactType,
     },
-    childRecords: _buildChildRecords(document),
+    descriptorRecords: _buildDescriptorRecords(digest, document),
     edgeRecords: _buildEdges(digest, document),
   };
 }
 
-function _buildChildRecords(document: _RegistryManifestDocument): ManifestRecord[] {
-  const records: ManifestRecord[] = [];
+function _buildDescriptorRecords(
+  parentDigest: string,
+  document: _RegistryManifestDocument,
+): ManifestDescriptorRecord[] {
+  const records: ManifestDescriptorRecord[] = [];
   for (const child of document.manifests ?? []) {
     if (!child.digest || !child.mediaType) {
       continue;
     }
 
     records.push({
-      digest: child.digest,
+      parentDigest,
+      childDigest: child.digest,
       mediaType: child.mediaType,
       artifactType: child.artifactType,
       platform: child.platform,

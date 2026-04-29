@@ -43,8 +43,13 @@ export async function ingestPackageVersions(
     },
     writePage(pageItems) {
       const versions = normalizePackageVersions(pageItems);
+      const rawItemsByVersionId = new Map(pageItems.map((pageItem) => [pageItem.id, pageItem]));
       for (const version of versions) {
         writer.insertPackageVersion(version);
+        writer.insertPackageVersionPayload(
+          version.versionId,
+          JSON.stringify(rawItemsByVersionId.get(version.versionId)),
+        );
       }
 
       const tags = buildTags(versions);

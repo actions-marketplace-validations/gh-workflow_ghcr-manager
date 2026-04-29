@@ -40,6 +40,11 @@ This section is the canonical place for session-to-session continuity.
 - ☑ Introduce a generic paginated ingest pipeline for request -> normalize -> write and move package version/tag
   enumeration onto it.
 - ☑ Add a derived reachability table to the schema for non-recursive manifest graph reads.
+- ☑ Add raw-payload master tables for package-version items and manifest items.
+- ☑ Split `package_versions.metadata_json` into a separate table for consistency with raw payload storage.
+- ☑ Write raw package-version and manifest response JSON into dedicated payload tables during live ingest.
+- ☑ Split fetched manifest documents from index child descriptors at the schema level.
+- ☑ Write index child descriptor rows into `manifest_descriptors` and recursively fetch child manifests.
 - ☐ Expand planner output so it explains why versions are protected or deletable.
 - ☐ Add tests for multi-arch images, referrers, and explicit tag exclusion behavior.
 - ☐ Revisit action packaging after the live ingest path exists.
@@ -182,10 +187,21 @@ src/
   idempotence check for `initializeSchema(...)`.
 - Added a `manifest_reachability(ancestor_digest, descendant_digest, min_distance)` table so future planner reads can
   use precomputed graph reachability instead of traversing raw `manifest_edges` at read time.
+- Added `package_version_payloads(version_id, raw_json)` and `manifest_payloads(digest, raw_json)` as raw-payload master
+  tables so upstream response items can be stored without lossy remapping.
+- Split package-version metadata into `package_version_metadata(version_id, metadata_json)` so `package_versions` stays
+  scalar and JSON-bearing fields live in dedicated side tables.
+- Live GitHub/GHCR ingest now stores raw package-version item JSON and raw fetched manifest JSON in the payload tables
+  alongside the normalized rows.
+- Added `manifest_descriptors(parent_digest, child_digest, ...)` so descriptor rows discovered inside index manifests
+  can be stored separately from directly fetched manifest documents in `manifests`.
+- Live GitHub/GHCR ingest now writes descriptor rows into `manifest_descriptors` and recursively fetches queued child
+  and subject digests so `manifest_edges` still point at directly fetched manifest rows.
 - Added `docs/terminology.md` to map Docker/GHCR/OCI terms to this repo's DB tables and normalized manifest relations.
 
 ## Next Increment
 
-1. Decide how and when ingest populates `manifest_reachability` from raw `manifest_edges`.
+1. Revisit whether `manifest_edges` should stay as a stored normalized table or become derived from descriptors plus
+   referrer relations.
 2. Improve planner output so it explains why versions are protected or deletable.
 3. Add more planner tests for multi-arch images, referrers, and explicit tag exclusion cases.
