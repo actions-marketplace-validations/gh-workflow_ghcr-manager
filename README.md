@@ -52,7 +52,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Run ghcr-manager action
-        uses: gh-workflow/ghcr-manager@0.0.1
+        uses: gh-workflow/ghcr-manager@0.0.3
         with:
           github-token: ${{ github.token }}
           owner: OWNER
