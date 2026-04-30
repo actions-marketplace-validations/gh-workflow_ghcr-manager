@@ -313,3 +313,12 @@ src/
   - publishes with `npm publish --provenance --access public`
   - grants `id-token: write` for npm provenance/trusted publishing OIDC flow.
 - [x] Wired GitHub release creation to depend on successful npm publish.
+
+### 2026-04-30 (npm provenance metadata fix)
+
+- [x] Added explicit npm package metadata in `package.json` for provenance validation:
+  - `repository.url` set to `https://github.com/gh-workflow/ghcr-manager`
+  - `homepage` set to the repository README URL
+  - `bugs.url` set to the repository issues URL
+- [x] Reason: npm provenance bundle verification requires `package.json` repository metadata to match GitHub Actions
+      source repository information.

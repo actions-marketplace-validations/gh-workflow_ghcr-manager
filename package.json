@@ -1,6 +1,14 @@
 {
   "name": "ghcr-manager",
   "description": "Inspect, analyze, and manage GitHub Container Registry packages.",
+  "homepage": "https://github.com/gh-workflow/ghcr-manager#readme",
+  "bugs": {
+    "url": "https://github.com/gh-workflow/ghcr-manager/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gh-workflow/ghcr-manager"
+  },
   "version": "0.0.0",
   "type": "module",
   "engines": {
