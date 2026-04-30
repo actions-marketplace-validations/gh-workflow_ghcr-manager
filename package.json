@@ -34,7 +34,7 @@
     "@types/node": "^25.6.0",
     "c8": "^11.0.0",
     "eslint": "^10.2.1",
-    "eslint-plugin-yml": "^3.3.1",
+    "eslint-plugin-yml": "^3.3.2",
     "globals": "^17.5.0",
     "markdownlint-cli2": "^0.22.1",
     "prettier": "^3.6.2",
