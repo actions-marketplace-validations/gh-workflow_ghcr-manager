@@ -3,27 +3,27 @@ description: Inspect, analyze, and manage GitHub Container Registry packages.
 
 inputs:
   github-token:
-    description: GitHub token used for GitHub/GHCR API calls.
+    description: GitHub token used for GitHub/GHCR API calls
     required: true
     default: ${{ github.token }}
   owner:
-    description: GitHub organization that owns the container package for live scans.
+    description: GitHub owner of the container package (user or org)
     required: true
   package:
-    description: Container package name for live scans.
+    description: Container package name.
     required: true
   upload-db-artifact:
-    description: Whether to upload the scan database as a workflow artifact.
+    description: Whether to upload the scan database as a workflow run artifact
     required: false
     default: "false"
   db-artifact-retention-days:
-    description: Optional retention days override for uploaded database artifacts.
+    description: Optional retention days override for uploaded database artifacts
     required: false
     default: ""
 
 outputs:
   db-path:
-    description: Path to the SQLite database produced by scan runs.
+    description: Path to the SQLite database in the GitHub action runner
     value: ${{ steps.prepare-db.outputs.db_path }}
 
 runs:

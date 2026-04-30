@@ -1,4 +1,4 @@
-name: Manual Scan Test
+name: Manual Run Workflow
 
 "on":
   workflow_dispatch:

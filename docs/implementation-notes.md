@@ -70,7 +70,7 @@ This section is the canonical place for session-to-session continuity.
 - Current ingest implementation:
   - writes fixture and live GitHub/GHCR results incrementally into SQLite
   - uses a dedicated GHCR registry token client for bearer-token acquisition
-  - requires explicit GitHub token input for all live scans (no anonymous path)
+  - requires explicit GitHub token input for all scans (no anonymous path)
   - uses a shared paginated ingest helper for GitHub Packages version/tag enumeration, writing each page directly to
     SQLite
   - writes manifest edges only after all manifests are present so the DB can enforce edge foreign keys cleanly
@@ -283,7 +283,7 @@ src/
   - optional in-action DB artifact upload (off by default)
   - optional retention override (otherwise GitHub policy default is used)
   - scan DB path is derived internally from owner/package under runner temp storage (no `db-path` action input)
-- Added `.github/workflows/manual-scan-test.yml` as a `workflow_dispatch` validation workflow that:
+- Added `.github/workflows/manual-run.yml` as a `workflow_dispatch` validation workflow that:
   - accepts explicit `owner` and `package` inputs
   - runs `uses: ./` against the local action implementation
   - optionally uploads DB artifact via action inputs

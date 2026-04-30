@@ -13,9 +13,9 @@ Short glossary for developers working on `ghcr-manager`.
 ## Main Terms
 
 <!-- markdownlint-disable MD013 -->
-<!-- prettier-ignore -->
+
 | Term              | Short meaning here                                                | Where it shows up                                                                 |
-|-------------------|-------------------------------------------------------------------|-----------------------------------------------------------------------------------|
+| ----------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | package           | One GHCR package, for example `acme/example`                      | `package_scans.package_name`                                                      |
 | package version   | One GitHub Packages version entry for a package                   | `package_versions`                                                                |
 | tag               | Human-readable name like `latest` or `1.2.3`                      | `tags.tag`                                                                        |
@@ -30,9 +30,8 @@ Short glossary for developers working on `ghcr-manager`.
 
 ## GHCR / OCI Terms To Repo Terms
 
-<!-- prettier-ignore -->
 | GHCR / OCI term                              | Repo meaning                                                        |
-|----------------------------------------------|---------------------------------------------------------------------|
+| -------------------------------------------- | ------------------------------------------------------------------- |
 | `manifests[]` inside an image index          | child rows in `manifest_edges` with `edge_kind = 'image-child'`     |
 | `subject.digest` inside an artifact manifest | parent side of a `manifest_edges` row with `edge_kind = 'referrer'` |
 | manifest document fetched by digest          | one row in `manifests`                                              |
@@ -118,9 +117,8 @@ Using the fixture in `tests/fixtures/sample-package.json`:
 
 Rows in `manifest_edges`:
 
-<!-- prettier-ignore -->
 | parent_digest          | child_digest             | edge_kind     |
-|------------------------|--------------------------|---------------|
+| ---------------------- | ------------------------ | ------------- |
 | `sha256:index-old`     | `sha256:child-old`       | `image-child` |
 | `sha256:index-current` | `sha256:attestation-old` | `referrer`    |
 
@@ -133,9 +131,8 @@ Read those rows as:
 
 If you think in Docker terms, translate repo terms like this:
 
-<!-- prettier-ignore -->
 | Repo term    | Read it as                                                    |
-|--------------|---------------------------------------------------------------|
+| ------------ | ------------------------------------------------------------- |
 | manifest     | registry document addressed by digest                         |
 | edge         | one direct relation row between two digests                   |
 | graph        | the full set of `manifest_edges` rows                         |
