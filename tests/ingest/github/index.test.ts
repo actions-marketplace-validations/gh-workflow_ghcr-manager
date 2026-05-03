@@ -71,18 +71,6 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
       }
     ],
     [
-      "https://ghcr.io/v2/acme/example/manifests/sha256:child",
-      {
-        contentType: "application/vnd.oci.image.manifest.v1+json",
-        body: {
-          mediaType: "application/vnd.oci.image.manifest.v1+json",
-          config: {
-            mediaType: "application/vnd.oci.image.config.v1+json"
-          }
-        }
-      }
-    ],
-    [
       "https://ghcr.io/v2/acme/example/manifests/sha256:attestation",
       {
         contentType: "application/vnd.oci.artifact.manifest.v1+json",
@@ -166,10 +154,13 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
   const metadata = repository.getPackageMetadata(scanId);
   assert.equal(metadata.owner, "acme");
   assert.equal(metadata.packageName, "example");
-  assert.deepEqual(repository.listPackageVersionDigests(scanId), ["sha256:index", "sha256:attestation"]);
+  assert.deepEqual(repository.listPackageVersionManifestRefs(scanId), [
+    { versionId: 101, digest: "sha256:index" },
+    { versionId: 102, digest: "sha256:attestation" }
+  ]);
   assert.equal(repository.countTags(scanId), 1);
-  assert.equal(repository.countManifests(scanId), 3);
-  assert.equal(repository.countManifestEdges(scanId), 2);
+  assert.equal(repository.countManifests(scanId), 2);
+  assert.equal(repository.countManifestEdges(scanId), 1);
   assert.equal(tokenRequestCount, 1);
   assert.equal(
     (database.prepare("SELECT COUNT(*) AS total FROM manifest_descriptors").get() as { total: number }).total,
@@ -181,8 +172,12 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
   );
   assert.equal(
     (database.prepare("SELECT COUNT(*) AS total FROM manifest_payloads").get() as { total: number }).total,
-    3
+    2
   );
+  assert.deepEqual(database.prepare("SELECT missing_digest, anchor_digest FROM v_missing_digests").get(), {
+    missing_digest: "sha256:child",
+    anchor_digest: "sha256:index"
+  });
   assert.match(
     (
       database.prepare("SELECT raw_json FROM manifest_payloads WHERE digest = 'sha256:index'").get() as {
@@ -209,7 +204,7 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
   );
   assert.equal(
     (database.prepare("SELECT COUNT(*) AS total FROM manifest_reachability").get() as { total: number }).total,
-    5
+    3
   );
   assert.deepEqual(
     progressMessages.filter((message) => message.startsWith("info:")),
@@ -219,11 +214,10 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
       "info:Loaded GitHub package-version pages 1 (2 items total)",
       "info:Loaded 2 package versions and 1 tags",
       "info:Fetching manifests for 2 package versions",
-      "info:Fetched manifests 1/3",
-      "info:Fetched manifests 2/3",
-      "info:Fetched manifests 3/3",
-      "info:Starting manifest graph processing for 2 edges",
-      "info:Inserted 2 manifest edges; rebuilding reachability",
+      "info:Fetched manifests 1/2",
+      "info:Fetched manifests 2/2",
+      "info:Starting manifest graph processing for 2 manifest payloads",
+      "info:Inserted 1 manifest edges; rebuilding reachability",
       "info:Completed manifest graph processing",
       "info:Completed remote data pull for acme/example",
       "info:Completed GitHub package scan for acme/example"

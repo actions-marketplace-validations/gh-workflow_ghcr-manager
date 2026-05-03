@@ -1,9 +1,13 @@
-import type { ManifestEdgeRecord } from "../../core/index.js";
 import type { ScanWriter, SnapshotRepository } from "../../db/index.js";
 import { manifestFetchConcurrency, manifestIngestProgressStepRatio } from "../../tuning/index.js";
-import { loadManifestGraph } from "./_manifest-client.js";
+import { buildManifestRelations, loadManifestGraph } from "./_manifest-client.js";
 import { loadRegistryPullToken, type RegistryPullToken } from "./_registry-token-client.js";
 import { type FetchLike, type GitHubScanOptions } from "./_shared.js";
+
+interface _ManifestRef {
+  versionId: number;
+  digest: string;
+}
 
 interface _RegistryPullTokenState {
   token?: RegistryPullToken;
@@ -18,47 +22,35 @@ export async function ingestManifests(
   repository: SnapshotRepository,
   scanId: number
 ): Promise<void> {
-  const pendingDigests = repository.listPackageVersionDigests(scanId);
-  const initialDigestCount = pendingDigests.length;
-  const progressStep = Math.max(1, Math.ceil(initialDigestCount * manifestIngestProgressStepRatio));
-  const queuedDigests = new Set(pendingDigests);
-  const fetchedDigests = new Set<string>();
-  const persistedDigests = new Set<string>();
+  const manifests = repository.listPackageVersionManifestRefs(scanId);
+  const totalDigestCount = manifests.length;
+  const progressStep = Math.max(1, Math.ceil(totalDigestCount * manifestIngestProgressStepRatio));
   const registryPullTokenState: _RegistryPullTokenState = {};
-  options.logger.info(`Fetching manifests for ${pendingDigests.length} package versions`);
+  options.logger.info(`Fetching manifests for ${totalDigestCount} package versions`);
   let completed = 0;
-  const edgeRecords: ManifestEdgeRecord[] = [];
+  let nextManifestIndex = 0;
   const activeLoads = new Set<Promise<void>>();
 
-  while (pendingDigests.length > 0 || activeLoads.size > 0) {
-    while (pendingDigests.length > 0 && activeLoads.size < manifestFetchConcurrency) {
-      const digest = pendingDigests.shift();
-      if (!digest || fetchedDigests.has(digest)) {
-        continue;
-      }
-
-      const load = _loadQueuedManifest(
-        digest,
+  while (nextManifestIndex < manifests.length || activeLoads.size > 0) {
+    while (nextManifestIndex < manifests.length && activeLoads.size < manifestFetchConcurrency) {
+      const load = _fetchManifest(
+        manifests[nextManifestIndex],
         fetchImpl,
         registryBaseUrl,
         options,
         writer,
-        pendingDigests,
-        queuedDigests,
-        fetchedDigests,
-        persistedDigests,
-        edgeRecords,
         completed,
         async () => (await _getRegistryPullToken(fetchImpl, registryBaseUrl, options, registryPullTokenState)).token,
         () => {
           completed += 1;
-          if (completed % progressStep === 0 || pendingDigests.length === 0) {
-            options.logger.info(`Fetched manifests ${completed}/${queuedDigests.size}`);
+          if (completed % progressStep === 0 || completed === totalDigestCount) {
+            options.logger.info(`Fetched manifests ${completed}/${totalDigestCount}`);
           }
         }
       ).finally(() => {
         activeLoads.delete(load);
       });
+      nextManifestIndex += 1;
       activeLoads.add(load);
     }
 
@@ -67,63 +59,65 @@ export async function ingestManifests(
     }
   }
 
-  options.logger.info(`Starting manifest graph processing for ${edgeRecords.length} edges`);
-  let persistedEdgeCount = 0;
-  for (const edge of edgeRecords) {
-    if (!persistedDigests.has(edge.parentDigest) || !persistedDigests.has(edge.childDigest)) {
-      continue;
-    }
-    writer.insertManifestEdge(edge);
-    persistedEdgeCount += 1;
-  }
-  options.logger.info(`Inserted ${persistedEdgeCount} manifest edges; rebuilding reachability`);
-  writer.rebuildManifestReachability();
-  options.logger.info("Completed manifest graph processing");
+  _processManifestPayloads(options, writer, repository, scanId);
 }
 
-async function _loadQueuedManifest(
-  digest: string,
+async function _fetchManifest(
+  manifestRef: _ManifestRef,
   fetchImpl: FetchLike,
   registryBaseUrl: string,
   options: GitHubScanOptions,
   writer: ScanWriter,
-  pendingDigests: string[],
-  queuedDigests: Set<string>,
-  fetchedDigests: Set<string>,
-  persistedDigests: Set<string>,
-  edgeRecords: ManifestEdgeRecord[],
   completed: number,
   getRegistryToken: () => Promise<string>,
   onComplete: () => void
 ): Promise<void> {
-  options.logger.debug(`Fetching manifest ${completed + 1}/${queuedDigests.size}: ${digest}`);
+  const { versionId, digest } = manifestRef;
+  options.logger.debug(`Fetching manifest ${completed + 1}: ${digest}`);
   let manifest;
   try {
     manifest = await loadManifestGraph(fetchImpl, registryBaseUrl, digest, await getRegistryToken(), options);
   } catch (error) {
     if (_isMissingManifestError(error)) {
       options.logger.warn(`Skipping missing GHCR manifest ${digest}`);
-      fetchedDigests.add(digest);
       onComplete();
       return;
     }
 
     throw error;
   }
-  writer.insertManifest(manifest.record);
-  persistedDigests.add(manifest.record.digest);
+  writer.insertManifest({ versionId, ...manifest.record });
   writer.insertManifestPayload(manifest.record.digest, manifest.rawJson);
-  for (const descriptor of manifest.descriptorRecords) {
-    writer.insertManifestDescriptor(descriptor);
-    _enqueueDigest(descriptor.childDigest, pendingDigests, queuedDigests, fetchedDigests);
-  }
-  edgeRecords.push(...manifest.edgeRecords);
-  for (const edge of manifest.edgeRecords) {
-    _enqueueDigest(edge.parentDigest, pendingDigests, queuedDigests, fetchedDigests);
-    _enqueueDigest(edge.childDigest, pendingDigests, queuedDigests, fetchedDigests);
-  }
-  fetchedDigests.add(digest);
   onComplete();
+}
+
+function _processManifestPayloads(
+  options: GitHubScanOptions,
+  writer: ScanWriter,
+  repository: SnapshotRepository,
+  scanId: number
+): void {
+  const digests = new Set(repository.listManifestDigests(scanId));
+  const payloads = repository.listManifestPayloads(scanId);
+  options.logger.info(`Starting manifest graph processing for ${payloads.length} manifest payloads`);
+  let persistedEdgeCount = 0;
+
+  for (const payload of payloads) {
+    const relations = buildManifestRelations(payload.digest, payload.rawJson);
+    for (const descriptor of relations.descriptorRecords) {
+      writer.insertManifestDescriptor(descriptor);
+    }
+    for (const edge of relations.edgeRecords) {
+      if (digests.has(edge.parentDigest) && digests.has(edge.childDigest)) {
+        writer.insertManifestEdge(edge);
+        persistedEdgeCount += 1;
+      }
+    }
+  }
+
+  options.logger.info(`Inserted ${persistedEdgeCount} manifest edges; rebuilding reachability`);
+  writer.rebuildManifestReachability();
+  options.logger.info("Completed manifest graph processing");
 }
 
 function _isMissingManifestError(error: unknown): boolean {
@@ -153,18 +147,4 @@ async function _getRegistryPullToken(
   const registryPullToken = await registryPullTokenState.load;
   registryPullTokenState.token = registryPullToken;
   return registryPullToken;
-}
-
-function _enqueueDigest(
-  digest: string,
-  pendingDigests: string[],
-  queuedDigests: Set<string>,
-  fetchedDigests: Set<string>
-): void {
-  if (queuedDigests.has(digest) || fetchedDigests.has(digest)) {
-    return;
-  }
-
-  pendingDigests.push(digest);
-  queuedDigests.add(digest);
 }

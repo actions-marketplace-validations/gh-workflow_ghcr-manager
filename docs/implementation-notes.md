@@ -45,7 +45,7 @@ This section is the canonical place for session-to-session continuity.
 - ☑ Split `package_versions.metadata_json` into a separate table for consistency with raw payload storage.
 - ☑ Write raw package-version and manifest response JSON into dedicated payload tables during live ingest.
 - ☑ Split fetched manifest documents from index child descriptors at the schema level.
-- ☑ Write index child descriptor rows into `manifest_descriptors` and recursively fetch child manifests.
+- ☑ Write index child descriptor rows into `manifest_descriptors` and track missing referenced manifests separately.
 - ☑ Extract `config_media_type`, `subject_digest`, and `annotations_json` from fetched manifest JSON into `manifests`.
 - ☑ Cache and reuse GHCR pull tokens during manifest scans, refreshing based on token expiry instead of reloading per
   manifest.
@@ -73,9 +73,8 @@ This section is the canonical place for session-to-session continuity.
   - requires explicit GitHub token input for all scans (no anonymous path)
   - uses a shared paginated ingest helper for GitHub Packages version/tag enumeration, writing each page directly to
     SQLite
-  - writes manifest edges only after all manifests are present so the DB can enforce edge foreign keys cleanly
+  - fetches manifests only for package-version digests, then records known edges from those payloads
 - Ingest architecture direction:
-  - full remote traversal may still be required for correctness
   - SQLite is the integration surface between ingest stages
   - avoid package-level in-memory aggregate models as the ingest contract
   - repeated paginated API ingestion should use one generic request -> normalize -> write pipeline, with per-endpoint
@@ -83,9 +82,11 @@ This section is the canonical place for session-to-session continuity.
 - Relational integrity direction:
   - add FKs by default and satisfy them via ingest order
   - only relax constraints later if a demonstrated ingest problem requires it
-  - `tags(version_id, digest)` is enforced as one composite reference to `package_versions(version_id, digest)`
-  - manifest parent/child references remain two separate references to `manifests(digest)` because they point to two
-    different manifest rows
+  - `tags(scan_id, version_id)` references `package_versions(scan_id, version_id)`
+  - `manifests(scan_id, version_id)` references `package_versions(scan_id, version_id)`
+  - `manifest_edges` remains known-to-known, with both endpoints referencing `manifests(scan_id, digest)`
+  - missing referenced digests are derived from descriptor and subject references instead of being represented as
+    manifest rows
 - Current action shape: thin composite wrapper that invokes the shared CLI.
 - Scan logging:
   - progress logs go to stderr
@@ -192,7 +193,7 @@ src/
   ingest order so manifests are written before edges.
 - Improved GitHub and GHCR HTTP error reporting so upstream JSON messages, docs URLs, and auth-challenge headers are
   surfaced instead of only HTTP status codes.
-- Tightened `tags` from two separate foreign keys to one composite reference on `(version_id, digest)`.
+- Tightened `tags` so each tag references a package-version row.
 - Removed the low-value SQLite DDL/constraint-behavior checks from `tests/db/_schema.test.ts` and kept only an
   idempotence check for `initializeSchema(...)`.
 - Added a `manifest_reachability(ancestor_digest, descendant_digest, min_distance)` table so future planner reads can
@@ -205,8 +206,8 @@ src/
   alongside the normalized rows.
 - Added `manifest_descriptors(parent_digest, child_digest, ...)` so descriptor rows discovered inside index manifests
   can be stored separately from directly fetched manifest documents in `manifests`.
-- Live GitHub/GHCR ingest now writes descriptor rows into `manifest_descriptors` and recursively fetches queued child
-  and subject digests so `manifest_edges` still point at directly fetched manifest rows.
+- Live GitHub/GHCR ingest writes descriptor rows into `manifest_descriptors`; absent child or subject targets are
+  derived by comparing those references against `manifests`.
 - Added `docs/terminology.md` to map Docker/GHCR/OCI terms to this repo's DB tables and normalized manifest relations.
 - Fetched manifest rows now also keep `config_media_type`, `subject_digest`, and `annotations_json` in `manifests` so
   common image-vs-artifact classification can be done without JSON-path expressions in every query.
@@ -322,3 +323,12 @@ src/
   - `bugs.url` set to the repository issues URL
 - [x] Reason: npm provenance bundle verification requires `package.json` repository metadata to match GitHub Actions
       source repository information.
+
+### 2026-05-03 (package-version-backed manifests)
+
+- [x] Moved digest identity out of `package_versions` and onto `manifests`.
+- [x] Refactored GHCR manifest ingest to fetch only package-version digests with bounded parallelism.
+- [x] Kept `manifest_edges` strict for known-to-known manifest relations.
+- [x] Kept missing-digest views derived from descriptor and subject payload fields.
+- [x] Simplified manifest timestamp windows to the exact package-version timestamps for the same digest.
+- [x] Updated GitHub ingest and DB writer code to match the new `package_versions -> manifests` version-id relation.

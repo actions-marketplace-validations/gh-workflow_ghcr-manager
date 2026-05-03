@@ -13,6 +13,16 @@ interface _VersionRow {
   created_at: string;
 }
 
+interface _PackageVersionPayloadRow {
+  version_id: number;
+  raw_json: string;
+}
+
+interface _ManifestPayloadRow {
+  digest: string;
+  raw_json: string;
+}
+
 export class SnapshotRepository {
   readonly #database: Database.Database;
 
@@ -46,9 +56,18 @@ export class SnapshotRepository {
 
   getTaggedDigests(scanId: number): Set<string> {
     return _getDigestSet(
-      this.#database.prepare("SELECT DISTINCT digest FROM tags WHERE scan_id = ?").all(scanId) as Array<{
-        digest: string;
-      }>,
+      this.#database
+        .prepare(
+          `
+            SELECT DISTINCT m.digest
+            FROM tags t
+            JOIN manifests m
+              ON m.scan_id = t.scan_id
+             AND m.version_id = t.version_id
+            WHERE t.scan_id = ?
+          `
+        )
+        .all(scanId) as Array<{ digest: string }>,
       "digest"
     );
   }
@@ -60,7 +79,16 @@ export class SnapshotRepository {
 
     const placeholders = tags.map(() => "?").join(", ");
     const rows = this.#database
-      .prepare(`SELECT DISTINCT digest FROM tags WHERE scan_id = ? AND tag IN (${placeholders})`)
+      .prepare(
+        `
+          SELECT DISTINCT m.digest
+          FROM tags t
+          JOIN manifests m
+            ON m.scan_id = t.scan_id
+           AND m.version_id = t.version_id
+          WHERE t.scan_id = ? AND t.tag IN (${placeholders})
+        `
+      )
       .all(scanId, ...tags) as Array<{ digest: string }>;
     return _getDigestSet(rows, "digest");
   }
@@ -82,9 +110,12 @@ export class SnapshotRepository {
     const rows = this.#database
       .prepare(
         `
-          SELECT version_id, digest
-          FROM package_versions
-          WHERE scan_id = ? AND created_at < ?
+          SELECT pv.version_id, m.digest
+          FROM package_versions pv
+          JOIN manifests m
+            ON m.scan_id = pv.scan_id
+           AND m.version_id = pv.version_id
+          WHERE pv.scan_id = ? AND pv.created_at < ?
           ORDER BY version_id
         `
       )
@@ -128,11 +159,47 @@ export class SnapshotRepository {
     return _count(this.#database, "SELECT COUNT(*) AS total FROM manifest_edges WHERE scan_id = ?", "total", scanId);
   }
 
-  listPackageVersionDigests(scanId: number): string[] {
+  listManifestDigests(scanId: number): string[] {
     const rows = this.#database
-      .prepare("SELECT digest FROM package_versions WHERE scan_id = ? ORDER BY version_id")
+      .prepare("SELECT digest FROM manifests WHERE scan_id = ? ORDER BY digest")
       .all(scanId) as Array<{ digest: string }>;
     return rows.map((row) => row.digest);
+  }
+
+  listManifestPayloads(scanId: number): Array<{ digest: string; rawJson: string }> {
+    const rows = this.#database
+      .prepare(
+        `
+          SELECT digest, raw_json
+          FROM manifest_payloads
+          WHERE scan_id = ?
+          ORDER BY digest
+        `
+      )
+      .all(scanId) as _ManifestPayloadRow[];
+
+    return rows.map((row) => ({
+      digest: row.digest,
+      rawJson: row.raw_json
+    }));
+  }
+
+  listPackageVersionManifestRefs(scanId: number): Array<{ versionId: number; digest: string }> {
+    const rows = this.#database
+      .prepare(
+        `
+          SELECT version_id, raw_json
+          FROM package_version_payloads
+          WHERE scan_id = ?
+          ORDER BY version_id
+        `
+      )
+      .all(scanId) as _PackageVersionPayloadRow[];
+
+    return rows.map((row) => ({
+      versionId: row.version_id,
+      digest: _parsePackageVersionDigest(row.version_id, row.raw_json)
+    }));
   }
 }
 
@@ -143,4 +210,13 @@ function _getDigestSet(rows: Array<Record<string, string>>, key: string): Set<st
 function _count(database: Database.Database, sql: string, field: string, ...params: unknown[]): number {
   const row = database.prepare(sql).get(...params) as Record<string, number>;
   return row[field] as number;
+}
+
+function _parsePackageVersionDigest(versionId: number, rawJson: string): string {
+  const payload = JSON.parse(rawJson) as { name?: unknown };
+  if (typeof payload.name !== "string" || payload.name.length === 0) {
+    throw new Error(`package version payload for version_id=${versionId} did not include digest name`);
+  }
+
+  return payload.name;
 }

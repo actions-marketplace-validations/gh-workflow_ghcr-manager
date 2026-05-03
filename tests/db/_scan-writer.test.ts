@@ -10,20 +10,25 @@ test("scan writer stores scan metadata and rows incrementally", () => {
   writer.resetScan("acme", "example", "2026-04-20T12:00:00.000Z");
   writer.insertPackageVersion({
     versionId: 1,
-    digest: "sha256:index",
     createdAt: "2026-04-20T10:00:00.000Z",
     updatedAt: "2026-04-20T10:00:00.000Z"
   });
   writer.insertTag({
     tag: "latest",
-    digest: "sha256:index",
     versionId: 1
   });
   writer.insertManifest({
+    versionId: 1,
     digest: "sha256:index",
     mediaType: "application/vnd.oci.image.index.v1+json"
   });
+  writer.insertPackageVersion({
+    versionId: 2,
+    createdAt: "2026-04-20T10:00:00.000Z",
+    updatedAt: "2026-04-20T10:00:00.000Z"
+  });
   writer.insertManifest({
+    versionId: 2,
     digest: "sha256:child",
     mediaType: "application/vnd.oci.image.manifest.v1+json"
   });
@@ -39,7 +44,7 @@ test("scan writer stores scan metadata and rows incrementally", () => {
   const metadata = repository.getPackageMetadata(scanId);
   assert.equal(metadata.owner, "acme");
   assert.equal(metadata.packageName, "example");
-  assert.equal(repository.countPackageVersions(scanId), 1);
+  assert.equal(repository.countPackageVersions(scanId), 2);
   assert.equal(repository.countTags(scanId), 1);
   assert.equal(repository.countManifests(scanId), 2);
   assert.equal(repository.countManifestEdges(scanId), 1);

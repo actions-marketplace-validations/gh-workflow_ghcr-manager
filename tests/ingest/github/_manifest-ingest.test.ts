@@ -8,13 +8,23 @@ test("manifest ingest fetches manifests with shared token reuse", async () => {
   let tokenRequests = 0;
   let activeManifestRequests = 0;
   let maxManifestRequests = 0;
-  const manifestDigests = ["sha256:index-1", "sha256:index-2", "sha256:index-3"];
+  const manifests = [
+    { versionId: 1, digest: "sha256:index-1" },
+    { versionId: 2, digest: "sha256:index-2" },
+    { versionId: 3, digest: "sha256:index-3" }
+  ];
   const fetchedManifestDigests: string[] = [];
+  const insertedManifestDigests: string[] = [];
+  const insertedManifestPayloads: Array<{ digest: string; rawJson: string }> = [];
   const insertedEdges: Array<{ parentDigest: string; childDigest: string; edgeKind: string }> = [];
 
   const writer = {
-    insertManifest() {},
-    insertManifestPayload() {},
+    insertManifest(record: { digest: string }) {
+      insertedManifestDigests.push(record.digest);
+    },
+    insertManifestPayload(digest: string, rawJson: string) {
+      insertedManifestPayloads.push({ digest, rawJson });
+    },
     insertManifestDescriptor() {},
     insertManifestEdge(edge: { parentDigest: string; childDigest: string; edgeKind: string }) {
       insertedEdges.push(edge);
@@ -23,8 +33,14 @@ test("manifest ingest fetches manifests with shared token reuse", async () => {
   } as unknown as ScanWriter;
 
   const repository = {
-    listPackageVersionDigests() {
-      return [...manifestDigests];
+    listPackageVersionManifestRefs() {
+      return [...manifests];
+    },
+    listManifestDigests() {
+      return insertedManifestDigests;
+    },
+    listManifestPayloads() {
+      return insertedManifestPayloads;
     }
   } as unknown as SnapshotRepository;
 
@@ -80,25 +96,37 @@ test("manifest ingest fetches manifests with shared token reuse", async () => {
   );
 
   assert.equal(tokenRequests, 1);
-  assert.deepEqual(fetchedManifestDigests.sort(), [...manifestDigests].sort());
+  assert.deepEqual(fetchedManifestDigests.sort(), manifests.map((manifest) => manifest.digest).sort());
   assert.ok(maxManifestRequests > 1);
   assert.equal(insertedEdges.length, 0);
 });
 
 test("manifest ingest skips missing manifests (404) and continues", async () => {
   const scanId = 123;
-  const manifestDigests = ["sha256:index-1", "sha256:index-2", "sha256:index-3"];
+  const manifests = [
+    { versionId: 1, digest: "sha256:index-1" },
+    { versionId: 2, digest: "sha256:index-2" },
+    { versionId: 3, digest: "sha256:index-3" }
+  ];
   const fetchedManifestDigests: string[] = [];
   const warnings: string[] = [];
   const insertedManifests: string[] = [];
+  const insertedManifestDigests: string[] = [];
+  const insertedManifestPayloads: Array<{ digest: string; rawJson: string }> = [];
+  const insertedDescriptors: Array<{ parentDigest: string; childDigest: string }> = [];
   const insertedEdges: Array<{ parentDigest: string; childDigest: string; edgeKind: string }> = [];
 
   const writer = {
-    insertManifest(record: { digest: string }) {
-      insertedManifests.push(record.digest);
+    insertManifest(record: { versionId: number; digest: string }) {
+      insertedManifests.push(`${record.versionId}:${record.digest}`);
+      insertedManifestDigests.push(record.digest);
     },
-    insertManifestPayload() {},
-    insertManifestDescriptor() {},
+    insertManifestPayload(digest: string, rawJson: string) {
+      insertedManifestPayloads.push({ digest, rawJson });
+    },
+    insertManifestDescriptor(descriptor: { parentDigest: string; childDigest: string }) {
+      insertedDescriptors.push(descriptor);
+    },
     insertManifestEdge(edge: { parentDigest: string; childDigest: string; edgeKind: string }) {
       insertedEdges.push(edge);
     },
@@ -106,8 +134,14 @@ test("manifest ingest skips missing manifests (404) and continues", async () => 
   } as unknown as ScanWriter;
 
   const repository = {
-    listPackageVersionDigests() {
-      return [...manifestDigests];
+    listPackageVersionManifestRefs() {
+      return [...manifests];
+    },
+    listManifestDigests() {
+      return insertedManifestDigests;
+    },
+    listManifestPayloads() {
+      return insertedManifestPayloads;
     }
   } as unknown as SnapshotRepository;
 
@@ -173,8 +207,12 @@ test("manifest ingest skips missing manifests (404) and continues", async () => 
     scanId
   );
 
-  assert.deepEqual(fetchedManifestDigests.sort(), [...manifestDigests].sort());
-  assert.deepEqual(insertedManifests.sort(), ["sha256:index-1", "sha256:index-3"]);
+  assert.deepEqual(fetchedManifestDigests.sort(), manifests.map((manifest) => manifest.digest).sort());
+  assert.deepEqual(insertedManifests.sort(), ["1:sha256:index-1", "3:sha256:index-3"]);
+  assert.deepEqual(insertedDescriptors.map((descriptor) => descriptor.childDigest).sort(), [
+    "sha256:index-2",
+    "sha256:index-2"
+  ]);
   assert.deepEqual(insertedEdges, []);
   assert.ok(warnings.some((warning) => warning.includes("Skipping missing GHCR manifest sha256:index-2")));
 });

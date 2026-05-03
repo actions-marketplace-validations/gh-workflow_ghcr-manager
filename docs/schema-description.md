@@ -9,9 +9,8 @@ One scan of one package does this:
 1. Ask GitHub Packages API for package versions.
 2. Take each version's digest (`sha256:...`) as a start point.
 3. Fetch manifest JSON from GHCR for those digests.
-4. From each fetched manifest, discover more digests it points to.
-5. Fetch those too, until no new digests are found.
-6. Store graph relations and precompute reachability for fast queries.
+4. Process each fetched manifest payload for references to other digests.
+5. Store known graph relations and precompute reachability for fast queries.
 
 ## Core Scan Tables
 
@@ -21,25 +20,26 @@ One scan of one package does this:
 
 - `package_versions`
   - Rows from GitHub Packages API version list.
-  - Each row has a digest.
-  - Think: "starting points for manifest crawling."
+  - Each row has package-version identity and timestamps.
+  - The raw payload keeps the GitHub API item, including the root digest.
 
 - `tags`
-  - Tag -> version/digest mapping.
+  - Tag -> version mapping.
   - Built from GitHub package-version metadata (`metadata.container.tags`) during ingest.
 
 ## Manifest Content Tables
 
 - `manifests`
-  - One row per fetched manifest digest.
+  - One row per fetched package-version manifest digest.
   - Includes media type and some extracted fields (`subject_digest`, config/media info, annotations).
+  - Each row must have a matching `package_versions(scan_id, version_id)` row.
 
 - `manifest_payloads`
   - Raw manifest JSON body as fetched from GHCR.
 
 - `manifest_descriptors`
   - Direct child links read from manifest/index JSON.
-  - Think raw "this digest references that child digest" rows.
+  - Child digests may be absent from `manifests`.
 
 ## Manifest Graph Tables
 
@@ -54,23 +54,22 @@ These 3 are related but serve different purposes:
      - "Can digest A reach digest B?"
      - `min_distance` is shortest path length.
 
-## "One Version -> Many Manifests"
+## "One Version -> One Manifest"
 
 Important mental model:
 
 - A `package_version` gives one digest.
-- That digest can be an index/list that points to many child manifests.
-- Those children can point further.
-- Result: one version digest can lead to a whole connected manifest subgraph.
-
-So `package_versions` is not "all manifests". It is the initial digest list we start from.
+- That digest is fetched as exactly one `manifests` row.
+- Any digest named inside that manifest payload is stored as a relation, not fetched as an extra manifest unless it is
+  also present as its own package version.
 
 ## Missing Manifests
 
-Sometimes GHCR returns `404` for referenced digests.
+Sometimes a fetched manifest payload references a digest that is not part of the package-version manifest set.
 
-- Ingest currently skips those missing manifests and continues.
-- Missing digests can still be analyzed later from DB state.
+- Missing digests are not inserted into `manifests`.
+- Missing digests are derived from descriptor rows and `subject_digest` values whose targets are absent from
+  `manifests`.
 - Query recipes: [missing-manifests-queries.md](missing-manifests-queries.md)
 
 ## Raw JSON Side Tables

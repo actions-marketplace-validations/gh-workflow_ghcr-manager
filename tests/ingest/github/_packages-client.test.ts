@@ -4,15 +4,15 @@ import type { ScanWriter } from "../../../src/db/index.js";
 import { ingestPackageVersions } from "../../../src/ingest/github/_packages-client.js";
 
 test("package client writes package versions and tags with bounded parallel page fetches", async () => {
-  const insertedVersionDigests: string[] = [];
+  const insertedVersionIds: number[] = [];
   const insertedTags: string[] = [];
   const insertedPayloadVersionIds: number[] = [];
   let activeRequests = 0;
   let maxActiveRequests = 0;
 
   const writer = {
-    insertPackageVersion(version: { digest: string }) {
-      insertedVersionDigests.push(version.digest);
+    insertPackageVersion(version: { versionId: number }) {
+      insertedVersionIds.push(version.versionId);
     },
     insertPackageVersionPayload(versionId: number) {
       insertedPayloadVersionIds.push(versionId);
@@ -70,7 +70,7 @@ test("package client writes package versions and tags with bounded parallel page
   );
 
   assert.deepEqual(counts, { packageVersions: 101, tags: 101 });
-  assert.equal(insertedVersionDigests.length, 101);
+  assert.equal(insertedVersionIds.length, 101);
   assert.equal(insertedPayloadVersionIds.length, 101);
   assert.equal(insertedTags.length, 101);
   assert.ok(maxActiveRequests > 1);

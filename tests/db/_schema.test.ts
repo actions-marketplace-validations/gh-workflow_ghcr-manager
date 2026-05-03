@@ -32,6 +32,31 @@ test("initializeSchema creates manifest_reachability for precomputed graph reads
   database.close();
 });
 
+test("initializeSchema links manifests to package versions and uniquely stores digests", () => {
+  const database = new Database(":memory:");
+  initializeSchema(database);
+
+  const manifestForeignKeys = database.prepare("PRAGMA foreign_key_list(manifests)").all() as Array<{
+    table: string;
+    from: string;
+    to: string;
+  }>;
+  assert.ok(
+    manifestForeignKeys.some(
+      (foreignKey) =>
+        foreignKey.table === "package_versions" && foreignKey.from === "version_id" && foreignKey.to === "version_id"
+    )
+  );
+
+  const manifestIndexes = database.prepare("PRAGMA index_list(manifests)").all() as Array<{
+    name: string;
+    unique: number;
+  }>;
+  assert.ok(manifestIndexes.some((index) => index.unique === 1));
+
+  database.close();
+});
+
 test("initializeSchema creates SQL views from sql/views", () => {
   const database = new Database(":memory:");
   initializeSchema(database);

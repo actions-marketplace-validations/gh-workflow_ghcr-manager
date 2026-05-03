@@ -1,6 +1,5 @@
 export interface PackageVersionRecord {
   versionId: number;
-  digest: string;
   createdAt: string;
   updatedAt: string;
   metadata?: Record<string, unknown>;
@@ -8,11 +7,11 @@ export interface PackageVersionRecord {
 
 export interface TagRecord {
   tag: string;
-  digest: string;
   versionId: number;
 }
 
 export interface ManifestRecord {
+  versionId: number;
   digest: string;
   mediaType: string;
   artifactType?: string;

@@ -48,14 +48,17 @@
   ],
   "manifests": [
     {
+      "versionId": 101,
       "digest": "sha256:index-current",
       "mediaType": "application/vnd.oci.image.index.v1+json"
     },
     {
+      "versionId": 102,
       "digest": "sha256:index-old",
       "mediaType": "application/vnd.oci.image.index.v1+json"
     },
     {
+      "versionId": 103,
       "digest": "sha256:child-old",
       "mediaType": "application/vnd.oci.image.manifest.v1+json",
       "platform": {
@@ -64,6 +67,7 @@
       }
     },
     {
+      "versionId": 104,
       "digest": "sha256:untagged-old",
       "mediaType": "application/vnd.oci.image.manifest.v1+json",
       "platform": {
@@ -72,6 +76,7 @@
       }
     },
     {
+      "versionId": 105,
       "digest": "sha256:attestation-old",
       "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
       "artifactType": "application/vnd.in-toto+json"

@@ -58,14 +58,13 @@ export class ScanWriter {
     this.#database
       .prepare(
         `
-        INSERT OR REPLACE INTO package_versions(scan_id, version_id, digest, created_at, updated_at)
-        VALUES(@scanId, @versionId, @digest, @createdAt, @updatedAt)
+        INSERT OR REPLACE INTO package_versions(scan_id, version_id, created_at, updated_at)
+        VALUES(@scanId, @versionId, @createdAt, @updatedAt)
       `
       )
       .run({
         scanId: this.#requireScanId(),
         versionId: version.versionId,
-        digest: version.digest,
         createdAt: version.createdAt,
         updatedAt: version.updatedAt
       });
@@ -86,8 +85,8 @@ export class ScanWriter {
     this.#database
       .prepare(
         `
-        INSERT OR REPLACE INTO tags(scan_id, tag, digest, version_id)
-        VALUES(@scanId, @tag, @digest, @versionId)
+        INSERT OR REPLACE INTO tags(scan_id, tag, version_id)
+        VALUES(@scanId, @tag, @versionId)
       `
       )
       .run({
@@ -102,6 +101,7 @@ export class ScanWriter {
         `
         INSERT OR REPLACE INTO manifests(
           scan_id,
+          version_id,
           digest,
           media_type,
           artifact_type,
@@ -114,6 +114,7 @@ export class ScanWriter {
         )
         VALUES(
           @scanId,
+          @versionId,
           @digest,
           @mediaType,
           @artifactType,
@@ -128,6 +129,7 @@ export class ScanWriter {
       )
       .run({
         scanId: this.#requireScanId(),
+        versionId: manifest.versionId,
         digest: manifest.digest,
         mediaType: manifest.mediaType,
         artifactType: manifest.artifactType ?? null,

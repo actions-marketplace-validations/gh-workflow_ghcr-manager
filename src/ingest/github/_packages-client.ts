@@ -37,7 +37,6 @@ export function buildTags(packageVersions: PackageVersionRecord[]): TagRecord[] 
     for (const tagName of tagNames) {
       tags.push({
         tag: tagName,
-        digest: version.digest,
         versionId: version.versionId
       });
     }
@@ -50,7 +49,6 @@ export function normalizePackageVersions(packageVersions: GitHubPackageVersionPa
   return packageVersions
     .map((version) => ({
       versionId: version.id,
-      digest: version.name,
       createdAt: version.created_at,
       updatedAt: version.updated_at,
       metadata: version.metadata as Record<string, unknown> | undefined

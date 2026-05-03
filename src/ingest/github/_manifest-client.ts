@@ -34,6 +34,8 @@ interface _RegistryManifestDocument {
   };
 }
 
+type _LoadedManifestRecord = Omit<ManifestRecord, "versionId">;
+
 export async function loadManifestGraph(
   fetchImpl: FetchLike,
   registryBaseUrl: string,
@@ -41,7 +43,7 @@ export async function loadManifestGraph(
   registryToken: string,
   options: GitHubScanOptions
 ): Promise<{
-  record: ManifestRecord;
+  record: _LoadedManifestRecord;
   descriptorRecords: ManifestDescriptorRecord[];
   edgeRecords: ManifestEdgeRecord[];
   rawJson: string;
@@ -99,6 +101,20 @@ export async function loadManifestGraph(
       subjectDigest: document.subject?.digest,
       annotations: document.annotations
     },
+    ...buildManifestRelations(digest, rawJson)
+  };
+}
+
+export function buildManifestRelations(
+  digest: string,
+  rawJson: string
+): {
+  descriptorRecords: ManifestDescriptorRecord[];
+  edgeRecords: ManifestEdgeRecord[];
+} {
+  const document = JSON.parse(rawJson) as _RegistryManifestDocument;
+
+  return {
     descriptorRecords: _buildDescriptorRecords(digest, document),
     edgeRecords: _buildEdges(digest, document)
   };

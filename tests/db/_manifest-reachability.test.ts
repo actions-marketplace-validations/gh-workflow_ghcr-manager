@@ -8,19 +8,43 @@ test("rebuildManifestReachability builds reachability bottom-up from direct mani
   const writer = new ScanWriter(database);
 
   writer.resetScan("acme", "example", "2026-04-20T12:00:00.000Z");
+  writer.insertPackageVersion({
+    versionId: 1,
+    createdAt: "2026-04-20T10:00:00.000Z",
+    updatedAt: "2026-04-20T10:00:00.000Z"
+  });
   writer.insertManifest({
+    versionId: 1,
     digest: "sha256:index",
     mediaType: "application/vnd.oci.image.index.v1+json"
   });
+  writer.insertPackageVersion({
+    versionId: 2,
+    createdAt: "2026-04-20T10:00:00.000Z",
+    updatedAt: "2026-04-20T10:00:00.000Z"
+  });
   writer.insertManifest({
+    versionId: 2,
     digest: "sha256:child-a",
     mediaType: "application/vnd.oci.image.manifest.v1+json"
   });
+  writer.insertPackageVersion({
+    versionId: 3,
+    createdAt: "2026-04-20T10:00:00.000Z",
+    updatedAt: "2026-04-20T10:00:00.000Z"
+  });
   writer.insertManifest({
+    versionId: 3,
     digest: "sha256:child-b",
     mediaType: "application/vnd.oci.image.manifest.v1+json"
   });
+  writer.insertPackageVersion({
+    versionId: 4,
+    createdAt: "2026-04-20T10:00:00.000Z",
+    updatedAt: "2026-04-20T10:00:00.000Z"
+  });
   writer.insertManifest({
+    versionId: 4,
     digest: "sha256:leaf",
     mediaType: "application/vnd.oci.artifact.manifest.v1+json"
   });
@@ -117,11 +141,23 @@ test("rebuildManifestReachability rejects cycles in manifest edges", () => {
   const writer = new ScanWriter(database);
 
   writer.resetScan("acme", "example", "2026-04-20T12:00:00.000Z");
+  writer.insertPackageVersion({
+    versionId: 1,
+    createdAt: "2026-04-20T10:00:00.000Z",
+    updatedAt: "2026-04-20T10:00:00.000Z"
+  });
   writer.insertManifest({
+    versionId: 1,
     digest: "sha256:a",
     mediaType: "application/vnd.oci.image.manifest.v1+json"
   });
+  writer.insertPackageVersion({
+    versionId: 2,
+    createdAt: "2026-04-20T10:00:00.000Z",
+    updatedAt: "2026-04-20T10:00:00.000Z"
+  });
   writer.insertManifest({
+    versionId: 2,
     digest: "sha256:b",
     mediaType: "application/vnd.oci.image.manifest.v1+json"
   });

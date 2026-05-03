@@ -73,6 +73,9 @@ SELECT
 FROM closest_related_manifests crm
 JOIN package_scans ps
   ON ps.scan_id = crm.scan_id
+LEFT JOIN manifests tm
+  ON tm.scan_id = crm.scan_id
+ AND tm.digest = crm.related_manifest_digest
 LEFT JOIN tags t
-  ON t.scan_id = crm.scan_id
- AND t.digest = crm.related_manifest_digest;
+  ON t.scan_id = tm.scan_id
+ AND tm.version_id = t.version_id;

@@ -9,6 +9,7 @@ Short glossary for developers working on `ghcr-manager`.
 - When the code says "graph", read it as:
   - a set of rows in `manifest_edges`
   - each row says one digest points to another digest
+  - both digests exist in `manifests`
 
 ## Main Terms
 
@@ -23,18 +24,18 @@ Short glossary for developers working on `ghcr-manager`.
 | image index       | Multi-arch manifest document that points to child image manifests | `manifests.media_type = application/vnd.oci.image.index.v1+json`                  |
 | image manifest    | Single-platform image manifest, for example linux/amd64           | `manifests.media_type = application/vnd.oci.image.manifest.v1+json`               |
 | artifact manifest | OCI artifact document, for example provenance or attestation      | `manifests.media_type = application/vnd.oci.artifact.manifest.v1+json`            |
-| referrer          | Artifact manifest that points back to some subject digest         | stored in `manifest_edges` with `edge_kind = 'referrer'`                          |
+| referrer          | Artifact manifest that points back to some subject digest         | stored in `manifest_edges` when both manifests exist                              |
 | subject           | The digest that an artifact refers to                             | source field from GHCR manifest JSON, becomes `parent_digest` for `referrer` rows |
 
 <!-- markdownlint-enable MD013 -->
 
 ## GHCR / OCI Terms To Repo Terms
 
-| GHCR / OCI term                              | Repo meaning                                                        |
-| -------------------------------------------- | ------------------------------------------------------------------- |
-| `manifests[]` inside an image index          | child rows in `manifest_edges` with `edge_kind = 'image-child'`     |
-| `subject.digest` inside an artifact manifest | parent side of a `manifest_edges` row with `edge_kind = 'referrer'` |
-| manifest document fetched by digest          | one row in `manifests`                                              |
+| GHCR / OCI term                              | Repo meaning                                       |
+| -------------------------------------------- | -------------------------------------------------- |
+| `manifests[]` inside an image index          | descriptor rows and known `manifest_edges` rows    |
+| `subject.digest` inside an artifact manifest | known `referrer` edge or a missing digest in views |
+| manifest document fetched by digest          | one package-version-backed row in `manifests`      |
 
 ## DB Tables
 
@@ -43,34 +44,32 @@ Short glossary for developers working on `ghcr-manager`.
 - One row per GitHub package version.
 - Important columns:
   - `version_id`
-  - `digest`
   - `created_at`
 
-This is the GitHub Packages view of the world.
+This is the GitHub Packages view of the world and the parent table for fetched manifests.
 
 ### `tags`
 
-- Maps a tag to a digest and package version.
+- Maps a tag to a package version.
 - Example:
-  - `latest -> sha256:index-current`
+  - `latest -> version 101`
 
 This is how the planner knows which digests are tagged.
 
 ### `manifests`
 
-- One row per manifest-like document fetched from GHCR.
-- That can be:
-  - an image index
-  - an image manifest
-  - an artifact manifest
+- One row per package-version manifest fetched from GHCR.
+- That can be an image index, an image manifest, or an artifact manifest.
+- Every row has a matching `package_versions(scan_id, version_id)` row.
 
 This is the registry-document view of the world.
 
 ### `manifest_edges`
 
-- Raw direct manifest-to-manifest relations.
+- Known direct manifest-to-manifest relations.
 - Each row says:
   - `parent_digest` points to `child_digest`
+  - both digests exist in `manifests`
 
 Current edge kinds:
 
@@ -79,7 +78,7 @@ Current edge kinds:
 - `referrer`
   - Example: image manifest or index -> attestation artifact manifest
 
-This is the raw relation table.
+This is the known relation table.
 
 ### `manifest_reachability`
 
@@ -144,4 +143,5 @@ If you think in Docker terms, translate repo terms like this:
 - Not every manifest is a multi-arch index.
 - `manifests` contains more than cross-arch documents.
 - `manifest_edges` is not a GitHub API object.
-- `manifest_edges` is our normalized SQL table built from fetched registry JSON.
+- `manifest_edges` only contains relations where both endpoints are fetched manifests.
+- Missing targets are derived by comparing descriptor and subject references with fetched manifest rows.
