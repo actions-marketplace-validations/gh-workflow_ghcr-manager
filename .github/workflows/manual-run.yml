@@ -1,4 +1,5 @@
 name: Manual Run
+run-name: Manual Run for ${{ inputs.owner }}/${{ inputs.package }}
 
 "on":
   workflow_dispatch:
