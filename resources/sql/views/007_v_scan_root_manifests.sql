@@ -18,7 +18,7 @@ SELECT
       FROM manifest_reachability mr
       WHERE mr.scan_id = m.scan_id
         AND mr.descendant_digest = m.digest
-        AND mr.ancestor_digest <> m.digest
+        AND mr.min_distance > 0
     ) THEN 1
     ELSE 0
   END AS has_ancestor

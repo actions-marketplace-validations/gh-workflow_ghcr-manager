@@ -55,6 +55,8 @@ This section is the canonical place for session-to-session continuity.
 - ☑ Define combined `delete-tags` + `keep-n-tagged` semantics for shared-root cases before implementation.
 - ☑ Implement combined `delete-tags` + `keep-n-tagged` planning with root-level keep ranking.
 - ☑ Add seeded-registry validation scenarios for combined tagged keep rules.
+- ☑ Rewrite root ancestor detection to use reachability distance and add a descendant-distance index for large-plan
+  performance.
 - ☐ Extend the planner beyond `--delete-untagged` to cover tag selectors, exclusions, age filters, and keep rules.
 - ☐ Prototype registry execution against the test registry only after the plan output is stable and test-covered.
 - ☐ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
@@ -124,6 +126,8 @@ This section is the canonical place for session-to-session continuity.
   - `plan --delete-tag <tag> [--delete-tag <tag> ...] [--exclude-tag <tag> ...] [--keep-n-tagged <count>]` emits a
     dry-run exact-match tag delete/untag plan for one owner/package, optionally keeping the newest matched tagged roots
   - all current plan selector families accept optional `--older-than <interval>` as a root-level eligibility filter
+  - schema initialization now also creates a descendant-distance reachability index so root detection avoids the slow
+    `ancestor_digest <> root_digest` probe shape on large scans
 - Current test-registry workflow shape:
   - `test-registry-fill-*.yml` performs one-time GHCR fixture seeding
   - `test-registry-validate.yml` runs scan + plan against an already-seeded fixture without republishing it
@@ -132,6 +136,11 @@ This section is the canonical place for session-to-session continuity.
   - progress logs go to stderr
   - final scan summary JSON stays on stdout
   - supported levels: `debug`, `info`, `warn`, `error`, `silent`
+- Planner performance note:
+  - on large scans, the main `keep-n-untagged` hotspot was root detection inside `v_scan_root_manifests`, not the keep
+    window itself
+  - `has_ancestor` now uses `manifest_reachability.min_distance > 0` with a matching
+    `manifest_reachability(scan_id, descendant_digest, min_distance)` index
 - Debug helpers:
   - `GITHUB_TOKEN="$(gh auth token)" ghcr-manager scan --db <path> --owner <owner> --package <package> [--log-level <level>]`
     runs the live GitHub/GHCR scan directly via the CLI binary

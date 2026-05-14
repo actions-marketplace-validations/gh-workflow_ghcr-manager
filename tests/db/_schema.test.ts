@@ -32,6 +32,20 @@ test("initializeSchema creates manifest_reachability for precomputed graph reads
   database.close();
 });
 
+test("initializeSchema creates descendant reachability indexes for root lookups", () => {
+  const database = new Database(":memory:");
+  initializeSchema(database);
+
+  const indexes = database.prepare("PRAGMA index_list(manifest_reachability)").all() as Array<{
+    name: string;
+  }>;
+
+  assert.ok(indexes.some((index) => index.name === "idx_manifest_reachability_scan_descendant"));
+  assert.ok(indexes.some((index) => index.name === "idx_manifest_reachability_scan_descendant_distance"));
+
+  database.close();
+});
+
 test("initializeSchema stores manifests with an optional checked manifest kind", () => {
   const database = new Database(":memory:");
   initializeSchema(database);
@@ -93,6 +107,27 @@ test("initializeSchema creates SQL views from sql/views", () => {
     .get() as { sql?: string } | undefined;
 
   assert.match(row?.sql ?? "", /CREATE VIEW v_missing_digests_related_manifests AS/);
+
+  database.close();
+});
+
+test("initializeSchema creates v_scan_root_manifests with distance-based ancestor detection", () => {
+  const database = new Database(":memory:");
+  initializeSchema(database);
+
+  const row = database
+    .prepare(
+      `
+        SELECT sql
+        FROM sqlite_master
+        WHERE type = 'view' AND name = 'v_scan_root_manifests'
+      `
+    )
+    .get() as { sql?: string } | undefined;
+
+  assert.match(row?.sql ?? "", /mr\.descendant_digest = m\.digest/);
+  assert.match(row?.sql ?? "", /mr\.min_distance > 0/);
+  assert.doesNotMatch(row?.sql ?? "", /mr\.ancestor_digest <> m\.digest/);
 
   database.close();
 });

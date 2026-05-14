@@ -113,3 +113,5 @@ CREATE INDEX IF NOT EXISTS idx_manifest_edges_scan_parent ON manifest_edges(scan
 CREATE INDEX IF NOT EXISTS idx_manifest_edges_scan_child ON manifest_edges(scan_id, child_digest);
 CREATE INDEX IF NOT EXISTS idx_manifest_reachability_scan_descendant
   ON manifest_reachability(scan_id, descendant_digest);
+CREATE INDEX IF NOT EXISTS idx_manifest_reachability_scan_descendant_distance
+  ON manifest_reachability(scan_id, descendant_digest, min_distance);
