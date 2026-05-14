@@ -10,7 +10,25 @@ import { importFileScan } from "../helpers/index.js";
 test("handlePlan requires the delete-untagged selector", async () => {
   await assert.rejects(
     () => handlePlan(["--db", "scan.sqlite", "--owner", "acme", "--package", "example"]),
-    /missing required cleanup selector: --delete-untagged/
+    /missing required cleanup selector: --delete-untagged or --delete-tag/
+  );
+});
+
+test("handlePlan rejects mixed selector families", async () => {
+  await assert.rejects(
+    () =>
+      handlePlan([
+        "--db",
+        "scan.sqlite",
+        "--owner",
+        "acme",
+        "--package",
+        "example",
+        "--delete-untagged",
+        "--delete-tag",
+        "latest"
+      ]),
+    /either --delete-untagged or --delete-tag, not both/
   );
 });
 
@@ -46,4 +64,52 @@ test("handlePlan prints a delete-untagged plan for the selected package", async 
   assert.equal(plan.plannerInputs.deleteUntagged, true);
   assert.equal(plan.fullyDeletableRoots.length, 1);
   assert.equal(plan.fullyDeletableRoots[0]?.digest, "sha256:untagged-old");
+});
+
+test("handlePlan prints a delete-tags plan for the selected package", async () => {
+  const tempDirectory = mkdtempSync(join(tmpdir(), "ghcr-manager-"));
+  const databasePath = join(tempDirectory, "scan.sqlite");
+  const database = openDatabase(databasePath);
+  const writer = new ScanWriter(database);
+  await importFileScan("tests/fixtures/sample-package.json", writer);
+  database.close();
+
+  const originalLog = console.log;
+  const writes: string[] = [];
+  console.log = (message?: unknown) => {
+    writes.push(String(message));
+  };
+
+  try {
+    assert.equal(
+      await handlePlan(["--db", databasePath, "--owner", "acme", "--package", "example", "--delete-tag", "latest"]),
+      0
+    );
+  } finally {
+    console.log = originalLog;
+    rmSync(tempDirectory, { recursive: true, force: true });
+  }
+
+  assert.equal(writes.length, 1);
+  const plan = JSON.parse(writes[0] as string) as {
+    plannerInputs: { deleteUntagged: boolean; deleteTags: string[]; excludeTags: string[] };
+    directTargetTags: string[];
+    directTargetRoots: Array<{ digest: string; selectionMode: string }>;
+    fullyDeletableRoots: Array<{ digest: string }>;
+  };
+  assert.equal(plan.plannerInputs.deleteUntagged, false);
+  assert.deepEqual(plan.plannerInputs.deleteTags, ["latest"]);
+  assert.deepEqual(plan.plannerInputs.excludeTags, []);
+  assert.deepEqual(plan.directTargetTags, ["latest"]);
+  assert.deepEqual(
+    plan.directTargetRoots.map((root) => ({ digest: root.digest, selectionMode: root.selectionMode })),
+    [
+      {
+        digest: "sha256:index-current",
+        selectionMode: "delete-root"
+      }
+    ]
+  );
+  assert.equal(plan.fullyDeletableRoots.length, 1);
+  assert.equal(plan.fullyDeletableRoots[0]?.digest, "sha256:index-current");
 });

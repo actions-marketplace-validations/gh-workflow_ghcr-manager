@@ -15,6 +15,10 @@ interface _PlanRootRow {
   selection_mode: string;
 }
 
+interface _PlanTagRow {
+  target_tag: string;
+}
+
 interface _ClosureManifestRow {
   source_version_id: number;
   source_digest: string;
@@ -69,6 +73,8 @@ export interface DeletePlan {
   scanCompletedAt: string;
   plannerInputs: {
     deleteUntagged: boolean;
+    deleteTags: string[];
+    excludeTags: string[];
   };
   directTargetTags: string[];
   directTargetRoots: DeletePlanRoot[];
@@ -88,20 +94,50 @@ export class PlannerRepository {
   getDeleteUntaggedPlan(owner: string, packageName: string): DeletePlan {
     const scan = this.#getLatestCompletedScan(owner, packageName);
     const directTargetRoots = this.#listDeleteUntaggedDirectTargetRoots(scan.scan_id);
-    const blockedRoots = this.#listBlockedRoots(scan.scan_id);
+    const deleteRootCandidates = this.#listDeleteRootCandidates(directTargetRoots);
+    const blockedRoots = this.#listBlockedRoots(scan.scan_id, deleteRootCandidates);
     const blockedVersionIds = new Set(blockedRoots.map((root) => root.blockedVersionId));
-    const fullyDeletableRoots = directTargetRoots.filter((root) => !blockedVersionIds.has(root.versionId));
+    const fullyDeletableRoots = deleteRootCandidates.filter((root) => !blockedVersionIds.has(root.versionId));
 
     return {
       owner: scan.owner,
       packageName: scan.package_name,
       scanCompletedAt: scan.scan_completed_at,
       plannerInputs: {
-        deleteUntagged: true
+        deleteUntagged: true,
+        deleteTags: [],
+        excludeTags: []
       },
       directTargetTags: [],
       directTargetRoots,
-      closureManifests: this.#listClosureManifests(scan.scan_id),
+      closureManifests: this.#listClosureManifests(scan.scan_id, deleteRootCandidates),
+      blockedRoots,
+      fullyDeletableRoots,
+      collateralTags: []
+    };
+  }
+
+  getDeleteTagsPlan(owner: string, packageName: string, deleteTags: string[], excludeTags: string[]): DeletePlan {
+    const scan = this.#getLatestCompletedScan(owner, packageName);
+    const directTargetTags = this.#listDeleteTagDirectTargetTags(scan.scan_id, deleteTags, excludeTags);
+    const directTargetRoots = this.#listDeleteTagDirectTargetRoots(scan.scan_id, deleteTags, excludeTags);
+    const deleteRootCandidates = this.#listDeleteRootCandidates(directTargetRoots);
+    const blockedRoots = this.#listBlockedRoots(scan.scan_id, deleteRootCandidates);
+    const blockedVersionIds = new Set(blockedRoots.map((root) => root.blockedVersionId));
+    const fullyDeletableRoots = deleteRootCandidates.filter((root) => !blockedVersionIds.has(root.versionId));
+
+    return {
+      owner: scan.owner,
+      packageName: scan.package_name,
+      scanCompletedAt: scan.scan_completed_at,
+      plannerInputs: {
+        deleteUntagged: false,
+        deleteTags,
+        excludeTags
+      },
+      directTargetTags,
+      directTargetRoots,
+      closureManifests: this.#listClosureManifests(scan.scan_id, deleteRootCandidates),
       blockedRoots,
       fullyDeletableRoots,
       collateralTags: []
@@ -158,16 +194,109 @@ export class PlannerRepository {
     }));
   }
 
-  #listClosureManifests(scanId: number): DeletePlanClosureManifest[] {
+  #listDeleteTagDirectTargetTags(scanId: number, deleteTags: string[], excludeTags: string[]): string[] {
+    if (deleteTags.length === 0) {
+      return [];
+    }
+
+    const selectedTagPlaceholders = deleteTags.map(() => "?").join(", ");
+    const params: Array<number | string> = [scanId, ...deleteTags];
+    let excludedRootSql = "";
+    if (excludeTags.length > 0) {
+      const excludedTagPlaceholders = excludeTags.map(() => "?").join(", ");
+      excludedRootSql = `
+        AND t.version_id NOT IN (
+          SELECT version_id
+          FROM tags
+          WHERE scan_id = ?
+            AND tag IN (${excludedTagPlaceholders})
+        )
+      `;
+      params.push(scanId, ...excludeTags);
+    }
+
     const rows = this.#database
       .prepare(
         `
-          WITH direct_target_roots AS (
-            SELECT root_version_id, root_digest
-            FROM v_scan_root_manifests
-            WHERE scan_id = ?
-              AND is_tagged = 0
-              AND has_ancestor = 0
+          SELECT tag AS target_tag
+          FROM tags t
+          WHERE t.scan_id = ?
+            AND t.tag IN (${selectedTagPlaceholders})
+            ${excludedRootSql}
+          ORDER BY tag
+        `
+      )
+      .all(...params) as _PlanTagRow[];
+
+    return rows.map((row) => row.target_tag);
+  }
+
+  #listDeleteTagDirectTargetRoots(scanId: number, deleteTags: string[], excludeTags: string[]): DeletePlanRoot[] {
+    if (deleteTags.length === 0) {
+      return [];
+    }
+
+    const selectedTagPlaceholders = deleteTags.map(() => "?").join(", ");
+    const params: Array<number | string> = [...deleteTags, ...deleteTags, scanId, ...deleteTags];
+    let excludedTagSelect = "0";
+    if (excludeTags.length > 0) {
+      const excludedTagPlaceholders = excludeTags.map(() => "?").join(", ");
+      excludedTagSelect = `SUM(CASE WHEN t.tag IN (${excludedTagPlaceholders}) THEN 1 ELSE 0 END)`;
+      params.push(...excludeTags);
+    }
+
+    const rows = this.#database
+      .prepare(
+        `
+          SELECT
+            rm.root_version_id AS version_id,
+            rm.root_digest,
+            rm.root_manifest_kind,
+            CASE
+              WHEN COUNT(t.tag) = SUM(CASE WHEN t.tag IN (${selectedTagPlaceholders}) THEN 1 ELSE 0 END)
+                THEN 'delete-tags-all-tags-selected'
+              ELSE 'delete-tags-partial-tag-match'
+            END AS direct_target_reason,
+            CASE
+              WHEN COUNT(t.tag) = SUM(CASE WHEN t.tag IN (${selectedTagPlaceholders}) THEN 1 ELSE 0 END)
+                THEN 'delete-root'
+              ELSE 'untag-only'
+            END AS selection_mode
+          FROM v_scan_root_manifests rm
+          JOIN tags t
+            ON t.scan_id = rm.scan_id
+           AND t.version_id = rm.root_version_id
+          WHERE rm.scan_id = ?
+            AND rm.has_ancestor = 0
+          GROUP BY rm.root_version_id, rm.root_digest, rm.root_manifest_kind
+          HAVING SUM(CASE WHEN t.tag IN (${selectedTagPlaceholders}) THEN 1 ELSE 0 END) > 0
+             AND ${excludedTagSelect} = 0
+          ORDER BY rm.root_digest
+        `
+      )
+      .all(...params) as _PlanRootRow[];
+
+    return rows.map((row) => ({
+      versionId: row.version_id,
+      digest: row.root_digest,
+      manifestKind: row.root_manifest_kind ?? undefined,
+      reason: row.direct_target_reason,
+      selectionMode: row.selection_mode
+    }));
+  }
+
+  #listClosureManifests(scanId: number, directTargetRoots: DeletePlanRoot[]): DeletePlanClosureManifest[] {
+    if (directTargetRoots.length === 0) {
+      return [];
+    }
+
+    const directTargetRootsSql = directTargetRoots.map(() => "(?, ?)").join(", ");
+    const directTargetRootParams = directTargetRoots.flatMap((root) => [root.versionId, root.digest]);
+    const rows = this.#database
+      .prepare(
+        `
+          WITH direct_target_roots(root_version_id, root_digest) AS (
+            VALUES ${directTargetRootsSql}
           )
           SELECT
             c.root_version_id AS source_version_id,
@@ -185,7 +314,7 @@ export class PlannerRepository {
           ORDER BY c.root_digest, c.hops_from_root, c.member_digest
         `
       )
-      .all(scanId, scanId) as _ClosureManifestRow[];
+      .all(...directTargetRootParams, scanId) as _ClosureManifestRow[];
 
     return rows.map((row) => ({
       sourceVersionId: row.source_version_id,
@@ -198,18 +327,18 @@ export class PlannerRepository {
     }));
   }
 
-  #listBlockedRoots(scanId: number): DeletePlanBlockedRoot[] {
+  #listBlockedRoots(scanId: number, directTargetRoots: DeletePlanRoot[]): DeletePlanBlockedRoot[] {
+    if (directTargetRoots.length === 0) {
+      return [];
+    }
+
+    const directTargetRootsSql = directTargetRoots.map(() => "(?, ?)").join(", ");
+    const directTargetRootParams = directTargetRoots.flatMap((root) => [root.versionId, root.digest]);
     const rows = this.#database
       .prepare(
         `
-          WITH direct_target_roots AS (
-            SELECT
-              root_version_id,
-              root_digest
-            FROM v_scan_root_manifests
-            WHERE scan_id = ?
-              AND is_tagged = 0
-              AND has_ancestor = 0
+          WITH direct_target_roots(root_version_id, root_digest) AS (
+            VALUES ${directTargetRootsSql}
           ),
           retained_roots AS (
             SELECT
@@ -256,7 +385,7 @@ export class PlannerRepository {
           ORDER BY blocked_digest, blocking_digest, overlap_digest
         `
       )
-      .all(scanId, scanId, scanId) as _BlockedRootRow[];
+      .all(...directTargetRootParams, scanId, scanId) as _BlockedRootRow[];
 
     return rows.map((row) => ({
       blockedVersionId: row.blocked_version_id,
@@ -267,5 +396,9 @@ export class PlannerRepository {
       overlapManifestKind: row.overlap_manifest_kind ?? undefined,
       reason: row.block_reason
     }));
+  }
+
+  #listDeleteRootCandidates(directTargetRoots: DeletePlanRoot[]): DeletePlanRoot[] {
+    return directTargetRoots.filter((root) => root.selectionMode === "delete-root");
   }
 }

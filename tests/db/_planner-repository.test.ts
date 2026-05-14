@@ -349,3 +349,227 @@ test("planner repository does not treat sibling wrapper indexes as overlapping w
 
   database.close();
 });
+
+test("planner repository selects a fully matched tagged root for deletion", () => {
+  const database = openDatabase(":memory:");
+  const writer = new ScanWriter(database);
+  const repository = new PlannerRepository(database);
+
+  writer.resetScan("acme", "delete-tags", "2026-05-14T10:00:00.000Z");
+  writer.insertPackageVersion({
+    versionId: 1,
+    createdAt: "2026-05-01T10:00:00.000Z",
+    updatedAt: "2026-05-01T10:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 1,
+    digest: "sha256:latest-root",
+    manifestKind: "image_manifest",
+    mediaType: "application/vnd.oci.image.manifest.v1+json"
+  });
+  writer.insertTag({
+    tag: "latest",
+    versionId: 1
+  });
+  writer.markScanCompleted("2026-05-14T10:00:00.000Z");
+
+  const plan = repository.getDeleteTagsPlan("acme", "delete-tags", ["latest"], []);
+
+  assert.deepEqual(plan.directTargetTags, ["latest"]);
+  assert.deepEqual(plan.directTargetRoots, [
+    {
+      versionId: 1,
+      digest: "sha256:latest-root",
+      manifestKind: "image_manifest",
+      reason: "delete-tags-all-tags-selected",
+      selectionMode: "delete-root"
+    }
+  ]);
+  assert.deepEqual(plan.closureManifests, [
+    {
+      sourceVersionId: 1,
+      sourceDigest: "sha256:latest-root",
+      memberVersionId: 1,
+      memberDigest: "sha256:latest-root",
+      memberManifestKind: "image_manifest",
+      hopsFromRoot: 0,
+      memberRole: "root"
+    }
+  ]);
+  assert.deepEqual(plan.blockedRoots, []);
+  assert.deepEqual(plan.fullyDeletableRoots, plan.directTargetRoots);
+
+  database.close();
+});
+
+test("planner repository keeps partial tag matches as untag-only roots", () => {
+  const database = openDatabase(":memory:");
+  const writer = new ScanWriter(database);
+  const repository = new PlannerRepository(database);
+
+  writer.resetScan("acme", "partial-tags", "2026-05-14T10:00:00.000Z");
+  writer.insertPackageVersion({
+    versionId: 1,
+    createdAt: "2026-05-01T10:00:00.000Z",
+    updatedAt: "2026-05-01T10:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 1,
+    digest: "sha256:multi-tag-root",
+    manifestKind: "image_manifest",
+    mediaType: "application/vnd.oci.image.manifest.v1+json"
+  });
+  writer.insertTag({
+    tag: "latest",
+    versionId: 1
+  });
+  writer.insertTag({
+    tag: "stable",
+    versionId: 1
+  });
+  writer.markScanCompleted("2026-05-14T10:00:00.000Z");
+
+  const plan = repository.getDeleteTagsPlan("acme", "partial-tags", ["latest"], []);
+
+  assert.deepEqual(plan.directTargetTags, ["latest"]);
+  assert.deepEqual(plan.directTargetRoots, [
+    {
+      versionId: 1,
+      digest: "sha256:multi-tag-root",
+      manifestKind: "image_manifest",
+      reason: "delete-tags-partial-tag-match",
+      selectionMode: "untag-only"
+    }
+  ]);
+  assert.deepEqual(plan.closureManifests, []);
+  assert.deepEqual(plan.blockedRoots, []);
+  assert.deepEqual(plan.fullyDeletableRoots, []);
+
+  database.close();
+});
+
+test("planner repository lets exclude-tags protect a matched root", () => {
+  const database = openDatabase(":memory:");
+  const writer = new ScanWriter(database);
+  const repository = new PlannerRepository(database);
+
+  writer.resetScan("acme", "exclude-tags", "2026-05-14T10:00:00.000Z");
+  writer.insertPackageVersion({
+    versionId: 1,
+    createdAt: "2026-05-01T10:00:00.000Z",
+    updatedAt: "2026-05-01T10:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 1,
+    digest: "sha256:protected-root",
+    manifestKind: "image_manifest",
+    mediaType: "application/vnd.oci.image.manifest.v1+json"
+  });
+  writer.insertTag({
+    tag: "latest",
+    versionId: 1
+  });
+  writer.insertTag({
+    tag: "keep-me",
+    versionId: 1
+  });
+  writer.markScanCompleted("2026-05-14T10:00:00.000Z");
+
+  const plan = repository.getDeleteTagsPlan("acme", "exclude-tags", ["latest"], ["keep-me"]);
+
+  assert.deepEqual(plan.directTargetTags, []);
+  assert.deepEqual(plan.directTargetRoots, []);
+  assert.deepEqual(plan.closureManifests, []);
+  assert.deepEqual(plan.blockedRoots, []);
+  assert.deepEqual(plan.fullyDeletableRoots, []);
+
+  database.close();
+});
+
+test("planner repository blocks fully selected tagged roots whose closure overlaps retained roots", () => {
+  const database = openDatabase(":memory:");
+  const writer = new ScanWriter(database);
+  const repository = new PlannerRepository(database);
+
+  writer.resetScan("acme", "tag-overlap", "2026-05-14T10:00:00.000Z");
+  writer.insertPackageVersion({
+    versionId: 1,
+    createdAt: "2026-05-01T10:00:00.000Z",
+    updatedAt: "2026-05-01T10:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 1,
+    digest: "sha256:delete-root",
+    manifestKind: "image_index",
+    mediaType: "application/vnd.oci.image.index.v1+json"
+  });
+  writer.insertTag({
+    tag: "pr-123",
+    versionId: 1
+  });
+  writer.insertPackageVersion({
+    versionId: 2,
+    createdAt: "2026-05-02T10:00:00.000Z",
+    updatedAt: "2026-05-02T10:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 2,
+    digest: "sha256:retained-root",
+    manifestKind: "image_index",
+    mediaType: "application/vnd.oci.image.index.v1+json"
+  });
+  writer.insertTag({
+    tag: "latest",
+    versionId: 2
+  });
+  writer.insertPackageVersion({
+    versionId: 3,
+    createdAt: "2026-05-03T10:00:00.000Z",
+    updatedAt: "2026-05-03T10:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 3,
+    digest: "sha256:shared-child",
+    manifestKind: "image_manifest",
+    mediaType: "application/vnd.oci.image.manifest.v1+json"
+  });
+  writer.insertManifestEdge({
+    parentDigest: "sha256:delete-root",
+    childDigest: "sha256:shared-child",
+    edgeKind: "image-child"
+  });
+  writer.insertManifestEdge({
+    parentDigest: "sha256:retained-root",
+    childDigest: "sha256:shared-child",
+    edgeKind: "image-child"
+  });
+  writer.rebuildManifestReachability();
+  writer.markScanCompleted("2026-05-14T10:00:00.000Z");
+
+  const plan = repository.getDeleteTagsPlan("acme", "tag-overlap", ["pr-123"], []);
+
+  assert.deepEqual(plan.directTargetTags, ["pr-123"]);
+  assert.deepEqual(plan.directTargetRoots, [
+    {
+      versionId: 1,
+      digest: "sha256:delete-root",
+      manifestKind: "image_index",
+      reason: "delete-tags-all-tags-selected",
+      selectionMode: "delete-root"
+    }
+  ]);
+  assert.deepEqual(plan.blockedRoots, [
+    {
+      blockedVersionId: 1,
+      blockedDigest: "sha256:delete-root",
+      blockingVersionId: 2,
+      blockingDigest: "sha256:retained-root",
+      overlapDigest: "sha256:shared-child",
+      overlapManifestKind: "image_manifest",
+      reason: "overlap-with-retained-root"
+    }
+  ]);
+  assert.deepEqual(plan.fullyDeletableRoots, []);
+
+  database.close();
+});

@@ -46,7 +46,7 @@ This section is the canonical place for session-to-session continuity.
   collateral tags.
 - ☑ Add read-only deletion-plan output that explains why versions or manifests are retained versus deletable.
 - ☑ Add tests for multi-arch images, sibling wrapper indexes, and referrers.
-- ☐ Add explicit tag exclusion planner behavior once exclusions exist in the planner inputs.
+- ☑ Add explicit tag exclusion planner behavior for the current exact-match tag planner inputs.
 - ☑ Separate test-registry seeding from test-registry validation runs so GHCR fixtures can be reused across sessions.
 - ☐ Extend the planner beyond `--delete-untagged` to cover tag selectors, exclusions, age filters, and keep rules.
 - ☐ Prototype registry execution against the test registry only after the plan output is stable and test-covered.
@@ -110,6 +110,8 @@ This section is the canonical place for session-to-session continuity.
 - Current CLI shape:
   - `scan` imports live GitHub Packages + GHCR state into SQLite
   - `plan --delete-untagged` emits a dry-run delete plan for the latest completed scan of one owner/package
+  - `plan --delete-tag <tag> [--delete-tag <tag> ...] [--exclude-tag <tag> ...]` emits a dry-run exact-match tag
+    delete/untag plan for one owner/package
 - Current test-registry workflow shape:
   - `test-registry-fill-*.yml` performs one-time GHCR fixture seeding
   - `test-registry-validate.yml` runs scan + plan against an already-seeded fixture without republishing it
@@ -272,12 +274,20 @@ src/
   - `fullyDeletableRoots`
   - `collateralTags`
 - Current planner behavior is intentionally narrow:
-  - only `--delete-untagged` is implemented
-  - direct targets are limited to top-level untagged roots (`has_ancestor = 0`)
+  - supported selector families are currently:
+    - `--delete-untagged`
+    - exact-match repeated `--delete-tag` with optional repeated `--exclude-tag`
+  - only one selector family is accepted per plan invocation
+  - direct untagged targets are limited to top-level untagged roots (`has_ancestor = 0`)
+  - partial tag matches on multi-tagged roots are reported as `selectionMode = "untag-only"`
   - blocked roots are explained through closure overlap with retained top-level roots
 - Added tests for:
   - unblocked top-level untagged deletion planning
   - blocked deletion planning when an untagged root overlaps a retained tagged root
+  - fully selected tagged roots becoming `delete-root` candidates
+  - partial tag matches becoming `untag-only` candidates
+  - `exclude-tag` preventing both delete-root and untag-only selection
+  - fully selected tagged roots being blocked by retained-root overlap
   - CLI dispatch and JSON output for the new `plan` command
 - Added [docs/planner-data-model.md](planner-data-model.md) to define the canonical dry-run planner result sets:
   `direct_target_tags`, `direct_target_roots`, `closure_manifests`, `blocked_roots`, `fully_deletable_roots`, and
@@ -322,8 +332,14 @@ src/
     closure
   - sibling wrapper indexes that point at different children do not block each other just because they correspond to the
     same human-facing image family
-- Deferred explicit tag exclusion tests until the planner accepts exclusion inputs; current `--delete-untagged` output
-  still has no exclusion path to assert.
+- Added the first exact-match tag-driven planner path:
+  - repeated `--delete-tag` populates `directTargetTags`
+  - roots with all tags selected become `selectionMode = "delete-root"`
+  - roots with only some tags selected become `selectionMode = "untag-only"`
+  - repeated `--exclude-tag` wins over both delete-root and untag-only selection for matching roots
+- Kept the scope intentionally narrow for now:
+  - exact tag matches only, not wildcard or regex selectors
+  - one selector family per invocation instead of combining `delete-tags` with `delete-untagged`
 
 ### 2026-05-14
 
