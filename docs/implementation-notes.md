@@ -36,7 +36,7 @@ This section is the canonical place for session-to-session continuity.
 
 - ☑ Add an initial cleanup roadmap that breaks the broad reimplementation goal into session-sized subtasks and defines
   how planning state is documented across sessions.
-- ☐ Write the cleanup semantics note: define the deletion unit, supported inputs, and explicit non-goals relative to
+- ☑ Write the cleanup semantics note: define the deletion unit, supported inputs, and explicit non-goals relative to
   `dataaxiom/ghcr-cleanup-action`.
 - ☐ Define planner outputs around manifest closures and tag overlap, including direct targets, blocked manifests, and
   collateral tags.
@@ -118,6 +118,7 @@ This section is the canonical place for session-to-session continuity.
 - File naming rule in `src/`: every non-public implementation file must be named `_*.ts`.
 - Test mapping rule: `tests/` mirrors `src/` one-to-one, with `src/.../*.ts` mapped to `tests/.../*.test.ts`.
 - Cleanup planning roadmap: [docs/cleanup-roadmap.md](cleanup-roadmap.md)
+- Cleanup semantics note: [docs/cleanup-semantics.md](cleanup-semantics.md)
 
 ### Current Module Layout
 
@@ -231,6 +232,14 @@ src/
 
 ### 2026-05-14
 
+- Added [docs/cleanup-semantics.md](cleanup-semantics.md) to lock the cleanup model before planner and execution work.
+- Chosen cleanup semantics for the first planner track:
+  - planning is rooted in package-version-backed root manifests
+  - deletion safety is decided on manifest closures, not on tag names alone
+  - selective tag matches may require untag actions separate from package-version deletion
+  - destructive cleanup should require explicit intent, with no implicit default "delete all untagged" mode
+- Deferred upstream parity features for later planner phases: ghost/partial/orphaned image cleanup, regex selectors,
+  multi-package expansion, and validate-mode parity.
 - Added [docs/cleanup-roadmap.md](cleanup-roadmap.md) to turn the broad cleanup reimplementation goal into ordered,
   session-sized subtasks with explicit deliverables and acceptance focus.
 - Chosen documentation shape for the cleanup track:
