@@ -2,6 +2,7 @@
 
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { handlePlan } from "./_plan-command.js";
 import { handleScan } from "./_scan-command.js";
 
 export async function main(argv: string[]): Promise<number> {
@@ -12,6 +13,8 @@ export async function main(argv: string[]): Promise<number> {
   }
 
   switch (command) {
+    case "plan":
+      return handlePlan(rest);
     case "scan":
       return handleScan(rest);
     default:
@@ -21,6 +24,7 @@ export async function main(argv: string[]): Promise<number> {
 
 function printUsage(): void {
   console.error(`Usage:
+  ghcr-manager plan --db <path> --owner <org> --package <name> --delete-untagged
   ghcr-manager scan --db <path> [--log-level <debug|info|warn|error|silent>] --owner <org> --package <name> --token <token>`);
 }
 

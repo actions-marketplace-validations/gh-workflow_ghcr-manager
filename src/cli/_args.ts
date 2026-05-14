@@ -28,6 +28,10 @@ export function collectRepeatedOption(args: string[], name: string): string[] {
   return values;
 }
 
+export function hasFlag(args: string[], name: string): boolean {
+  return args.includes(name);
+}
+
 export function resolveGitHubToken(args: string[]): string {
   const cliToken = findOption(args, "--token");
   if (cliToken) {

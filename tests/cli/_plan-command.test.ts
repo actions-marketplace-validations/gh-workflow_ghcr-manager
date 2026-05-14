@@ -3,19 +3,18 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { main } from "../../src/cli/index.js";
+import { handlePlan } from "../../src/cli/_plan-command.js";
 import { openDatabase, ScanWriter } from "../../src/db/index.js";
 import { importFileScan } from "../helpers/index.js";
 
-test("main returns 1 when no command is provided", async () => {
-  assert.equal(await main([]), 1);
+test("handlePlan requires the delete-untagged selector", async () => {
+  await assert.rejects(
+    () => handlePlan(["--db", "scan.sqlite", "--owner", "acme", "--package", "example"]),
+    /missing required cleanup selector: --delete-untagged/
+  );
 });
 
-test("main throws for an unknown command", async () => {
-  await assert.rejects(() => main(["unknown"]), /unknown command: unknown/);
-});
-
-test("main dispatches the plan command", async () => {
+test("handlePlan prints a delete-untagged plan for the selected package", async () => {
   const tempDirectory = mkdtempSync(join(tmpdir(), "ghcr-manager-"));
   const databasePath = join(tempDirectory, "scan.sqlite");
   const database = openDatabase(databasePath);
@@ -31,7 +30,7 @@ test("main dispatches the plan command", async () => {
 
   try {
     assert.equal(
-      await main(["plan", "--db", databasePath, "--owner", "acme", "--package", "example", "--delete-untagged"]),
+      await handlePlan(["--db", databasePath, "--owner", "acme", "--package", "example", "--delete-untagged"]),
       0
     );
   } finally {
@@ -40,4 +39,11 @@ test("main dispatches the plan command", async () => {
   }
 
   assert.equal(writes.length, 1);
+  const plan = JSON.parse(writes[0] as string) as {
+    plannerInputs: { deleteUntagged: boolean };
+    fullyDeletableRoots: Array<{ digest: string }>;
+  };
+  assert.equal(plan.plannerInputs.deleteUntagged, true);
+  assert.equal(plan.fullyDeletableRoots.length, 1);
+  assert.equal(plan.fullyDeletableRoots[0]?.digest, "sha256:untagged-old");
 });

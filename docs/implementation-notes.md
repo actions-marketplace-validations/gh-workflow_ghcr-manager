@@ -42,8 +42,9 @@ This section is the canonical place for session-to-session continuity.
   `dataaxiom/ghcr-cleanup-action`.
 - ☑ Define planner outputs around manifest closures and tag overlap, including direct targets, blocked manifests, and
   collateral tags.
-- ☐ Add read-only deletion-plan output that explains why versions or manifests are retained versus deletable.
+- ☑ Add read-only deletion-plan output that explains why versions or manifests are retained versus deletable.
 - ☐ Add tests for multi-arch images, sibling wrapper indexes, referrers, and explicit tag exclusion behavior.
+- ☐ Extend the planner beyond `--delete-untagged` to cover tag selectors, exclusions, age filters, and keep rules.
 - ☐ Prototype registry execution against the test registry only after the plan output is stable and test-covered.
 - ☐ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
 - ☑ Add package scopes to the DB schema so one SQLite database can store multiple owner/package scans.
@@ -101,6 +102,9 @@ This section is the canonical place for session-to-session continuity.
   - missing referenced digests are derived from descriptor and subject references instead of being represented as
     manifest rows
 - Current action shape: thin composite wrapper that invokes the shared CLI.
+- Current CLI shape:
+  - `scan` imports live GitHub Packages + GHCR state into SQLite
+  - `plan --delete-untagged` emits a dry-run delete plan for the latest completed scan of one owner/package
 - Scan logging:
   - progress logs go to stderr
   - final scan summary JSON stays on stdout
@@ -235,6 +239,27 @@ src/
 
 ### 2026-05-14
 
+- Added the first read-only planner implementation for `plan --delete-untagged`.
+- Added scan-scoped planner base views:
+  - `v_scan_root_manifests`
+  - `v_scan_root_closure`
+  - `v_scan_root_overlap`
+- Added `PlannerRepository` as the first DB-backed planner query layer.
+- The current plan output emits:
+  - `directTargetTags`
+  - `directTargetRoots`
+  - `closureManifests`
+  - `blockedRoots`
+  - `fullyDeletableRoots`
+  - `collateralTags`
+- Current planner behavior is intentionally narrow:
+  - only `--delete-untagged` is implemented
+  - direct targets are limited to top-level untagged roots (`has_ancestor = 0`)
+  - blocked roots are explained through closure overlap with retained top-level roots
+- Added tests for:
+  - unblocked top-level untagged deletion planning
+  - blocked deletion planning when an untagged root overlaps a retained tagged root
+  - CLI dispatch and JSON output for the new `plan` command
 - Added [docs/planner-data-model.md](planner-data-model.md) to define the canonical dry-run planner result sets:
   `direct_target_tags`, `direct_target_roots`, `closure_manifests`, `blocked_roots`, `fully_deletable_roots`, and
   `collateral_tags`.
