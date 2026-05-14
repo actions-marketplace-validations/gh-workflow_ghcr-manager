@@ -67,6 +67,8 @@ This section is the canonical place for session-to-session continuity.
   closure members to retained roots.
 - ☑ Expand plan output with explicit validation summaries, per-root decisions, and protected-root explanations.
 - ☑ Extend seeded-registry validation assertions so workflow scenarios verify the new plan validation contract fields.
+- ☑ Split `tools/assert-test-registry-plan.mjs` by responsibility into entrypoint, contract checks, scenario checks, and
+  DB helpers.
 - ☐ Extend the planner beyond `--delete-untagged` to cover tag selectors, exclusions, age filters, and keep rules.
 - ☐ Prototype registry execution against the test registry only after the plan output is stable and test-covered.
 - ☐ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
