@@ -39,7 +39,7 @@ This section is the canonical place for session-to-session continuity.
   how planning state is documented across sessions.
 - ☑ Write the cleanup semantics note: define the deletion unit, supported inputs, and explicit non-goals relative to
   `dataaxiom/ghcr-cleanup-action`.
-- ☐ Define planner outputs around manifest closures and tag overlap, including direct targets, blocked manifests, and
+- ☑ Define planner outputs around manifest closures and tag overlap, including direct targets, blocked manifests, and
   collateral tags.
 - ☐ Add read-only deletion-plan output that explains why versions or manifests are retained versus deletable.
 - ☐ Add tests for multi-arch images, sibling wrapper indexes, referrers, and explicit tag exclusion behavior.
@@ -120,6 +120,7 @@ This section is the canonical place for session-to-session continuity.
 - Test mapping rule: `tests/` mirrors `src/` one-to-one, with `src/.../*.ts` mapped to `tests/.../*.test.ts`.
 - Cleanup planning roadmap: [docs/cleanup-roadmap.md](cleanup-roadmap.md)
 - Cleanup semantics note: [docs/cleanup-semantics.md](cleanup-semantics.md)
+- Planner data model: [docs/planner-data-model.md](planner-data-model.md)
 
 ### Current Module Layout
 
@@ -233,6 +234,13 @@ src/
 
 ### 2026-05-14
 
+- Added [docs/planner-data-model.md](planner-data-model.md) to define the canonical dry-run planner result sets:
+  `direct_target_tags`, `direct_target_roots`, `closure_manifests`, `blocked_roots`, `fully_deletable_roots`, and
+  `collateral_tags`.
+- Chosen planner-query shape:
+  - stable scan-scoped base views for roots, closures, and overlaps
+  - request-scoped CTEs or temporary views for actual cleanup inputs
+  - existing `v_tags_delete_*` views remain exploratory and should not become the canonical planner interface
 - Added [docs/cleanup-semantics.md](cleanup-semantics.md) to lock the cleanup model before planner and execution work.
 - Chosen cleanup semantics for the first planner track:
   - planning is rooted in package-version-backed root manifests
