@@ -54,6 +54,7 @@ This section is the canonical place for session-to-session continuity.
 - ☑ Add the first tagged keep-rule planner slice via `--keep-n-tagged`.
 - ☑ Define combined `delete-tags` + `keep-n-tagged` semantics for shared-root cases before implementation.
 - ☑ Implement combined `delete-tags` + `keep-n-tagged` planning with root-level keep ranking.
+- ☑ Add seeded-registry validation scenarios for combined tagged keep rules.
 - ☐ Extend the planner beyond `--delete-untagged` to cover tag selectors, exclusions, age filters, and keep rules.
 - ☐ Prototype registry execution against the test registry only after the plan output is stable and test-covered.
 - ☐ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
@@ -398,6 +399,11 @@ src/
     eligible while `gamma` stays too new
   - `complex-tag-age-window-exclude-beta` reuses that derived cutoff and verifies that `exclude-tag beta` removes `beta`
     from the selected plan even though it is old enough
+  - `complex-tag-age-window-keep-1` reuses that derived cutoff and verifies that `--keep-n-tagged 1` retains the newer
+    matched top-level root while selecting the older matched root for deletion
+  - `complex-shared-platform-tags-keep-1` validates the shared-root case for `beta-*` and `gamma-*` platform tags,
+    where root-level keep ranking retains the newer shared root and the older shared root remains `untag-only` because
+    unmatched tags still exist on it
 - Kept the scope intentionally narrow for now:
   - exact tag matches only, not wildcard or regex selectors
   - one selector family per invocation instead of combining `delete-tags` with `delete-untagged`

@@ -28,6 +28,22 @@ switch (scenario) {
   case "complex-tag-age-window-exclude-beta":
     _assertComplexAgeWindowPlan(plan, databasePath, ["beta"]);
     break;
+  case "complex-tag-age-window-keep-1":
+    _assertCombinedTaggedKeepPlan(plan, databasePath, {
+      deleteTags: ["alpha", "beta", "gamma"],
+      excludeTags: [],
+      keepNTagged: 1,
+      requireOlderThan: true
+    });
+    break;
+  case "complex-shared-platform-tags-keep-1":
+    _assertCombinedTaggedKeepPlan(plan, databasePath, {
+      deleteTags: ["beta-amd64", "gamma-amd64", "beta-arm64", "gamma-arm64"],
+      excludeTags: [],
+      keepNTagged: 1,
+      requireOlderThan: false
+    });
+    break;
   default:
     throw new Error(`unknown validation scenario: ${scenario}`);
 }
@@ -137,4 +153,120 @@ function _assertComplexAgeWindowPlan(plan, databasePath, excludedTags) {
     "age-window direct target roots must all be blocked by retained roots"
   );
   assert.deepEqual(plan.fullyDeletableRoots, []);
+}
+
+function _assertCombinedTaggedKeepPlan(plan, databasePath, options) {
+  assert.equal(plan.plannerInputs?.deleteUntagged, false);
+  assert.deepEqual(plan.plannerInputs?.deleteTags, options.deleteTags);
+  assert.deepEqual(plan.plannerInputs?.excludeTags, options.excludeTags);
+  assert.equal(plan.plannerInputs?.keepNTagged, options.keepNTagged);
+  if (options.requireOlderThan) {
+    assert.equal(typeof plan.plannerInputs?.olderThan, "string");
+    assert.equal(typeof plan.plannerInputs?.cutoffTimestamp, "string");
+  } else {
+    assert.equal(plan.plannerInputs?.olderThan, undefined);
+    assert.equal(plan.plannerInputs?.cutoffTimestamp, undefined);
+  }
+
+  const database = new Database(databasePath, { readonly: true });
+  const rows = database
+    .prepare(
+      `
+        SELECT t.tag, m.version_id, m.digest, m.manifest_kind, pv.created_at
+        FROM tags t
+        JOIN manifests m
+          ON m.scan_id = t.scan_id
+         AND m.version_id = t.version_id
+        JOIN package_versions pv
+          ON pv.scan_id = t.scan_id
+         AND pv.version_id = t.version_id
+        WHERE (
+          ? IS NULL
+          OR pv.created_at < ?
+        )
+        ORDER BY pv.created_at DESC, m.version_id DESC, m.digest DESC, t.tag
+      `
+    )
+    .all(plan.plannerInputs?.cutoffTimestamp ?? null, plan.plannerInputs?.cutoffTimestamp ?? null);
+  database.close();
+
+  const rootsByVersionId = new Map();
+  for (const row of rows) {
+    let root = rootsByVersionId.get(row.version_id);
+    if (!root) {
+      root = {
+        versionId: row.version_id,
+        digest: row.digest,
+        manifestKind: row.manifest_kind,
+        createdAt: row.created_at,
+        tags: []
+      };
+      rootsByVersionId.set(row.version_id, root);
+    }
+    root.tags.push(row.tag);
+  }
+
+  const eligibleRoots = [...rootsByVersionId.values()]
+    .filter((root) => root.tags.some((tag) => options.deleteTags.includes(tag)))
+    .filter((root) => !root.tags.some((tag) => options.excludeTags.includes(tag)));
+
+  const expectedDirectTargetTags = eligibleRoots.flatMap((root) =>
+    root.tags.filter((tag) => options.deleteTags.includes(tag))
+  );
+  expectedDirectTargetTags.sort();
+  assert.deepEqual([...plan.directTargetTags].sort(), expectedDirectTargetTags);
+
+  const rankedRoots = [...eligibleRoots].sort((left, right) => {
+    const createdAtCompare = Date.parse(right.createdAt) - Date.parse(left.createdAt);
+    if (createdAtCompare !== 0) {
+      return createdAtCompare;
+    }
+    const versionIdCompare = right.versionId - left.versionId;
+    if (versionIdCompare !== 0) {
+      return versionIdCompare;
+    }
+    return right.digest.localeCompare(left.digest);
+  });
+  const selectedRoots = rankedRoots
+    .slice(options.keepNTagged)
+    .sort((left, right) => left.digest.localeCompare(right.digest));
+  const expectedDirectTargetRoots = selectedRoots.map((root) => {
+    const matchedTagCount = root.tags.filter((tag) => options.deleteTags.includes(tag)).length;
+    const isFullMatch = matchedTagCount === root.tags.length;
+    return {
+      digest: root.digest,
+      reason: isFullMatch ? "keep-n-tagged-overflow" : "delete-tags-partial-tag-match",
+      selectionMode: isFullMatch ? "delete-root" : "untag-only"
+    };
+  });
+  assert.deepEqual(
+    plan.directTargetRoots.map((root) => ({
+      digest: root.digest,
+      reason: root.reason,
+      selectionMode: root.selectionMode
+    })),
+    expectedDirectTargetRoots
+  );
+
+  const deleteRootDigests = new Set(
+    expectedDirectTargetRoots.filter((root) => root.selectionMode === "delete-root").map((root) => root.digest)
+  );
+  if (deleteRootDigests.size === 0) {
+    assert.deepEqual(plan.closureManifests, []);
+    assert.deepEqual(plan.blockedRoots, []);
+    assert.deepEqual(plan.fullyDeletableRoots, []);
+    return;
+  }
+
+  const closureSourceDigests = new Set(plan.closureManifests.map((manifest) => manifest.sourceDigest));
+  for (const digest of closureSourceDigests) {
+    assert.ok(deleteRootDigests.has(digest), "closure source digest must come from the delete-root set");
+  }
+  const blockedDigests = new Set(plan.blockedRoots.map((root) => root.blockedDigest));
+  for (const digest of blockedDigests) {
+    assert.ok(deleteRootDigests.has(digest), "blocked digest must come from the delete-root set");
+  }
+  for (const root of plan.fullyDeletableRoots) {
+    assert.ok(deleteRootDigests.has(root.digest), "fully deletable root must come from the delete-root set");
+  }
 }

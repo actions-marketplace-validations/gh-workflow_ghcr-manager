@@ -44,10 +44,49 @@ for (const tag of ["alpha", "beta", "gamma"]) {
 
 const olderThan = _resolveOlderThanBetween(createdAtByTag.beta, createdAtByTag.gamma, new Date());
 
-const args = ["--delete-tag", "alpha", "--delete-tag", "beta", "--delete-tag", "gamma", "--older-than", olderThan];
-if (scenario === "complex-tag-age-window-exclude-beta") {
-  args.push("--exclude-tag", "beta");
-} else if (scenario !== "complex-tag-age-window") {
+let args;
+if (scenario === "complex-tag-age-window") {
+  args = ["--delete-tag", "alpha", "--delete-tag", "beta", "--delete-tag", "gamma", "--older-than", olderThan];
+} else if (scenario === "complex-tag-age-window-exclude-beta") {
+  args = [
+    "--delete-tag",
+    "alpha",
+    "--delete-tag",
+    "beta",
+    "--delete-tag",
+    "gamma",
+    "--older-than",
+    olderThan,
+    "--exclude-tag",
+    "beta"
+  ];
+} else if (scenario === "complex-tag-age-window-keep-1") {
+  args = [
+    "--delete-tag",
+    "alpha",
+    "--delete-tag",
+    "beta",
+    "--delete-tag",
+    "gamma",
+    "--older-than",
+    olderThan,
+    "--keep-n-tagged",
+    "1"
+  ];
+} else if (scenario === "complex-shared-platform-tags-keep-1") {
+  args = [
+    "--delete-tag",
+    "beta-amd64",
+    "--delete-tag",
+    "gamma-amd64",
+    "--delete-tag",
+    "beta-arm64",
+    "--delete-tag",
+    "gamma-arm64",
+    "--keep-n-tagged",
+    "1"
+  ];
+} else {
   throw new Error(`unknown validation scenario: ${scenario}`);
 }
 

@@ -21,6 +21,8 @@ run-name: Test Registry Validate (${{ inputs.fixture }} / ${{ inputs.validation_
           - delete-untagged
           - complex-tag-age-window
           - complex-tag-age-window-exclude-beta
+          - complex-tag-age-window-keep-1
+          - complex-shared-platform-tags-keep-1
       upload_db_artifact:
         description: Upload the SQLite DB produced by the scan.
         required: false
@@ -85,7 +87,7 @@ jobs:
           upload-db-artifact: ${{ inputs.upload_db_artifact }}
           db-artifact-retention-days: ${{ inputs.artifact_retention_days }}
 
-      - name: Run delete-untagged plan
+      - name: Resolve plan args
         id: plan_args
         shell: bash
         run: |
