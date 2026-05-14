@@ -10,6 +10,7 @@ This section is the canonical place for session-to-session continuity.
 
 ### Completed Checkpoints
 
+- ☑ `cdb7121` Add test registry validation workflow.
 - ☑ `ed36f7c` Add delete-untagged planner command.
 - ☑ `fe6fd7b` Add planner data model note.
 - ☑ `adde55e` Add cleanup semantics note.
