@@ -1,5 +1,5 @@
 name: Test Registry Validate
-run-name: Test Registry Validate (${{ inputs.fixture }})
+run-name: Test Registry Validate (${{ inputs.fixture }} / ${{ inputs.validation_scenario }})
 
 "on":
   workflow_dispatch:
@@ -12,6 +12,15 @@ run-name: Test Registry Validate (${{ inputs.fixture }})
         options:
           - single
           - complex
+      validation_scenario:
+        description: Validation scenario to run against the seeded fixture.
+        required: true
+        default: delete-untagged
+        type: choice
+        options:
+          - delete-untagged
+          - complex-tag-age-window
+          - complex-tag-age-window-exclude-beta
       upload_db_artifact:
         description: Upload the SQLite DB produced by the scan.
         required: false
@@ -31,6 +40,10 @@ run-name: Test Registry Validate (${{ inputs.fixture }})
     inputs:
       fixture:
         required: true
+        type: string
+      validation_scenario:
+        required: false
+        default: delete-untagged
         type: string
       upload_db_artifact:
         required: false
@@ -73,6 +86,20 @@ jobs:
           db-artifact-retention-days: ${{ inputs.artifact_retention_days }}
 
       - name: Run delete-untagged plan
+        id: plan_args
+        shell: bash
+        run: |
+          set -euo pipefail
+          plan_args_path="${{ runner.temp }}/ghcr-manager/plan-args-${{ inputs.fixture }}.txt"
+          mkdir -p "$(dirname "$plan_args_path")"
+          node tools/resolve-test-registry-validation.mjs \
+            "${{ inputs.validation_scenario }}" \
+            "${{ inputs.fixture }}" \
+            "${{ steps.ghcr-manager.outputs.db-path }}" \
+            > "$plan_args_path"
+          echo "plan_args_path=$plan_args_path" >> "$GITHUB_OUTPUT"
+
+      - name: Run plan
         id: plan
         shell: bash
         env:
@@ -81,11 +108,12 @@ jobs:
           set -euo pipefail
           plan_path="$RUNNER_TEMP/ghcr-manager/plan-${{ inputs.fixture }}.json"
           mkdir -p "$(dirname "$plan_path")"
+          mapfile -t plan_args < "${{ steps.plan_args.outputs.plan_args_path }}"
           ghcr-manager plan \
             --db "${{ steps.ghcr-manager.outputs.db-path }}" \
             --owner "${{ github.repository_owner }}" \
             --package "${{ env.TEST_PACKAGE }}" \
-            --delete-untagged \
+            "${plan_args[@]}" \
             | tee "$plan_path"
           echo "plan_path=$plan_path" >> "$GITHUB_OUTPUT"
 
@@ -93,13 +121,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node tools/assert-test-registry-plan.mjs "${{ inputs.fixture }}" "${{ steps.plan.outputs.plan_path }}"
+          node tools/assert-test-registry-plan.mjs \
+            "${{ inputs.validation_scenario }}" \
+            "${{ inputs.fixture }}" \
+            "${{ steps.ghcr-manager.outputs.db-path }}" \
+            "${{ steps.plan.outputs.plan_path }}"
 
       - name: Upload plan artifact
         if: ${{ inputs.upload_plan_artifact }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ${{ env.TEST_PACKAGE }}__delete-untagged-plan.json
+          name: ${{ env.TEST_PACKAGE }}__${{ inputs.validation_scenario }}-plan.json
           path: ${{ steps.plan.outputs.plan_path }}
           retention-days:
             ${{ inputs.artifact_retention_days != '' && inputs.artifact_retention_days || github.retention_days }}
@@ -109,5 +141,7 @@ jobs:
         run: |
           echo "Owner: ${{ github.repository_owner }}"
           echo "Package: ${{ env.TEST_PACKAGE }}"
+          echo "Validation scenario: ${{ inputs.validation_scenario }}"
           echo "DB path: ${{ steps.ghcr-manager.outputs.db-path }}"
+          echo "Plan args path: ${{ steps.plan_args.outputs.plan_args_path }}"
           echo "Plan path: ${{ steps.plan.outputs.plan_path }}"

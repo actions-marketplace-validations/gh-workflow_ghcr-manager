@@ -49,6 +49,7 @@ This section is the canonical place for session-to-session continuity.
 - ☑ Add explicit tag exclusion planner behavior for the current exact-match tag planner inputs.
 - ☑ Add root-level `older-than` eligibility filtering for the current planner selector families.
 - ☑ Separate test-registry seeding from test-registry validation runs so GHCR fixtures can be reused across sessions.
+- ☑ Add scenario-driven seeded-registry validation runs that exercise tag deletion, exclusions, and age filtering.
 - ☐ Extend the planner beyond `--delete-untagged` to cover tag selectors, exclusions, age filters, and keep rules.
 - ☐ Prototype registry execution against the test registry only after the plan output is stable and test-covered.
 - ☐ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
@@ -117,6 +118,7 @@ This section is the canonical place for session-to-session continuity.
 - Current test-registry workflow shape:
   - `test-registry-fill-*.yml` performs one-time GHCR fixture seeding
   - `test-registry-validate.yml` runs scan + plan against an already-seeded fixture without republishing it
+  - validation scenarios can now derive plan args from the scanned DB before running the planner
 - Scan logging:
   - progress logs go to stderr
   - final scan summary JSON stays on stdout
@@ -258,9 +260,11 @@ src/
   - validation runs should scan and plan against seeded fixtures without rebuilding them
 - Current validation workflow behavior:
   - selects one fixture by name (`single` or `complex`)
+  - selects one validation scenario
   - scans the seeded package through the local action
-  - runs `ghcr-manager plan --delete-untagged` against the produced SQLite DB
-  - asserts fixture-specific expectations against the produced plan JSON before the run succeeds
+  - resolves scenario-specific planner args from the produced SQLite DB when needed
+  - runs `ghcr-manager plan ...` against the produced SQLite DB
+  - asserts fixture/scenario-specific expectations against the produced plan JSON before the run succeeds
   - can upload both the scan DB and the plan JSON as artifacts
 - Added the first read-only planner implementation for `plan --delete-untagged`.
 - Added scan-scoped planner base views:
@@ -346,6 +350,11 @@ src/
   - supported units are minutes, hours, days, weeks, months, and years
   - the CLI resolves the interval once per invocation into `plannerInputs.cutoffTimestamp`
   - younger roots stay retained and can still block deletion overlap for older candidates
+- Added scenario-driven validation coverage for the seeded complex registry:
+  - `complex-tag-age-window` derives a whole-minute `older-than` cutoff from the scanned DB so `alpha` and `beta` remain
+    eligible while `gamma` stays too new
+  - `complex-tag-age-window-exclude-beta` reuses that derived cutoff and verifies that `exclude-tag beta` removes `beta`
+    from the selected plan even though it is old enough
 - Kept the scope intentionally narrow for now:
   - exact tag matches only, not wildcard or regex selectors
   - one selector family per invocation instead of combining `delete-tags` with `delete-untagged`
