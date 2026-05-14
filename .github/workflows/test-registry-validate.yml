@@ -1,0 +1,107 @@
+name: Test Registry Validate
+run-name: Test Registry Validate (${{ inputs.fixture }})
+
+"on":
+  workflow_dispatch:
+    inputs:
+      fixture:
+        description: Seeded test-registry fixture to validate against.
+        required: true
+        default: single
+        type: choice
+        options:
+          - single
+          - complex
+      upload_db_artifact:
+        description: Upload the SQLite DB produced by the scan.
+        required: false
+        default: true
+        type: boolean
+      upload_plan_artifact:
+        description: Upload the `plan --delete-untagged` JSON output.
+        required: false
+        default: true
+        type: boolean
+      artifact_retention_days:
+        description: Optional artifact retention-days override.
+        required: false
+        default: ""
+        type: string
+  workflow_call:
+    inputs:
+      fixture:
+        required: true
+        type: string
+      upload_db_artifact:
+        required: false
+        default: true
+        type: boolean
+      upload_plan_artifact:
+        required: false
+        default: true
+        type: boolean
+      artifact_retention_days:
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+  actions: write
+
+env:
+  TEST_PACKAGE: ${{ github.event.repository.name }}-test--${{ inputs.fixture }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ghcr-manager__test-registry__${{ inputs.fixture }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Run ghcr-manager action scan
+        id: ghcr-manager
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          owner: ${{ github.repository_owner }}
+          package: ${{ env.TEST_PACKAGE }}
+          upload-db-artifact: ${{ inputs.upload_db_artifact }}
+          db-artifact-retention-days: ${{ inputs.artifact_retention_days }}
+
+      - name: Run delete-untagged plan
+        id: plan
+        shell: bash
+        env:
+          RUNNER_TEMP: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          plan_path="$RUNNER_TEMP/ghcr-manager/plan-${{ inputs.fixture }}.json"
+          mkdir -p "$(dirname "$plan_path")"
+          ghcr-manager plan \
+            --db "${{ steps.ghcr-manager.outputs.db-path }}" \
+            --owner "${{ github.repository_owner }}" \
+            --package "${{ env.TEST_PACKAGE }}" \
+            --delete-untagged \
+            | tee "$plan_path"
+          echo "plan_path=$plan_path" >> "$GITHUB_OUTPUT"
+
+      - name: Upload plan artifact
+        if: ${{ inputs.upload_plan_artifact }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.TEST_PACKAGE }}__delete-untagged-plan.json
+          path: ${{ steps.plan.outputs.plan_path }}
+          retention-days:
+            ${{ inputs.artifact_retention_days != '' && inputs.artifact_retention_days || github.retention_days }}
+
+      - name: Print validation targets
+        shell: bash
+        run: |
+          echo "Owner: ${{ github.repository_owner }}"
+          echo "Package: ${{ env.TEST_PACKAGE }}"
+          echo "DB path: ${{ steps.ghcr-manager.outputs.db-path }}"
+          echo "Plan path: ${{ steps.plan.outputs.plan_path }}"

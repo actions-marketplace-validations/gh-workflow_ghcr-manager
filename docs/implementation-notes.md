@@ -45,6 +45,7 @@ This section is the canonical place for session-to-session continuity.
   collateral tags.
 - ☑ Add read-only deletion-plan output that explains why versions or manifests are retained versus deletable.
 - ☐ Add tests for multi-arch images, sibling wrapper indexes, referrers, and explicit tag exclusion behavior.
+- ☑ Separate test-registry seeding from test-registry validation runs so GHCR fixtures can be reused across sessions.
 - ☐ Extend the planner beyond `--delete-untagged` to cover tag selectors, exclusions, age filters, and keep rules.
 - ☐ Prototype registry execution against the test registry only after the plan output is stable and test-covered.
 - ☐ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
@@ -106,6 +107,9 @@ This section is the canonical place for session-to-session continuity.
 - Current CLI shape:
   - `scan` imports live GitHub Packages + GHCR state into SQLite
   - `plan --delete-untagged` emits a dry-run delete plan for the latest completed scan of one owner/package
+- Current test-registry workflow shape:
+  - `test-registry-fill-*.yml` performs one-time GHCR fixture seeding
+  - `test-registry-validate.yml` runs scan + plan against an already-seeded fixture without republishing it
 - Scan logging:
   - progress logs go to stderr
   - final scan summary JSON stays on stdout
@@ -240,6 +244,16 @@ src/
 
 ### 2026-05-14
 
+- Added `.github/workflows/test-registry-validate.yml` as the reusable validation workflow for already-seeded GHCR test
+  fixtures.
+- Chosen test-registry workflow split:
+  - fill workflows remain the one-time registry setup mechanism
+  - validation runs should scan and plan against seeded fixtures without rebuilding them
+- Current validation workflow behavior:
+  - selects one fixture by name (`single` or `complex`)
+  - scans the seeded package through the local action
+  - runs `ghcr-manager plan --delete-untagged` against the produced SQLite DB
+  - can upload both the scan DB and the plan JSON as artifacts
 - Added the first read-only planner implementation for `plan --delete-untagged`.
 - Added scan-scoped planner base views:
   - `v_scan_root_manifests`
