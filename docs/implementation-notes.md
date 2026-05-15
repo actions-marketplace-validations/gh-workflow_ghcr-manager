@@ -71,6 +71,8 @@ This section is the canonical place for session-to-session continuity.
   DB helpers.
 - ☑ Record GitHub package visibility in `package_scans`, expose it in scan metadata, and block unencrypted DB artifact
   uploads for non-public scans.
+- ☑ Complete the hardening side-task: require encrypted DB artifact upload for non-public registries, support optional
+  encryption for public registries, and abort scans when package-version page 1 drifts during ingest.
 - ☑ Abort live GitHub scans when the package-version page-1 signature changes between the start and end of paginated
   ingestion.
 - ☐ Extend the planner beyond `--delete-untagged` to cover tag selectors, exclusions, age filters, and keep rules.
