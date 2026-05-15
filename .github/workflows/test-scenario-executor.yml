@@ -1,0 +1,166 @@
+name: Test Scenario Executor
+run-name: Test Scenario Executor (${{ inputs.scenario }} / ${{ inputs.executor }})
+
+"on":
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: Dedicated scenario package to clear, seed, execute, and rescan.
+        required: true
+        default: delete-untagged-noop
+        type: choice
+        options:
+          - delete-untagged-noop
+          - tagged-fully-deletable
+      executor:
+        description: Cleanup executor to run against the seeded scenario package.
+        required: true
+        default: ghcr-manager
+        type: choice
+        options:
+          - ghcr-manager
+          - ghcr-cleanup-action
+      artifact_retention_days:
+        description: Optional artifact retention-days override.
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+  actions: write
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ghcr-manager__scenario__${{ inputs.scenario }}__${{ inputs.executor }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Resolve scenario
+        id: scenario
+        shell: bash
+        env:
+          EXECUTOR: ${{ inputs.executor }}
+          REPOSITORY_NAME: ${{ github.event.repository.name }}
+          RUNNER_TEMP: ${{ runner.temp }}
+          SCENARIO: ${{ inputs.scenario }}
+        run: |
+          set -euo pipefail
+          work_dir="$RUNNER_TEMP/ghcr-manager/scenario-${SCENARIO}-${EXECUTOR}"
+          mkdir -p "$work_dir"
+          resolution_path="$work_dir/scenario.json"
+          node tools/resolve-test-scenario.mjs "$SCENARIO" "$EXECUTOR" "$REPOSITORY_NAME" > "$resolution_path"
+          before_db_path="$work_dir/before.sqlite"
+          after_db_path="$work_dir/after.sqlite"
+          summary_path="$work_dir/executor-summary.txt"
+          echo "work_dir=$work_dir" >> "$GITHUB_OUTPUT"
+          echo "resolution_path=$resolution_path" >> "$GITHUB_OUTPUT"
+          echo "before_db_path=$before_db_path" >> "$GITHUB_OUTPUT"
+          echo "after_db_path=$after_db_path" >> "$GITHUB_OUTPUT"
+          echo "summary_path=$summary_path" >> "$GITHUB_OUTPUT"
+          echo "package_name=$(jq -r '.packageName' "$resolution_path")" >> "$GITHUB_OUTPUT"
+          echo "seed_strategy=$(jq -r '.seedStrategy' "$resolution_path")" >> "$GITHUB_OUTPUT"
+          echo "image_ref=ghcr.io/${{ github.repository_owner }}/$(jq -r '.packageName' "$resolution_path")" >> "$GITHUB_OUTPUT"
+
+      - name: Clear scenario package
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          OWNER: ${{ github.repository_owner }}
+          PACKAGE: ${{ steps.scenario.outputs.package_name }}
+        run: |
+          set -euo pipefail
+          node tools/delete-ghcr-package.mjs "$OWNER" "$PACKAGE" "$GITHUB_TOKEN"
+
+      - name: Seed scenario package
+        uses: ./.github/actions/test-scenario-seed
+        with:
+          image_ref: ${{ steps.scenario.outputs.image_ref }}
+          seed_strategy: ${{ steps.scenario.outputs.seed_strategy }}
+
+      - name: Scan before execution
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          owner: ${{ github.repository_owner }}
+          package: ${{ steps.scenario.outputs.package_name }}
+          db-path: ${{ steps.scenario.outputs.before_db_path }}
+          upload-db-artifact: "false"
+
+      - name: Execute with ghcr-manager
+        if: ${{ inputs.executor == 'ghcr-manager' }}
+        shell: bash
+        env:
+          DB_PATH: ${{ steps.scenario.outputs.before_db_path }}
+          OWNER: ${{ github.repository_owner }}
+          PACKAGE: ${{ steps.scenario.outputs.package_name }}
+          RESOLUTION_PATH: ${{ steps.scenario.outputs.resolution_path }}
+          SUMMARY_PATH: ${{ steps.scenario.outputs.summary_path }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mapfile -t plan_args < <(jq -r '.ghcrManagerArgs[]' "$RESOLUTION_PATH")
+          ghcr-manager execute \
+            --db "$DB_PATH" \
+            --owner "$OWNER" \
+            --package "$PACKAGE" \
+            --token "$GITHUB_TOKEN" \
+            "${plan_args[@]}" \
+            | tee "$SUMMARY_PATH"
+
+      - name: Prepare upstream action inputs
+        if: ${{ inputs.executor == 'ghcr-cleanup-action' }}
+        id: upstream-inputs
+        shell: bash
+        env:
+          RESOLUTION_PATH: ${{ steps.scenario.outputs.resolution_path }}
+        run: |
+          set -euo pipefail
+          delete_untagged="$(jq -r '.dataaxiomInputs["delete-untagged"] // ""' "$RESOLUTION_PATH")"
+          delete_tags="$(jq -r '.dataaxiomInputs["delete-tags"] // ""' "$RESOLUTION_PATH")"
+          echo "delete_untagged=$delete_untagged" >> "$GITHUB_OUTPUT"
+          echo "delete_tags=$delete_tags" >> "$GITHUB_OUTPUT"
+
+      - name: Execute with ghcr-cleanup-action action
+        if: ${{ inputs.executor == 'ghcr-cleanup-action' }}
+        uses: dataaxiom/ghcr-cleanup-action@aa3ef78ce6e21c2820a185de1c6c59aafc41b2e7
+        with:
+          token: ${{ github.token }}
+          owner: ${{ github.repository_owner }}
+          package: ${{ steps.scenario.outputs.package_name }}
+          delete-untagged: ${{ steps.upstream-inputs.outputs.delete_untagged }}
+          delete-tags: ${{ steps.upstream-inputs.outputs.delete_tags }}
+
+      - name: Record upstream executor summary
+        if: ${{ inputs.executor == 'ghcr-cleanup-action' }}
+        shell: bash
+        env:
+          SUMMARY_PATH: ${{ steps.scenario.outputs.summary_path }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' '{"executor":"dataaxiom","status":"completed"}' > "$SUMMARY_PATH"
+
+      - name: Scan after execution
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          owner: ${{ github.repository_owner }}
+          package: ${{ steps.scenario.outputs.package_name }}
+          db-path: ${{ steps.scenario.outputs.after_db_path }}
+          upload-db-artifact: "false"
+
+      - name: Upload scenario artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ inputs.scenario }}__${{ inputs.executor }}
+          path: |
+            ${{ steps.scenario.outputs.before_db_path }}
+            ${{ steps.scenario.outputs.after_db_path }}
+            ${{ steps.scenario.outputs.summary_path }}
+            ${{ steps.scenario.outputs.resolution_path }}
+          retention-days:
+            ${{ inputs.artifact_retention_days != '' && inputs.artifact_retention_days || github.retention_days }}

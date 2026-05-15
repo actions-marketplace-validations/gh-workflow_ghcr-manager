@@ -161,6 +161,8 @@ This section is the canonical place for session-to-session continuity.
   - `test-registry-execute.yml` runs one scan against an already-seeded fixture, executes a guarded destructive or
     non-destructive cleanup scenario, then reruns the action against the same local `db-path` so the action itself
     uploads the final rescan DB artifact
+  - `test-scenario-executor.yml` clears and reseeds a dedicated package per scenario, runs either `ghcr-manager` or
+    `dataaxiom/ghcr-cleanup-action`, and uploads separate before/after scan DBs for local inspection
   - validation scenarios can now derive plan args from the scanned DB before running the planner
 - Scan hardening:
   - live GitHub scans now fetch package metadata up front and store `is_public` on `package_scans`
@@ -352,6 +354,17 @@ src/
     action's built-in DB artifact upload behavior for the final history DB
   - destructive runs are intentionally reseed-required; the workflow is for explicit manual or called execution, not the
     default validation loop
+- Added the first dedicated scenario-per-package executor harness:
+  - `tools/test-scenarios/_definitions.mjs` now holds small scenario records with package suffixes, seed strategies, and
+    executor-specific inputs
+  - `.github/actions/test-scenario-seed` pushes minimal `FROM scratch` single-arch images with `provenance=false` for
+    the first scenario packages, avoiding the signature/provenance-heavy `single` / `complex` fixtures
+  - `.github/workflows/test-scenario-executor.yml` clears the scenario package, seeds it, runs either `ghcr-manager` or
+    `dataaxiom/ghcr-cleanup-action`, rescans into a separate `after.sqlite`, and uploads both DBs plus the scenario
+    metadata/summary files
+  - initial scenarios are `delete-untagged-noop` and `tagged-fully-deletable`
+  - current scope is observational: compare before/after DBs locally rather than asserting parity between the two
+    executors
 - Remaining execution-track work:
   - add the separate upstream-style untag workaround slice for partial-tag matches
   - run and refine seeded test-registry execution scenarios now that the workflow exists, then decide which ones should

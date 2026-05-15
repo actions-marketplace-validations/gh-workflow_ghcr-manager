@@ -1,0 +1,75 @@
+name: Test Scenario Seed
+description: Clear and seed one minimal GHCR scenario package.
+
+inputs:
+  image_ref:
+    description: Full ghcr.io image reference without tag.
+    required: true
+  seed_strategy:
+    description: Seed strategy identifier.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Buildx
+      uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+    - name: Log in to GHCR
+      uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    - name: Seed delete-untagged-noop
+      if: ${{ inputs.seed_strategy == 'delete-untagged-noop' }}
+      shell: bash
+      env:
+        IMAGE_REF: ${{ inputs.image_ref }}
+      run: |
+        set -euo pipefail
+        context_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$context_dir/Dockerfile"
+        printf '%s\n' "keep-tagged" > "$context_dir/payload.txt"
+        docker buildx build \
+          --platform linux/amd64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:keep" \
+          "$context_dir"
+
+    - name: Seed tagged-fully-deletable
+      if: ${{ inputs.seed_strategy == 'tagged-fully-deletable' }}
+      shell: bash
+      env:
+        IMAGE_REF: ${{ inputs.image_ref }}
+      run: |
+        set -euo pipefail
+
+        keep_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$keep_dir/Dockerfile"
+        printf '%s\n' "keep-tagged" > "$keep_dir/payload.txt"
+        docker buildx build \
+          --platform linux/amd64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:keep" \
+          "$keep_dir"
+
+        delete_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$delete_dir/Dockerfile"
+        printf '%s\n' "delete-me-tagged" > "$delete_dir/payload.txt"
+        docker buildx build \
+          --platform linux/amd64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:delete-me" \
+          "$delete_dir"
+
+    - name: Reject unknown seed strategy
+      if: ${{ inputs.seed_strategy != 'delete-untagged-noop' && inputs.seed_strategy != 'tagged-fully-deletable' }}
+      shell: bash
+      run: |
+        echo "Unknown seed strategy: ${{ inputs.seed_strategy }}" >&2
+        exit 1
