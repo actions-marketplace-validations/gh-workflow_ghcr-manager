@@ -55,13 +55,3 @@ runs:
         platforms: ${{ inputs.platform }}
         # Temporary image tag for build/test; final tags are published later.
         tags: ${{ inputs.image_ref }}:${{ github.run_id }}-${{ inputs.arch }}-test
-
-    - name: Test image
-      # Dummy smoke test: run the image and assert simple output.
-      shell: bash
-      run: |
-        docker run --rm \
-          --entrypoint /bin/sh \
-          "${{ inputs.image_ref }}@${{ steps.build.outputs.digest }}" \
-          -ec 'echo hello-world' \
-          | grep -q '^hello-world$'

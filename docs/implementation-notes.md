@@ -182,6 +182,8 @@ This section is the canonical place for session-to-session continuity.
     collisions
   - `blocked-shared-closure` now builds its platform children through the shared `test-registry-build-image` action so
     the published digests match the expectations of `gh-workflow/multiarch-image-publish`
+  - the shared `test-registry-build-image` action is build-and-push only; it no longer tries to run the image because
+    the live scenario fixtures care about manifest/package topology, not runtime behavior
   - validation scenarios can now derive plan args from the scanned DB before running the planner
   - live GHCR test workflows now require dedicated test-org configuration:
     - `GHCR_TEST_OWNER`
