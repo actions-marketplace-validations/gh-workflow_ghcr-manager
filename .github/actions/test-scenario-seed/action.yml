@@ -39,11 +39,50 @@ runs:
           --tag "$IMAGE_REF:keep" \
           "$context_dir"
 
+    - name: Seed untag-only-single-shared-root
+      if: ${{ inputs.seed_strategy == 'untag-only-single-shared-root' }}
+      shell: bash
+      env:
+        IMAGE_REF: ${{ inputs.image_ref }}
+        SCENARIO_ID: untag-only-single-shared-root
+      run: |
+        set -euo pipefail
+        context_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$context_dir/Dockerfile"
+        printf '%s\n' "$SCENARIO_ID" > "$context_dir/payload.txt"
+        docker buildx build \
+          --platform linux/amd64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--delete-me" \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--keep-me" \
+          "$context_dir"
+
+    - name: Seed untag-only-multiarch-shared-root
+      if: ${{ inputs.seed_strategy == 'untag-only-multiarch-shared-root' }}
+      shell: bash
+      env:
+        IMAGE_REF: ${{ inputs.image_ref }}
+        SCENARIO_ID: untag-only-multiarch-shared-root
+      run: |
+        set -euo pipefail
+        context_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$context_dir/Dockerfile"
+        printf '%s\n' "$SCENARIO_ID" > "$context_dir/payload.txt"
+        docker buildx build \
+          --platform linux/amd64,linux/arm64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--delete-me" \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--keep-me" \
+          "$context_dir"
+
     - name: Seed tagged-fully-deletable
       if: ${{ inputs.seed_strategy == 'tagged-fully-deletable' }}
       shell: bash
       env:
         IMAGE_REF: ${{ inputs.image_ref }}
+        SCENARIO_ID: tagged-fully-deletable
       run: |
         set -euo pipefail
 
@@ -54,7 +93,7 @@ runs:
           --platform linux/amd64 \
           --provenance=false \
           --push \
-          --tag "$IMAGE_REF:keep" \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--keep" \
           "$keep_dir"
 
         delete_dir="$(mktemp -d)"
@@ -64,11 +103,14 @@ runs:
           --platform linux/amd64 \
           --provenance=false \
           --push \
-          --tag "$IMAGE_REF:delete-me" \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--delete-me" \
           "$delete_dir"
 
     - name: Reject unknown seed strategy
-      if: ${{ inputs.seed_strategy != 'delete-untagged-noop' && inputs.seed_strategy != 'tagged-fully-deletable' }}
+      if:
+        ${{ inputs.seed_strategy != 'delete-untagged-noop' && inputs.seed_strategy != 'tagged-fully-deletable' &&
+        inputs.seed_strategy != 'untag-only-single-shared-root' && inputs.seed_strategy !=
+        'untag-only-multiarch-shared-root' }}
       shell: bash
       run: |
         echo "Unknown seed strategy: ${{ inputs.seed_strategy }}" >&2

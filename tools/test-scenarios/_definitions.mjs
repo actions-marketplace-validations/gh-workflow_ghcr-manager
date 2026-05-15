@@ -14,9 +14,40 @@ export const scenarios = {
     packageSuffix: "scenario--tagged-fully-deletable",
     seedStrategy: "tagged-fully-deletable",
     supportedExecutors: ["ghcr-manager", "ghcr-cleanup-action"],
-    ghcrManagerArgs: ["--delete-tag", "delete-me"],
+    ghcrManagerArgs: ["--delete-tag", "{deleteTag}"],
     dataaxiomInputs: {
-      "delete-tags": "delete-me"
+      "delete-tags": "{deleteTag}"
+    },
+    tagNames: {
+      deleteTag: "delete-me"
+    }
+  },
+  "untag-only-single-shared-root": {
+    id: "untag-only-single-shared-root",
+    packageSuffix: "scenario--untag-only-single-shared-root",
+    seedStrategy: "untag-only-single-shared-root",
+    supportedExecutors: ["ghcr-manager", "ghcr-cleanup-action"],
+    ghcrManagerArgs: ["--delete-tag", "{deleteTag}"],
+    dataaxiomInputs: {
+      "delete-tags": "{deleteTag}"
+    },
+    tagNames: {
+      deleteTag: "delete-me",
+      keepTag: "keep-me"
+    }
+  },
+  "untag-only-multiarch-shared-root": {
+    id: "untag-only-multiarch-shared-root",
+    packageSuffix: "scenario--untag-only-multiarch-shared-root",
+    seedStrategy: "untag-only-multiarch-shared-root",
+    supportedExecutors: ["ghcr-manager", "ghcr-cleanup-action"],
+    ghcrManagerArgs: ["--delete-tag", "{deleteTag}"],
+    dataaxiomInputs: {
+      "delete-tags": "{deleteTag}"
+    },
+    tagNames: {
+      deleteTag: "delete-me",
+      keepTag: "keep-me"
     }
   }
 };

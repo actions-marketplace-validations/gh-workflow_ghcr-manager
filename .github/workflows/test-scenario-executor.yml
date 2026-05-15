@@ -12,6 +12,8 @@ run-name: Test Scenario Executor (${{ inputs.scenario }} / ${{ inputs.executor }
         options:
           - delete-untagged-noop
           - tagged-fully-deletable
+          - untag-only-single-shared-root
+          - untag-only-multiarch-shared-root
       executor:
         description: Cleanup executor to run against the seeded scenario package.
         required: true

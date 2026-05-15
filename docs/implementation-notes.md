@@ -164,6 +164,13 @@ This section is the canonical place for session-to-session continuity.
     uploads the final rescan DB artifact
   - `test-scenario-executor.yml` clears and reseeds a dedicated package per scenario, runs either `ghcr-manager` or
     `dataaxiom/ghcr-cleanup-action`, and uploads one owner/package/executor scan-history DB with both scans
+  - current scenario coverage includes:
+    - `delete-untagged-noop`
+    - `tagged-fully-deletable`
+    - `untag-only-single-shared-root`
+    - `untag-only-multiarch-shared-root`
+  - scenario-managed tags are namespaced as `${scenarioId}--<tag>` so later mixed-scenario packages can avoid tag
+    collisions
   - validation scenarios can now derive plan args from the scanned DB before running the planner
 - Current `untag-only` execution strategy:
   - informed by the linked shared ChatGPT discussion on the upstream hack
