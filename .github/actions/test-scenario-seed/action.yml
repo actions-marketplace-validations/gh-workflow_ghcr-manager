@@ -27,6 +27,7 @@ runs:
       shell: bash
       env:
         IMAGE_REF: ${{ inputs.image_ref }}
+        SCENARIO_ID: delete-untagged-noop
       run: |
         set -euo pipefail
         context_dir="$(mktemp -d)"
@@ -36,7 +37,7 @@ runs:
           --platform linux/amd64 \
           --provenance=false \
           --push \
-          --tag "$IMAGE_REF:keep" \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--keep" \
           "$context_dir"
 
     - name: Seed untag-only-single-shared-root
