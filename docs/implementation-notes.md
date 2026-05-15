@@ -146,7 +146,8 @@ This section is the canonical place for session-to-session continuity.
     `ancestor_digest <> root_digest` probe shape on large scans
 - Current test-registry workflow shape:
   - `test-registry-fill-*.yml` performs one-time GHCR fixture seeding
-  - `test-registry-validate.yml` runs scan + plan against an already-seeded fixture without republishing it
+  - `test-registry-validate.yml` runs one scan against an already-seeded fixture, then executes one or all applicable
+    validation scenarios without republishing it
   - validation scenarios can now derive plan args from the scanned DB before running the planner
 - Scan hardening:
   - live GitHub scans now fetch package metadata up front and store `is_public` on `package_scans`
