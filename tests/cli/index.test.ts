@@ -41,3 +41,53 @@ test("main dispatches the plan command", async () => {
 
   assert.equal(writes.length, 1);
 });
+
+test("main dispatches the execute command", async () => {
+  const tempDirectory = mkdtempSync(join(tmpdir(), "ghcr-manager-"));
+  const databasePath = join(tempDirectory, "scan.sqlite");
+  const database = openDatabase(databasePath);
+  const writer = new ScanWriter(database);
+  await importFileScan("tests/fixtures/sample-package.json", writer);
+  database.close();
+
+  const originalFetch = globalThis.fetch;
+  const originalLog = console.log;
+  const writes: string[] = [];
+  globalThis.fetch = async () => {
+    return {
+      ok: true,
+      status: 204,
+      headers: new Headers(),
+      async json() {
+        return {};
+      }
+    } as Response;
+  };
+  console.log = (message?: unknown) => {
+    writes.push(String(message));
+  };
+
+  try {
+    assert.equal(
+      await main([
+        "execute",
+        "--db",
+        databasePath,
+        "--owner",
+        "acme",
+        "--package",
+        "example",
+        "--token",
+        "token",
+        "--delete-untagged"
+      ]),
+      0
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.log = originalLog;
+    rmSync(tempDirectory, { recursive: true, force: true });
+  }
+
+  assert.equal(writes.length, 1);
+});

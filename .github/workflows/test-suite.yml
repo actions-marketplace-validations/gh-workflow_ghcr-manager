@@ -17,7 +17,7 @@ jobs:
       - name: Ensure workflow actions use immutable refs
         uses: joshjohanning/ensure-immutable-actions@28e5544cb61fef95d00ee312614a29c8e3a68a19 # v2.5.4
         with:
-          include-first-party: 'true'
+          include-first-party: "true"
           exclude-workflows: "manual-run.yml"
 
       - name: Set up Node.js

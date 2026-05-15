@@ -77,8 +77,9 @@ This section is the canonical place for session-to-session continuity.
   encryption for public registries, and abort scans when package-version page 1 drifts during ingest.
 - ☑ Abort live GitHub scans when the package-version page-1 signature changes between the start and end of paginated
   ingestion.
-- ☐ Extend the planner beyond `--delete-untagged` to cover tag selectors, exclusions, age filters, and keep rules.
-- ☐ Prototype registry execution against the test registry only after the plan output is stable and test-covered.
+- ☑ Extend the planner beyond `--delete-untagged` to cover tag selectors, exclusions, age filters, and keep rules.
+- ☐ Extend execution beyond package-version deletion so `untag-only` roots can be applied safely.
+- ☐ Validate the new execution path against the seeded test registry workflow instead of local-only command tests.
 - ☐ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
 - ☑ Add package scopes to the DB schema so one SQLite database can store multiple owner/package scans.
 - ☑ Add a real GitHub Packages and GHCR ingest adapter beside the fixture loader.
@@ -146,6 +147,8 @@ This section is the canonical place for session-to-session continuity.
   - `plan --delete-tag <tag> [--delete-tag <tag> ...] [--exclude-tag <tag> ...] [--keep-n-tagged <count>]` emits a
     dry-run exact-match tag delete/untag plan for one owner/package, optionally keeping the newest matched tagged roots
   - all current plan selector families accept optional `--older-than <interval>` as a root-level eligibility filter
+  - `execute` reuses the current planner selectors, deletes only `fullyDeletableRoots` through the GitHub Packages org
+    package-version delete endpoint, and aborts before mutation when the plan contains any `untag-only` roots
   - schema initialization now also creates a descendant-distance reachability index so root detection avoids the slow
     `ancestor_digest <> root_digest` probe shape on large scans
 - Current test-registry workflow shape:
@@ -214,6 +217,7 @@ src/
   cli/
   core/
   db/
+  execute/
   ingest/
 ```
 
@@ -221,6 +225,7 @@ src/
 - `cli/` contains command dispatch and command-specific argument handling.
 - `core/` contains stable shared types and planner logic.
 - `db/` contains SQLite schema, database opening, and snapshot persistence/query code.
+- `execute/` contains delete-plan execution and GitHub Packages mutation helpers.
 - `ingest/` contains live GitHub/GHCR ingest plus the internal file-fixture import helper used by tests.
 
 ## Current Direction
@@ -315,6 +320,26 @@ src/
 - GHCR manifest fetches and GitHub package-version page fetches both use bounded parallelism; the tuning constants now
   live together near the code root in `src/tuning/index.ts`.
 - GitHub package pages, GHCR manifest fetches, and GHCR token fetches now retry a small bounded number of times for
+
+### 2026-05-15
+
+- Added the first shared execution slice under `src/execute/` plus a new CLI command `ghcr-manager execute`.
+- Execution reuses the same selector parsing as `plan` and loads the already-decided delete plan from SQLite instead of
+  recomputing separate execution policy.
+- Current execution scope is intentionally narrow:
+  - supported mutation: delete GitHub Packages org-owned container package versions for `fullyDeletableRoots`
+  - unsupported mutation: `untag-only` roots; execution now fails before any delete request when such roots appear
+  - blocked roots remain reported in the execution summary but are not mutated
+- Added a dedicated GitHub Packages delete client using `DELETE /orgs/{org}/packages/container/{package}/versions/{id}`
+  with the repo's existing API-version header and bounded retry handling for transient status codes.
+- Added CLI and execution tests covering:
+  - shared planner-input parsing reuse
+  - early `--token` validation for `execute`
+  - successful delete-only execution against a mocked GitHub API
+  - fail-fast behavior when a plan contains `untag-only` roots
+- Remaining execution-track work:
+  - add the separate upstream-style untag workaround slice for partial-tag matches
+  - exercise real execution against the seeded test registry workflow rather than local-only mocked command tests
 
 ### 2026-05-14
 
