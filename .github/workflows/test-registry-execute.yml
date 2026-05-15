@@ -1,0 +1,297 @@
+name: Test Registry Execute
+run-name: Test Registry Execute (${{ inputs.fixture }} / ${{ inputs.execution_scenario }})
+
+"on":
+  workflow_dispatch:
+    inputs:
+      fixture:
+        description: Seeded test-registry fixture to execute against.
+        required: true
+        default: single
+        type: choice
+        options:
+          - single
+          - complex
+      execution_scenario:
+        description: Execution scenario to run against the seeded fixture.
+        required: true
+        default: delete-untagged
+        type: choice
+        options:
+          - delete-untagged
+          - first-fully-deletable-tagged-root
+      upload_db_artifact:
+        description: Upload the SQLite DBs produced by the pre/post scans.
+        required: false
+        default: true
+        type: boolean
+      db_artifact_encryption_passphrase:
+        description: Optional passphrase for encrypting uploaded DB artifacts; required for non-public registries.
+        required: false
+        default: ""
+        type: string
+      upload_execution_artifact:
+        description: Upload the plan, execute summary, and post-execution plan outputs.
+        required: false
+        default: true
+        type: boolean
+      artifact_retention_days:
+        description: Optional artifact retention-days override.
+        required: false
+        default: ""
+        type: string
+  workflow_call:
+    inputs:
+      fixture:
+        required: true
+        type: string
+      execution_scenario:
+        required: false
+        default: delete-untagged
+        type: string
+      upload_db_artifact:
+        required: false
+        default: true
+        type: boolean
+      db_artifact_encryption_passphrase:
+        required: false
+        default: ""
+        type: string
+      upload_execution_artifact:
+        required: false
+        default: true
+        type: boolean
+      artifact_retention_days:
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+  actions: write
+
+env:
+  TEST_PACKAGE: ${{ github.event.repository.name }}-test--${{ inputs.fixture }}
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ghcr-manager__test-registry-execute__${{ inputs.fixture }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Run ghcr-manager action scan
+        id: ghcr-manager
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
+          owner: ${{ github.repository_owner }}
+          package: ${{ env.TEST_PACKAGE }}
+          upload-db-artifact: ${{ inputs.upload_db_artifact }}
+          db-artifact-encryption-passphrase: ${{ inputs.db_artifact_encryption_passphrase }}
+          db-artifact-retention-days: ${{ inputs.artifact_retention_days }}
+
+      - name: Resolve execution args
+        id: args
+        shell: bash
+        env:
+          DB_PATH: ${{ steps.ghcr-manager.outputs.db-path }}
+          OWNER: ${{ github.repository_owner }}
+          PACKAGE: ${{ env.TEST_PACKAGE }}
+          SCENARIO: ${{ inputs.execution_scenario }}
+          RUNNER_TEMP: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          work_dir="$RUNNER_TEMP/ghcr-manager/execute-${{ inputs.fixture }}"
+          mkdir -p "$work_dir"
+          args_path="$work_dir/plan-args.txt"
+          selected_tag_path="$work_dir/selected-tag.txt"
+          resolution_json_path="$work_dir/resolution.json"
+          node tools/resolve-test-registry-execution.mjs \
+            "$SCENARIO" \
+            "$DB_PATH" \
+            "$OWNER" \
+            "$PACKAGE" \
+            > "$resolution_json_path"
+
+          jq -r '.args[]' "$resolution_json_path" > "$args_path"
+          jq -r '.selectedTag // ""' "$resolution_json_path" > "$selected_tag_path"
+
+          echo "args_path=$args_path" >> "$GITHUB_OUTPUT"
+          echo "selected_tag_path=$selected_tag_path" >> "$GITHUB_OUTPUT"
+          echo "work_dir=$work_dir" >> "$GITHUB_OUTPUT"
+
+      - name: Run pre-execution plan
+        id: pre-plan
+        shell: bash
+        env:
+          DB_PATH: ${{ steps.ghcr-manager.outputs.db-path }}
+          OWNER: ${{ github.repository_owner }}
+          PACKAGE: ${{ env.TEST_PACKAGE }}
+          WORK_DIR: ${{ steps.args.outputs.work_dir }}
+        run: |
+          set -euo pipefail
+          pre_plan_path="$WORK_DIR/pre-plan.json"
+          mapfile -t plan_args < "${{ steps.args.outputs.args_path }}"
+          ghcr-manager plan \
+            --db "$DB_PATH" \
+            --owner "$OWNER" \
+            --package "$PACKAGE" \
+            "${plan_args[@]}" \
+            | tee "$pre_plan_path"
+          echo "pre_plan_path=$pre_plan_path" >> "$GITHUB_OUTPUT"
+
+      - name: Guard execution preconditions
+        id: guard
+        shell: bash
+        env:
+          PRE_PLAN_PATH: ${{ steps.pre-plan.outputs.pre_plan_path }}
+          SCENARIO: ${{ inputs.execution_scenario }}
+        run: |
+          set -euo pipefail
+          fully_deletable_count="$(jq '.fullyDeletableRoots | length' "$PRE_PLAN_PATH")"
+          untag_only_count="$(jq '[.rootDecisions[] | select(.validationStatus == "untag-only")] | length' "$PRE_PLAN_PATH")"
+          blocked_count="$(jq '.blockedRoots | length' "$PRE_PLAN_PATH")"
+          echo "fully_deletable_count=$fully_deletable_count" >> "$GITHUB_OUTPUT"
+          echo "untag_only_count=$untag_only_count" >> "$GITHUB_OUTPUT"
+          echo "blocked_count=$blocked_count" >> "$GITHUB_OUTPUT"
+
+          if [[ "$SCENARIO" == "first-fully-deletable-tagged-root" ]]; then
+            if [[ "$fully_deletable_count" -le 0 ]]; then
+              echo "Expected at least one fully deletable root for destructive execution." >&2
+              exit 1
+            fi
+            if [[ "$untag_only_count" -ne 0 ]]; then
+              echo "Refusing destructive execution because the selected plan still contains untag-only roots." >&2
+              exit 1
+            fi
+          fi
+
+      - name: Execute plan
+        id: execute
+        shell: bash
+        env:
+          DB_PATH: ${{ steps.ghcr-manager.outputs.db-path }}
+          OWNER: ${{ github.repository_owner }}
+          PACKAGE: ${{ env.TEST_PACKAGE }}
+          WORK_DIR: ${{ steps.args.outputs.work_dir }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          execute_summary_path="$WORK_DIR/execute-summary.json"
+          mapfile -t plan_args < "${{ steps.args.outputs.args_path }}"
+          ghcr-manager execute \
+            --db "$DB_PATH" \
+            --owner "$OWNER" \
+            --package "$PACKAGE" \
+            --token "$GITHUB_TOKEN" \
+            "${plan_args[@]}" \
+            | tee "$execute_summary_path"
+          echo "execute_summary_path=$execute_summary_path" >> "$GITHUB_OUTPUT"
+
+      - name: Rescan package after execution
+        id: rescan
+        shell: bash
+        env:
+          OWNER: ${{ github.repository_owner }}
+          PACKAGE: ${{ env.TEST_PACKAGE }}
+          GITHUB_TOKEN: ${{ github.token }}
+          RUNNER_TEMP: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          post_db_path="$RUNNER_TEMP/ghcr-manager/post-${{ inputs.fixture }}.sqlite"
+          ghcr-manager scan \
+            --db "$post_db_path" \
+            --owner "$OWNER" \
+            --package "$PACKAGE" \
+            --token "$GITHUB_TOKEN" \
+            >/dev/null
+          echo "post_db_path=$post_db_path" >> "$GITHUB_OUTPUT"
+
+      - name: Run post-execution plan
+        id: post-plan
+        shell: bash
+        env:
+          POST_DB_PATH: ${{ steps.rescan.outputs.post_db_path }}
+          OWNER: ${{ github.repository_owner }}
+          PACKAGE: ${{ env.TEST_PACKAGE }}
+          WORK_DIR: ${{ steps.args.outputs.work_dir }}
+        run: |
+          set -euo pipefail
+          post_plan_path="$WORK_DIR/post-plan.json"
+          mapfile -t plan_args < "${{ steps.args.outputs.args_path }}"
+          ghcr-manager plan \
+            --db "$POST_DB_PATH" \
+            --owner "$OWNER" \
+            --package "$PACKAGE" \
+            "${plan_args[@]}" \
+            | tee "$post_plan_path"
+          echo "post_plan_path=$post_plan_path" >> "$GITHUB_OUTPUT"
+
+      - name: Verify post-execution state
+        shell: bash
+        env:
+          PRE_PLAN_PATH: ${{ steps.pre-plan.outputs.pre_plan_path }}
+          POST_PLAN_PATH: ${{ steps.post-plan.outputs.post_plan_path }}
+          EXECUTE_SUMMARY_PATH: ${{ steps.execute.outputs.execute_summary_path }}
+          SELECTED_TAG_PATH: ${{ steps.args.outputs.selected_tag_path }}
+          SCENARIO: ${{ inputs.execution_scenario }}
+        run: |
+          set -euo pipefail
+          if [[ "$SCENARIO" == "delete-untagged" ]]; then
+            jq -e '
+              (.deletedPackageVersions | length) == (.unsupportedUntagRoots | length * 0)
+            ' "$EXECUTE_SUMMARY_PATH" >/dev/null
+            exit 0
+          fi
+
+          selected_tag="$(cat "$SELECTED_TAG_PATH")"
+          pre_delete_count="$(jq '.fullyDeletableRoots | length' "$PRE_PLAN_PATH")"
+          post_delete_count="$(jq '.fullyDeletableRoots | length' "$POST_PLAN_PATH")"
+          executed_delete_count="$(jq '.deletedPackageVersions | length' "$EXECUTE_SUMMARY_PATH")"
+
+          if [[ "$executed_delete_count" -ne "$pre_delete_count" ]]; then
+            echo "Execute summary count does not match the pre-plan fully deletable root count." >&2
+            exit 1
+          fi
+
+          if jq -e --arg selected_tag "$selected_tag" '.directTargetTags[] | select(. == $selected_tag)' "$POST_PLAN_PATH" >/dev/null; then
+            echo "Selected tag '$selected_tag' is still targeted after execution." >&2
+            exit 1
+          fi
+
+          if [[ "$post_delete_count" -ge "$pre_delete_count" ]]; then
+            echo "Post-execution plan did not reduce the fully deletable root count." >&2
+            exit 1
+          fi
+
+      - name: Upload execution artifact
+        if: ${{ inputs.upload_execution_artifact }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.TEST_PACKAGE }}__${{ inputs.execution_scenario }}-execute
+          path: ${{ steps.args.outputs.work_dir }}
+          retention-days:
+            ${{ inputs.artifact_retention_days != '' && inputs.artifact_retention_days || github.retention_days }}
+
+      - name: Upload post-scan DB artifact
+        if: ${{ inputs.upload_db_artifact }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.TEST_PACKAGE }}__${{ inputs.execution_scenario }}-post-scan.sqlite
+          path: ${{ steps.rescan.outputs.post_db_path }}
+          retention-days:
+            ${{ inputs.artifact_retention_days != '' && inputs.artifact_retention_days || github.retention_days }}
+
+      - name: Print execution targets
+        shell: bash
+        run: |
+          echo "Owner: ${{ github.repository_owner }}"
+          echo "Package: ${{ env.TEST_PACKAGE }}"
+          echo "Execution scenario: ${{ inputs.execution_scenario }}"
+          echo "Pre-scan DB path: ${{ steps.ghcr-manager.outputs.db-path }}"
+          echo "Post-scan DB path: ${{ steps.rescan.outputs.post_db_path }}"
+          echo "Execution work dir: ${{ steps.args.outputs.work_dir }}"

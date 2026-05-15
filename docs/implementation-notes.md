@@ -155,6 +155,8 @@ This section is the canonical place for session-to-session continuity.
   - `test-registry-fill-*.yml` performs one-time GHCR fixture seeding
   - `test-registry-validate.yml` runs one scan against an already-seeded fixture, then executes one or all applicable
     validation scenarios without republishing it
+  - `test-registry-execute.yml` runs one scan against an already-seeded fixture, executes a guarded destructive or
+    non-destructive cleanup scenario, rescans the fixture, and verifies the post-execution plan
   - validation scenarios can now derive plan args from the scanned DB before running the planner
 - Scan hardening:
   - live GitHub scans now fetch package metadata up front and store `is_public` on `package_scans`
@@ -337,9 +339,17 @@ src/
   - early `--token` validation for `execute`
   - successful delete-only execution against a mocked GitHub API
   - fail-fast behavior when a plan contains `untag-only` roots
+- Added `.github/workflows/test-registry-execute.yml` as the first destructive test-registry workflow:
+  - `delete-untagged` exercises the current executor on the seeded fixture without requiring a deletion to occur
+  - `first-fully-deletable-tagged-root` scans the seeded fixture, finds the first exact-match tag whose plan has
+    `fullyDeletableRoots > 0` and no `untag-only` roots, executes it, rescans, and verifies the selected tag is no
+    longer directly targetable
+  - destructive runs are intentionally reseed-required; the workflow is for explicit manual or called execution, not the
+    default validation loop
 - Remaining execution-track work:
   - add the separate upstream-style untag workaround slice for partial-tag matches
-  - exercise real execution against the seeded test registry workflow rather than local-only mocked command tests
+  - run and refine seeded test-registry execution scenarios now that the workflow exists, then decide which ones should
+    become standard post-seed validation checks
 
 ### 2026-05-14
 
