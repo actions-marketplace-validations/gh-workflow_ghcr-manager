@@ -109,7 +109,7 @@ jobs:
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: $GITHUB_API_VERSION" \
               "$artifact_url" \
-              --output "$artifact_zip_path"
+              > "$artifact_zip_path"
 
             unzip -q "$artifact_zip_path" -d "$artifact_extract_dir"
             downloaded_file="$artifact_extract_dir/$artifact_name"
