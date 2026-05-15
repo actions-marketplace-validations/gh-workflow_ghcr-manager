@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+
+import { readFileSync } from "node:fs";
+import YAML from "yaml";
+import { scenarioIds } from "./test-scenarios/_definitions.mjs";
+
+const workflow = YAML.parse(readFileSync(".github/workflows/test-scenario-executor.yml", "utf8"));
+const workflowOptions = workflow.on.workflow_dispatch.inputs.scenario.options;
+
+if (JSON.stringify(workflowOptions) !== JSON.stringify(scenarioIds)) {
+  throw new Error(
+    `test-scenario-executor.yml scenario options do not match scenario definitions:\nexpected ${JSON.stringify(
+      scenarioIds
+    )}\nactual   ${JSON.stringify(workflowOptions)}`
+  );
+}

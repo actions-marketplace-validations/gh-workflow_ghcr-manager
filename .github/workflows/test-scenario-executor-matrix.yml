@@ -16,27 +16,26 @@ permissions:
   actions: write
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Render scenario matrix
+        id: matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "matrix=$(node tools/render-test-scenario-matrix.mjs)" >> "$GITHUB_OUTPUT"
+
   execute:
+    needs: prepare
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - scenario: delete-untagged-noop
-            executor: ghcr-manager
-          - scenario: delete-untagged-noop
-            executor: ghcr-cleanup-action
-          - scenario: tagged-fully-deletable
-            executor: ghcr-manager
-          - scenario: tagged-fully-deletable
-            executor: ghcr-cleanup-action
-          - scenario: untag-only-single-shared-root
-            executor: ghcr-manager
-          - scenario: untag-only-single-shared-root
-            executor: ghcr-cleanup-action
-          - scenario: untag-only-multiarch-shared-root
-            executor: ghcr-manager
-          - scenario: untag-only-multiarch-shared-root
-            executor: ghcr-cleanup-action
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
     uses: ./.github/workflows/test-scenario-executor.yml
     secrets: inherit
     with:

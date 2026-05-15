@@ -46,6 +46,35 @@ runs:
           --tag "$IMAGE_REF:${SCENARIO_ID}--keep" \
           "$context_dir"
 
+    - name: Seed delete-untagged-real
+      if: ${{ inputs.seed_strategy == 'delete-untagged-real' }}
+      shell: bash
+      env:
+        IMAGE_REF: ${{ inputs.image_ref }}
+        SCENARIO_ID: delete-untagged-real
+      run: |
+        set -euo pipefail
+
+        old_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$old_dir/Dockerfile"
+        printf '%s\n' "${SCENARIO_ID} old" > "$old_dir/payload.txt"
+        docker buildx build \
+          --platform linux/amd64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--tracked" \
+          "$old_dir"
+
+        new_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$new_dir/Dockerfile"
+        printf '%s\n' "${SCENARIO_ID} new" > "$new_dir/payload.txt"
+        docker buildx build \
+          --platform linux/amd64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--tracked" \
+          "$new_dir"
+
     - name: Seed untag-only-single-shared-root
       if: ${{ inputs.seed_strategy == 'untag-only-single-shared-root' }}
       shell: bash
@@ -64,6 +93,99 @@ runs:
           --tag "$IMAGE_REF:${SCENARIO_ID}--delete-me" \
           --tag "$IMAGE_REF:${SCENARIO_ID}--keep-me" \
           "$context_dir"
+
+    - name: Prepare blocked-shared-closure contexts
+      if: ${{ inputs.seed_strategy == 'blocked-shared-closure' }}
+      id: blocked-contexts
+      shell: bash
+      env:
+        SCENARIO_ID: blocked-shared-closure
+      run: |
+        set -euo pipefail
+        base_dir="$(mktemp -d)"
+
+        delete_dir="$base_dir/delete-amd64"
+        mkdir -p "$delete_dir"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$delete_dir/Dockerfile"
+        printf '%s\n' "${SCENARIO_ID} delete amd64" > "$delete_dir/payload.txt"
+
+        shared_dir="$base_dir/shared-arm64"
+        mkdir -p "$shared_dir"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$shared_dir/Dockerfile"
+        printf '%s\n' "${SCENARIO_ID} shared arm64" > "$shared_dir/payload.txt"
+
+        keep_dir="$base_dir/keep-amd64"
+        mkdir -p "$keep_dir"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$keep_dir/Dockerfile"
+        printf '%s\n' "${SCENARIO_ID} keep amd64" > "$keep_dir/payload.txt"
+
+        echo "delete_dir=$delete_dir" >> "$GITHUB_OUTPUT"
+        echo "shared_dir=$shared_dir" >> "$GITHUB_OUTPUT"
+        echo "keep_dir=$keep_dir" >> "$GITHUB_OUTPUT"
+
+    - name: Build blocked delete amd64 child
+      if: ${{ inputs.seed_strategy == 'blocked-shared-closure' }}
+      id: blocked-delete-amd64
+      uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+      with:
+        context: ${{ steps.blocked-contexts.outputs.delete_dir }}
+        file: ${{ steps.blocked-contexts.outputs.delete_dir }}/Dockerfile
+        push: true
+        provenance: false
+        platforms: linux/amd64
+        tags: ${{ inputs.image_ref }}:blocked-shared-closure--source-delete-amd64
+
+    - name: Build blocked shared arm64 child
+      if: ${{ inputs.seed_strategy == 'blocked-shared-closure' }}
+      id: blocked-shared-arm64
+      uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+      with:
+        context: ${{ steps.blocked-contexts.outputs.shared_dir }}
+        file: ${{ steps.blocked-contexts.outputs.shared_dir }}/Dockerfile
+        push: true
+        provenance: false
+        platforms: linux/arm64
+        tags: ${{ inputs.image_ref }}:blocked-shared-closure--source-shared-arm64
+
+    - name: Build blocked keep amd64 child
+      if: ${{ inputs.seed_strategy == 'blocked-shared-closure' }}
+      id: blocked-keep-amd64
+      uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+      with:
+        context: ${{ steps.blocked-contexts.outputs.keep_dir }}
+        file: ${{ steps.blocked-contexts.outputs.keep_dir }}/Dockerfile
+        push: true
+        provenance: false
+        platforms: linux/amd64
+        tags: ${{ inputs.image_ref }}:blocked-shared-closure--source-keep-amd64
+
+    - name: Publish blocked delete index
+      if: ${{ inputs.seed_strategy == 'blocked-shared-closure' }}
+      uses: gh-workflow/multiarch-image-publish@c5eac5dd8f7ed6b39fffc6e2c2242966b4917260 # 0.2.1
+      with:
+        image_ref: ${{ inputs.image_ref }}
+        tags: |
+          blocked-shared-closure--delete-me
+        platform_digests: |
+          linux/amd64=${{ steps.blocked-delete-amd64.outputs.digest }}
+          linux/arm64=${{ steps.blocked-shared-arm64.outputs.digest }}
+        annotations: |
+          org.opencontainers.image.version=blocked-shared-closure-delete
+        publish_platform_tags: "false"
+
+    - name: Publish blocked keep index
+      if: ${{ inputs.seed_strategy == 'blocked-shared-closure' }}
+      uses: gh-workflow/multiarch-image-publish@c5eac5dd8f7ed6b39fffc6e2c2242966b4917260 # 0.2.1
+      with:
+        image_ref: ${{ inputs.image_ref }}
+        tags: |
+          blocked-shared-closure--keep-me
+        platform_digests: |
+          linux/amd64=${{ steps.blocked-keep-amd64.outputs.digest }}
+          linux/arm64=${{ steps.blocked-shared-arm64.outputs.digest }}
+        annotations: |
+          org.opencontainers.image.version=blocked-shared-closure-keep
+        publish_platform_tags: "false"
 
     - name: Seed untag-only-multiarch-shared-root
       if: ${{ inputs.seed_strategy == 'untag-only-multiarch-shared-root' }}
@@ -115,9 +237,10 @@ runs:
 
     - name: Reject unknown seed strategy
       if:
-        ${{ inputs.seed_strategy != 'delete-untagged-noop' && inputs.seed_strategy != 'tagged-fully-deletable' &&
-        inputs.seed_strategy != 'untag-only-single-shared-root' && inputs.seed_strategy !=
-        'untag-only-multiarch-shared-root' }}
+        ${{ inputs.seed_strategy != 'delete-untagged-noop' && inputs.seed_strategy != 'delete-untagged-real' &&
+        inputs.seed_strategy != 'tagged-fully-deletable' && inputs.seed_strategy != 'untag-only-single-shared-root' &&
+        inputs.seed_strategy != 'untag-only-multiarch-shared-root' && inputs.seed_strategy != 'blocked-shared-closure'
+        }}
       shell: bash
       run: |
         echo "Unknown seed strategy: ${{ inputs.seed_strategy }}" >&2

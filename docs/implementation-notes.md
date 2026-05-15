@@ -171,7 +171,9 @@ This section is the canonical place for session-to-session continuity.
     package
   - current scenario coverage includes:
     - `delete-untagged-noop`
+    - `delete-untagged-real`
     - `tagged-fully-deletable`
+    - `blocked-shared-closure`
     - `untag-only-single-shared-root`
     - `untag-only-multiarch-shared-root`
   - scenario-managed tags are namespaced as `${scenarioId}--<tag>` so later mixed-scenario packages can avoid tag

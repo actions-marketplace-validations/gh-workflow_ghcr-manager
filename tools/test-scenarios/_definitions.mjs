@@ -49,5 +49,41 @@ export const scenarios = {
       deleteTag: "delete-me",
       keepTag: "keep-me"
     }
+  },
+  "blocked-shared-closure": {
+    id: "blocked-shared-closure",
+    packageSuffix: "scenario--blocked-shared-closure",
+    seedStrategy: "blocked-shared-closure",
+    supportedExecutors: ["ghcr-manager", "ghcr-cleanup-action"],
+    ghcrManagerArgs: ["--delete-tag", "{deleteTag}"],
+    dataaxiomInputs: {
+      "delete-tags": "{deleteTag}"
+    },
+    tagNames: {
+      deleteTag: "delete-me",
+      keepTag: "keep-me"
+    }
+  },
+  "delete-untagged-real": {
+    id: "delete-untagged-real",
+    packageSuffix: "scenario--delete-untagged-real",
+    seedStrategy: "delete-untagged-real",
+    supportedExecutors: ["ghcr-manager", "ghcr-cleanup-action"],
+    ghcrManagerArgs: ["--delete-untagged"],
+    dataaxiomInputs: {
+      "delete-untagged": "true"
+    },
+    tagNames: {
+      trackedTag: "tracked"
+    }
   }
 };
+
+export const scenarioIds = Object.keys(scenarios);
+
+export const scenarioMatrix = scenarioIds.flatMap((scenarioId) =>
+  scenarios[scenarioId].supportedExecutors.map((executor) => ({
+    scenario: scenarioId,
+    executor
+  }))
+);
