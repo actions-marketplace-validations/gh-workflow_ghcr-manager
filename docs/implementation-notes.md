@@ -178,6 +178,9 @@ This section is the canonical place for session-to-session continuity.
     centralized
   - `test-scenario-executor-matrix.yml` fans out the reusable scenario workflow in parallel with executor-isolated
     package-name suffixes, so same-scenario runs do not race on one GHCR package
+  - after the matrix fan-out completes, the matrix workflow now downloads the per-scenario action-owned DB artifacts,
+    decrypts them when needed, repacks them into one tarball, re-encrypts that bundle with the same optional passphrase,
+    uploads the single bundle artifact, and deletes the intermediate per-scenario DB artifacts from the run
   - the latest completed matrix baseline passed for all 10 scenarios × 2 executors (20 jobs)
   - the committed scenario workflow definitions now cover:
     - `delete-untagged-noop`

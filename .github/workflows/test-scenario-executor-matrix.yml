@@ -56,3 +56,123 @@ jobs:
       db_artifact_encryption_passphrase: ${{ inputs.db_artifact_encryption_passphrase }}
       artifact_retention_days: ${{ inputs.artifact_retention_days }}
       package_name_suffix: ${{ matrix.executor }}
+
+  bundle-db-artifacts:
+    if: ${{ inputs.upload_db_artifact }}
+    needs: execute
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Bundle scenario DB artifacts
+        id: bundle
+        shell: bash
+        env:
+          ARTIFACT_RETENTION_DAYS: ${{ inputs.artifact_retention_days }}
+          DB_ARTIFACT_ENCRYPTION_PASSPHRASE: ${{ inputs.db_artifact_encryption_passphrase }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_API_VERSION: "2022-11-28"
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          RUNNER_TEMP: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+
+          work_dir="$RUNNER_TEMP/ghcr-manager/scenario-matrix-db-bundle"
+          download_dir="$work_dir/downloaded"
+          bundle_dir="$work_dir/bundle"
+          mkdir -p "$download_dir" "$bundle_dir"
+
+          artifact_list_path="$work_dir/artifacts.tsv"
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: $GITHUB_API_VERSION" \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
+            --jq '.artifacts[]
+              | select((.name | endswith(".sqlite")) or (.name | endswith(".sqlite.enc")))
+              | [.id, .name, .archive_download_url]
+              | @tsv' \
+            > "$artifact_list_path"
+
+          if [[ ! -s "$artifact_list_path" ]]; then
+            echo "No scenario DB artifacts found to bundle." >&2
+            exit 1
+          fi
+
+          while IFS=$'\t' read -r artifact_id artifact_name artifact_url; do
+            artifact_zip_path="$download_dir/${artifact_name}.zip"
+            artifact_extract_dir="$download_dir/$artifact_name"
+            mkdir -p "$artifact_extract_dir"
+
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: $GITHUB_API_VERSION" \
+              "$artifact_url" \
+              --output "$artifact_zip_path"
+
+            unzip -q "$artifact_zip_path" -d "$artifact_extract_dir"
+            downloaded_file="$artifact_extract_dir/$artifact_name"
+            if [[ ! -f "$downloaded_file" ]]; then
+              echo "Downloaded artifact '$artifact_name' did not contain expected file '$artifact_name'." >&2
+              exit 1
+            fi
+
+            if [[ "$artifact_name" == *.enc ]]; then
+              [[ -n "$DB_ARTIFACT_ENCRYPTION_PASSPHRASE" ]] || {
+                echo "Encrypted DB artifacts require db_artifact_encryption_passphrase for bundling." >&2
+                exit 1
+              }
+              output_name="${artifact_name%.enc}"
+              openssl enc -d -aes-256-cbc -pbkdf2 \
+                -in "$downloaded_file" \
+                -out "$bundle_dir/$output_name" \
+                -pass env:DB_ARTIFACT_ENCRYPTION_PASSPHRASE
+            else
+              cp "$downloaded_file" "$bundle_dir/$artifact_name"
+            fi
+          done < "$artifact_list_path"
+
+          bundle_tar_path="$work_dir/scenario-matrix-dbs.tar"
+          tar -C "$bundle_dir" -cf "$bundle_tar_path" .
+
+          final_bundle_path="$bundle_tar_path"
+          final_bundle_name="$(basename "$bundle_tar_path")"
+          if [[ -n "$DB_ARTIFACT_ENCRYPTION_PASSPHRASE" ]]; then
+            final_bundle_path="${bundle_tar_path}.enc"
+            final_bundle_name="$(basename "$final_bundle_path")"
+            openssl enc -aes-256-cbc -pbkdf2 -salt \
+              -in "$bundle_tar_path" \
+              -out "$final_bundle_path" \
+              -pass env:DB_ARTIFACT_ENCRYPTION_PASSPHRASE
+          fi
+
+          echo "artifact_list_path=$artifact_list_path" >> "$GITHUB_OUTPUT"
+          echo "bundle_path=$final_bundle_path" >> "$GITHUB_OUTPUT"
+          echo "bundle_name=$final_bundle_name" >> "$GITHUB_OUTPUT"
+
+      - name: Upload bundled scenario DB artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.bundle.outputs.bundle_name }}
+          path: ${{ steps.bundle.outputs.bundle_path }}
+          retention-days:
+            ${{ inputs.artifact_retention_days != '' && inputs.artifact_retention_days || github.retention_days }}
+
+      - name: Delete per-scenario DB artifacts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_API_VERSION: "2022-11-28"
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          ARTIFACT_LIST_PATH: ${{ steps.bundle.outputs.artifact_list_path }}
+        run: |
+          set -euo pipefail
+          while IFS=$'\t' read -r artifact_id artifact_name _artifact_url; do
+            gh api \
+              -X DELETE \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: $GITHUB_API_VERSION" \
+              "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id"
+            echo "Deleted intermediate DB artifact: $artifact_name"
+          done < "$ARTIFACT_LIST_PATH"
