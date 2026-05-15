@@ -3,12 +3,6 @@ run-name: Test Scenario Executor Matrix
 
 "on":
   workflow_dispatch:
-    inputs:
-      artifact_retention_days:
-        description: Optional artifact retention-days override.
-        required: false
-        default: ""
-        type: string
 
 permissions:
   contents: read
@@ -42,5 +36,4 @@ jobs:
     with:
       scenario: ${{ matrix.scenario }}
       executor: ${{ matrix.executor }}
-      artifact_retention_days: ${{ inputs.artifact_retention_days }}
       package_name_suffix: ${{ matrix.executor }}

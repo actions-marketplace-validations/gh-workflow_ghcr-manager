@@ -171,7 +171,9 @@ This section is the canonical place for session-to-session continuity.
     non-destructive cleanup scenario, then reruns the action against the same local `db-path` so the action itself
     uploads the final rescan DB artifact
   - `test-scenario-executor.yml` clears and reseeds a dedicated package per scenario, runs either `ghcr-manager` or
-    `dataaxiom/ghcr-cleanup-action`, and uploads one owner/package/executor scan-history DB with both scans
+    `dataaxiom/ghcr-cleanup-action`, and keeps the scan-history DB local to the job instead of uploading it directly
+  - test workflows no longer upload plan, execution-summary, or scenario helper artifacts; DB artifact upload remains
+    solely the composite action's responsibility so the non-public encryption safeguard stays centralized
   - `test-scenario-executor-matrix.yml` fans out the reusable scenario workflow in parallel with executor-isolated
     package-name suffixes, so same-scenario runs do not race on one GHCR package
   - the latest completed matrix baseline passed for all 10 scenarios × 2 executors (20 jobs)

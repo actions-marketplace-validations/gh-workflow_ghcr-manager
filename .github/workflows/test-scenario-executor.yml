@@ -30,11 +30,6 @@ run-name: Test Scenario Executor (${{ inputs.scenario }} / ${{ inputs.executor }
         options:
           - ghcr-manager
           - ghcr-cleanup-action
-      artifact_retention_days:
-        description: Optional artifact retention-days override.
-        required: false
-        default: ""
-        type: string
       package_name_suffix:
         description: Optional package-name suffix for isolated parallel runs.
         required: false
@@ -47,10 +42,6 @@ run-name: Test Scenario Executor (${{ inputs.scenario }} / ${{ inputs.executor }
         type: string
       executor:
         required: true
-        type: string
-      artifact_retention_days:
-        required: false
-        default: ""
         type: string
       package_name_suffix:
         required: false
@@ -110,7 +101,6 @@ jobs:
           echo "work_dir=$work_dir" >> "$GITHUB_OUTPUT"
           echo "resolution_path=$resolution_path" >> "$GITHUB_OUTPUT"
           echo "db_path=$db_path" >> "$GITHUB_OUTPUT"
-          echo "db_file=$db_file" >> "$GITHUB_OUTPUT"
           echo "summary_path=$summary_path" >> "$GITHUB_OUTPUT"
           echo "package_name=$package_name" >> "$GITHUB_OUTPUT"
           echo "seed_strategy=$(jq -r '.seedStrategy' "$resolution_path")" >> "$GITHUB_OUTPUT"
@@ -216,14 +206,3 @@ jobs:
           package: ${{ steps.scenario.outputs.package_name }}
           db-path: ${{ steps.scenario.outputs.db_path }}
           upload-db-artifact: "false"
-
-      - name: Upload scenario artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ${{ inputs.scenario }}__${{ inputs.executor }}
-          path: |
-            ${{ steps.scenario.outputs.db_path }}
-            ${{ steps.scenario.outputs.summary_path }}
-            ${{ steps.scenario.outputs.resolution_path }}
-          retention-days:
-            ${{ inputs.artifact_retention_days != '' && inputs.artifact_retention_days || github.retention_days }}

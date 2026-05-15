@@ -34,11 +34,6 @@ run-name: Test Registry Validate (${{ inputs.fixture }} / ${{ inputs.validation_
         required: false
         default: ""
         type: string
-      upload_plan_artifact:
-        description: Upload the `plan --delete-untagged` JSON output.
-        required: false
-        default: true
-        type: boolean
       artifact_retention_days:
         description: Optional artifact retention-days override.
         required: false
@@ -61,10 +56,6 @@ run-name: Test Registry Validate (${{ inputs.fixture }} / ${{ inputs.validation_
         required: false
         default: ""
         type: string
-      upload_plan_artifact:
-        required: false
-        default: true
-        type: boolean
       artifact_retention_days:
         required: false
         default: ""
@@ -122,7 +113,6 @@ jobs:
           echo "scenario_list_path=$scenario_list_path" >> "$GITHUB_OUTPUT"
 
       - name: Run plans and assertions
-        id: validation
         shell: bash
         env:
           RUNNER_TEMP: ${{ runner.temp }}
@@ -152,16 +142,6 @@ jobs:
               "${{ steps.ghcr-manager.outputs.db-path }}" \
               "$plan_path"
           done < "${{ steps.scenarios.outputs.scenario_list_path }}"
-          echo "plan_dir=$plan_dir" >> "$GITHUB_OUTPUT"
-
-      - name: Upload plan artifact
-        if: ${{ inputs.upload_plan_artifact }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ${{ env.TEST_PACKAGE }}__${{ inputs.validation_scenario }}-plans
-          path: ${{ steps.validation.outputs.plan_dir }}
-          retention-days:
-            ${{ inputs.artifact_retention_days != '' && inputs.artifact_retention_days || github.retention_days }}
 
       - name: Print validation targets
         shell: bash
@@ -171,4 +151,3 @@ jobs:
           echo "Validation scenario: ${{ inputs.validation_scenario }}"
           echo "DB path: ${{ steps.ghcr-manager.outputs.db-path }}"
           echo "Scenario list path: ${{ steps.scenarios.outputs.scenario_list_path }}"
-          echo "Plan dir: ${{ steps.validation.outputs.plan_dir }}"

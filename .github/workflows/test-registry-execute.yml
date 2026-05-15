@@ -30,11 +30,6 @@ run-name: Test Registry Execute (${{ inputs.fixture }} / ${{ inputs.execution_sc
         required: false
         default: ""
         type: string
-      upload_execution_artifact:
-        description: Upload the plan, execute summary, and post-execution plan outputs.
-        required: false
-        default: true
-        type: boolean
       artifact_retention_days:
         description: Optional artifact retention-days override.
         required: false
@@ -57,10 +52,6 @@ run-name: Test Registry Execute (${{ inputs.fixture }} / ${{ inputs.execution_sc
         required: false
         default: ""
         type: string
-      upload_execution_artifact:
-        required: false
-        default: true
-        type: boolean
       artifact_retention_days:
         required: false
         default: ""
@@ -270,15 +261,6 @@ jobs:
             echo "Post-execution plan did not reduce the fully deletable root count." >&2
             exit 1
           fi
-
-      - name: Upload execution artifact
-        if: ${{ inputs.upload_execution_artifact }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ${{ env.TEST_PACKAGE }}__${{ inputs.execution_scenario }}-execute
-          path: ${{ steps.args.outputs.work_dir }}
-          retention-days:
-            ${{ inputs.artifact_retention_days != '' && inputs.artifact_retention_days || github.retention_days }}
 
       - name: Print execution targets
         shell: bash
