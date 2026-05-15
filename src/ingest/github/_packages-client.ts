@@ -11,8 +11,10 @@ export async function ingestPackageVersions(
   writer: ScanWriter
 ): Promise<{ packageVersions: number; tags: number }> {
   let tagCount = 0;
+  const firstPageItems = await loadPackageVersionPage(fetchImpl, githubApiBaseUrl, options, 1);
   const result = await ingestParallelPaginated<GitHubPackageVersionPageItem>({
     logger: options.logger,
+    firstPageItems,
     loadPage(page) {
       return loadPackageVersionPage(fetchImpl, githubApiBaseUrl, options, page);
     },
@@ -21,6 +23,7 @@ export async function ingestPackageVersions(
       tagCount += _countTags(pageItems);
     }
   });
+  await _assertStableFirstPage(fetchImpl, githubApiBaseUrl, options, firstPageItems);
 
   return { packageVersions: result.items, tags: tagCount };
 }
@@ -72,4 +75,32 @@ function _writePage(writer: ScanWriter, pageItems: GitHubPackageVersionPageItem[
 
 function _countTags(pageItems: GitHubPackageVersionPageItem[]): number {
   return buildTags(normalizePackageVersions(pageItems)).length;
+}
+
+async function _assertStableFirstPage(
+  fetchImpl: FetchLike,
+  githubApiBaseUrl: string,
+  options: GitHubScanOptions,
+  initialPageItems: GitHubPackageVersionPageItem[]
+): Promise<void> {
+  const reloadedPageItems = await loadPackageVersionPage(fetchImpl, githubApiBaseUrl, options, 1);
+  if (_buildPageSignature(initialPageItems) === _buildPageSignature(reloadedPageItems)) {
+    return;
+  }
+
+  throw new Error(
+    `GitHub package-version page 1 changed while scanning ${options.owner}/${options.packageName}; aborting scan`
+  );
+}
+
+function _buildPageSignature(pageItems: GitHubPackageVersionPageItem[]): string {
+  return JSON.stringify(
+    pageItems.map((pageItem) => ({
+      id: pageItem.id,
+      name: pageItem.name,
+      createdAt: pageItem.created_at,
+      updatedAt: pageItem.updated_at,
+      tags: Array.isArray(pageItem.metadata?.container?.tags) ? [...pageItem.metadata.container.tags] : []
+    }))
+  );
 }

@@ -72,11 +72,23 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        ghcr-manager scan \
+        scan_output="$(ghcr-manager scan \
           --db "${{ steps.prepare-db.outputs.db_path }}" \
           --owner "${{ inputs.owner }}" \
           --package "${{ inputs.package }}" \
-          --token "${{ inputs.github-token }}"
+          --token "${{ inputs.github-token }}")"
+        printf '%s\n' "$scan_output"
+        is_public="$(node -e 'const payload = JSON.parse(process.argv[1]); process.stdout.write(payload.isPublic ? "true" : "false");' "$scan_output")"
+        echo "is_public=$is_public" >> "$GITHUB_OUTPUT"
+
+    - name: Refuse unprotected private DB artifact upload
+      if: ${{ inputs.upload-db-artifact == 'true' && steps.run-scan.outputs.is_public != 'true' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "Refusing to upload unencrypted DB artifact for a non-public package scan." >&2
+        echo "Encryption support is not implemented yet; disable upload-db-artifact for non-public packages." >&2
+        exit 1
 
     - name: Upload DB artifact
       if: ${{ inputs.upload-db-artifact == 'true' }}

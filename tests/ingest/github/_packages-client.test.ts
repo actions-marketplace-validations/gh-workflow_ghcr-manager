@@ -110,6 +110,54 @@ test("package client surfaces GitHub error details", async () => {
   );
 });
 
+test("package client aborts when page 1 changes during the scan", async () => {
+  const writer = {
+    insertPackageVersion() {},
+    insertPackageVersionPayload() {},
+    insertTag() {}
+  } as unknown as ScanWriter;
+
+  let firstPageLoadCount = 0;
+
+  await assert.rejects(
+    () =>
+      ingestPackageVersions(
+        async (input) => {
+          const page = Number(new URL(input).searchParams.get("page"));
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers(),
+            async json() {
+              if (page === 1) {
+                firstPageLoadCount += 1;
+                return [
+                  {
+                    id: firstPageLoadCount === 1 ? 1 : 2,
+                    name: "sha256:index",
+                    created_at: "2026-04-01T00:00:00.000Z",
+                    updated_at: "2026-04-01T00:00:00.000Z",
+                    metadata: { container: { tags: ["latest"] } }
+                  }
+                ];
+              }
+              return [];
+            }
+          };
+        },
+        "https://api.github.test",
+        {
+          owner: "acme",
+          packageName: "example",
+          token: "token",
+          logger: { debug() {}, info() {}, warn() {}, error() {} }
+        },
+        writer
+      ),
+    /GitHub package-version page 1 changed while scanning acme\/example; aborting scan/
+  );
+});
+
 test("package client surfaces fetch transport failures with page context", async () => {
   const writer = {
     insertPackageVersion() {},

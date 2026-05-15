@@ -5,9 +5,11 @@ CREATE TABLE IF NOT EXISTS package_scans (
   scan_uuid TEXT NOT NULL UNIQUE,
   owner TEXT NOT NULL,
   package_name TEXT NOT NULL,
+  is_public INTEGER NOT NULL DEFAULT 0,
   scan_started_at TEXT NOT NULL,
   scan_completed_at TEXT,
   status TEXT NOT NULL,
+  CHECK(is_public IN (0, 1)),
   CHECK(status IN ('running', 'completed', 'failed'))
 );
 

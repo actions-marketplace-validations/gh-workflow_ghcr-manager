@@ -28,6 +28,7 @@ export async function handleScan(args: string[]): Promise<number> {
       {
         owner: metadata.owner,
         packageName: metadata.packageName,
+        isPublic: metadata.isPublic,
         scanCompletedAt: metadata.scanCompletedAt,
         packageVersions: repository.countPackageVersions(scanId),
         tags: repository.countTags(scanId),

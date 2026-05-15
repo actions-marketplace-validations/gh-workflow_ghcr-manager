@@ -54,6 +54,18 @@ export class ScanWriter {
       .run(scanCompletedAt, this.#requireScanId());
   }
 
+  setPackageIsPublic(isPublic: boolean): void {
+    this.#database
+      .prepare(
+        `
+        UPDATE package_scans
+        SET is_public = ?
+        WHERE scan_id = ?
+      `
+      )
+      .run(isPublic ? 1 : 0, this.#requireScanId());
+  }
+
   insertPackageVersion(version: PackageVersionRecord): void {
     this.#database
       .prepare(

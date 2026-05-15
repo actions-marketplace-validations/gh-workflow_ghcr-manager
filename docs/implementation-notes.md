@@ -69,6 +69,10 @@ This section is the canonical place for session-to-session continuity.
 - ☑ Extend seeded-registry validation assertions so workflow scenarios verify the new plan validation contract fields.
 - ☑ Split `tools/assert-test-registry-plan.mjs` by responsibility into entrypoint, contract checks, scenario checks, and
   DB helpers.
+- ☑ Record GitHub package visibility in `package_scans`, expose it in scan metadata, and block unencrypted DB artifact
+  uploads for non-public scans.
+- ☑ Abort live GitHub scans when the package-version page-1 signature changes between the start and end of paginated
+  ingestion.
 - ☐ Extend the planner beyond `--delete-untagged` to cover tag selectors, exclusions, age filters, and keep rules.
 - ☐ Prototype registry execution against the test registry only after the plan output is stable and test-covered.
 - ☐ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
@@ -144,6 +148,12 @@ This section is the canonical place for session-to-session continuity.
   - `test-registry-fill-*.yml` performs one-time GHCR fixture seeding
   - `test-registry-validate.yml` runs scan + plan against an already-seeded fixture without republishing it
   - validation scenarios can now derive plan args from the scanned DB before running the planner
+- Scan hardening:
+  - live GitHub scans now fetch package metadata up front and store `is_public` on `package_scans`
+  - `scan` JSON output now includes `isPublic`
+  - the composite action refuses `upload-db-artifact: true` for non-public package scans until encryption support exists
+  - live GitHub package-version ingestion now reloads page 1 after pagination and aborts if the ordered version
+    signature changed during the scan
 - Scan logging:
   - progress logs go to stderr
   - final scan summary JSON stays on stdout

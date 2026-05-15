@@ -11,6 +11,26 @@ test("initializeSchema is idempotent", () => {
   database.close();
 });
 
+test("initializeSchema stores package publicness as a non-null boolean-like integer", () => {
+  const database = new Database(":memory:");
+  initializeSchema(database);
+
+  const row = database
+    .prepare(
+      `
+        SELECT sql
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'package_scans'
+      `
+    )
+    .get() as { sql?: string } | undefined;
+
+  assert.match(row?.sql ?? "", /is_public INTEGER NOT NULL DEFAULT 0/);
+  assert.match(row?.sql ?? "", /CHECK\(is_public IN \(0, 1\)\)/);
+
+  database.close();
+});
+
 test("initializeSchema creates manifest_reachability for precomputed graph reads", () => {
   const database = new Database(":memory:");
   initializeSchema(database);

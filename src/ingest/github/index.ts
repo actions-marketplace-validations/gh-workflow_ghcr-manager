@@ -1,5 +1,6 @@
 import { ScanWriter, SnapshotRepository } from "../../db/index.js";
 import { ingestManifests } from "./_manifest-ingest.js";
+import { loadPackageMetadata } from "./_package-metadata-load.js";
 import { ingestPackageVersions } from "./_packages-client.js";
 import { defaultFetch, type FetchLike, type GitHubScanOptions } from "./_shared.js";
 
@@ -27,6 +28,11 @@ export async function importGitHubScan(
   options.logger.info(`Starting GitHub package scan for ${fullPackageName}`);
   try {
     options.logger.info(`Starting remote data pull for ${fullPackageName}`);
+    const packageMetadata = await loadPackageMetadata(fetchImpl, _GITHUB_API_BASE_URL, options);
+    writer.setPackageIsPublic(packageMetadata.isPublic);
+    options.logger.info(
+      `Detected GitHub package visibility ${packageMetadata.isPublic ? "public" : "non-public"} for ${fullPackageName}`
+    );
     const counts = await ingestPackageVersions(fetchImpl, _GITHUB_API_BASE_URL, options, writer);
     options.logger.info(`Loaded ${counts.packageVersions} package versions and ${counts.tags} tags`);
     await ingestManifests(fetchImpl, _REGISTRY_BASE_URL, options, writer, repository, scanId);

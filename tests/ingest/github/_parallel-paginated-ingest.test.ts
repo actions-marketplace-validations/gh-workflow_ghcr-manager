@@ -35,3 +35,22 @@ test("parallel paginated ingest loads later pages concurrently", async () => {
   );
   assert.ok(maxActiveLoads > 1);
 });
+
+test("parallel paginated ingest can reuse preloaded page 1 items", async () => {
+  let firstPageLoads = 0;
+
+  const result = await ingestParallelPaginated({
+    firstPageItems: [{ id: 1 }],
+    logger: { debug() {}, info() {}, warn() {}, error() {} },
+    async loadPage(page) {
+      if (page === 1) {
+        firstPageLoads += 1;
+      }
+      return [];
+    },
+    writePage() {}
+  });
+
+  assert.deepEqual(result, { pages: 1, items: 1 });
+  assert.equal(firstPageLoads, 0);
+});

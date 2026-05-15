@@ -1,0 +1,73 @@
+import {
+  buildFetchTransportErrorMessage,
+  buildHttpErrorMessage,
+  type FetchLike,
+  type GitHubScanOptions,
+  withFetchRetry
+} from "./_shared.js";
+
+export interface GitHubPackageMetadata {
+  isPublic: boolean;
+}
+
+export async function loadPackageMetadata(
+  fetchImpl: FetchLike,
+  githubApiBaseUrl: string,
+  options: GitHubScanOptions
+): Promise<GitHubPackageMetadata> {
+  const url = new URL(
+    `/orgs/${encodeURIComponent(options.owner)}/packages/container/${encodeURIComponent(options.packageName)}`,
+    githubApiBaseUrl
+  ).toString();
+
+  let response;
+  try {
+    response = await withFetchRetry(
+      async () => {
+        const packageResponse = await fetchImpl(url, {
+          headers: {
+            Accept: "application/vnd.github+json",
+            Authorization: `Bearer ${options.token}`,
+            "User-Agent": "ghcr-manager",
+            "X-GitHub-Api-Version": "2022-11-28"
+          }
+        });
+        if (!packageResponse.ok && _shouldRetryStatus(packageResponse.status)) {
+          throw new Error(await buildHttpErrorMessage(packageResponse, "GitHub package metadata request failed"));
+        }
+        return packageResponse;
+      },
+      {
+        logger: options.logger,
+        label: "GitHub package metadata request",
+        shouldRetry: (error) => _shouldRetryError(error)
+      }
+    );
+  } catch (error) {
+    throw new Error(buildFetchTransportErrorMessage(error, "GitHub package metadata request failed"), { cause: error });
+  }
+
+  if (!response.ok) {
+    throw new Error(await buildHttpErrorMessage(response, "GitHub package metadata request failed"));
+  }
+
+  const payload = (await response.json()) as { visibility?: unknown };
+  const visibility = payload.visibility;
+  if (visibility !== "public" && visibility !== "private" && visibility !== "internal") {
+    throw new Error(`GitHub package metadata response did not include a supported visibility value`);
+  }
+
+  return { isPublic: visibility === "public" };
+}
+
+function _shouldRetryStatus(status: number): boolean {
+  return status === 429 || status === 502 || status === 503 || status === 504;
+}
+
+function _shouldRetryError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /fetch failed|status 429|status 502|status 503|status 504/.test(error.message);
+}

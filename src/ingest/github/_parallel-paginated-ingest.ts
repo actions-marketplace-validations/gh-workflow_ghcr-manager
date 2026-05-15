@@ -8,6 +8,7 @@ export interface ParallelPaginatedIngestOptions<T> {
   loadPage(page: number): Promise<T[]>;
   writePage(pageItems: T[], page: number): Promise<void> | void;
   logger: GitHubScanLogger;
+  firstPageItems?: T[];
 }
 
 export interface ParallelPaginatedIngestResult {
@@ -18,7 +19,7 @@ export interface ParallelPaginatedIngestResult {
 export async function ingestParallelPaginated<T>(
   options: ParallelPaginatedIngestOptions<T>
 ): Promise<ParallelPaginatedIngestResult> {
-  const firstPageItems = await options.loadPage(1);
+  const firstPageItems = options.firstPageItems ?? (await options.loadPage(1));
   let pages = 0;
   let items = 0;
   let lastLoggedPage = 0;
