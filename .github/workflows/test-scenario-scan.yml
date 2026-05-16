@@ -20,6 +20,8 @@ run-name: Test Scenario Scan (${{ inputs.scenario }})
           - keep-n-tagged-overflow
           - keep-n-untagged-overflow
           - delete-tags-keep-n-tagged-overflow
+          - delete-ghost-images-real
+          - delete-ghost-images-noop
           - delete-orphaned-images-real
           - delete-orphaned-images-noop
           - wildcard-tagged-fully-deletable

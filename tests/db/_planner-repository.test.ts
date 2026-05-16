@@ -190,6 +190,63 @@ test("planner repository applies older-than before keep-n-untagged recency selec
   database.close();
 });
 
+test("planner repository carries delete-ghost-images planner metadata through tagged-root planning", () => {
+  const database = openDatabase(":memory:");
+  const writer = new ScanWriter(database);
+  const repository = new PlannerRepository(database);
+
+  writer.resetScan("acme", "ghost-images", "2026-05-15T00:00:00.000Z");
+  writer.insertPackageVersion({
+    versionId: 201,
+    createdAt: "2026-05-10T00:00:00.000Z",
+    updatedAt: "2026-05-10T00:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 201,
+    digest: "sha256:ghost-index",
+    manifestKind: "image_index",
+    mediaType: "application/vnd.oci.image.index.v1+json"
+  });
+  writer.insertTag({
+    tag: "ghost",
+    versionId: 201
+  });
+  writer.insertManifestDescriptor({
+    parentDigest: "sha256:ghost-index",
+    childDigest: "sha256:missing-amd64",
+    mediaType: "application/vnd.oci.image.manifest.v1+json",
+    platform: { os: "linux", architecture: "amd64" }
+  });
+  writer.insertManifestDescriptor({
+    parentDigest: "sha256:ghost-index",
+    childDigest: "sha256:missing-arm64",
+    mediaType: "application/vnd.oci.image.manifest.v1+json",
+    platform: { os: "linux", architecture: "arm64" }
+  });
+  writer.rebuildManifestReachability();
+  writer.markScanCompleted("2026-05-15T00:00:00.000Z");
+
+  const plan = repository.getDeleteTagsPlanWithCutoff("acme", "ghost-images", ["ghost"], [], {
+    deleteGhostImages: true,
+    deleteTagsRequested: true
+  });
+
+  assert.equal(plan.plannerInputs.deleteGhostImages, true);
+  assert.deepEqual(plan.directTargetTags, ["ghost"]);
+  assert.deepEqual(plan.directTargetRoots, [
+    {
+      versionId: 201,
+      digest: "sha256:ghost-index",
+      manifestKind: "image_index",
+      reason: "delete-tags-all-tags-selected",
+      selectionMode: "delete-root"
+    }
+  ]);
+  assert.deepEqual(plan.fullyDeletableRoots, plan.directTargetRoots);
+
+  database.close();
+});
+
 test("planner repository keeps the newest eligible tagged roots and selects only overflow roots", () => {
   const database = openDatabase(":memory:");
   const writer = new ScanWriter(database);

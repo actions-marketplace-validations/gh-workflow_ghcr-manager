@@ -136,6 +136,26 @@ export const scenarios = {
       keepTag: "keep"
     }
   },
+  "delete-ghost-images-real": {
+    id: "delete-ghost-images-real",
+    packageSuffix: "scenario--delete-ghost-images-real",
+    seedStrategy: "delete-ghost-images-real",
+    supportedExecutors: ["ghcr-manager", "ghcr-cleanup-action"],
+    ghcrManagerArgs: ["--delete-ghost-images"],
+    dataaxiomInputs: {
+      "delete-ghost-images": "true"
+    }
+  },
+  "delete-ghost-images-noop": {
+    id: "delete-ghost-images-noop",
+    packageSuffix: "scenario--delete-ghost-images-noop",
+    seedStrategy: "delete-ghost-images-noop",
+    supportedExecutors: ["ghcr-manager", "ghcr-cleanup-action"],
+    ghcrManagerArgs: ["--delete-ghost-images"],
+    dataaxiomInputs: {
+      "delete-ghost-images": "true"
+    }
+  },
   "delete-orphaned-images-real": {
     id: "delete-orphaned-images-real",
     packageSuffix: "scenario--delete-orphaned-images-real",

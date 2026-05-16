@@ -10,6 +10,7 @@ This section is the canonical place for session-to-session continuity.
 
 ### Completed Checkpoints
 
+- ☑ `57b252a` Keep orphan scenarios from deleting last package tag.
 - ☑ `cdb7121` Add test registry validation workflow.
 - ☑ `ed36f7c` Add delete-untagged planner command.
 - ☑ `fe6fd7b` Add planner data model note.
@@ -87,8 +88,10 @@ This section is the canonical place for session-to-session continuity.
   strict manifest graph tables.
 - ☑ Add a repo-local digest-derived tag relation reporting tool and query note so latest-scan heuristic rows can be
   inspected without ad hoc SQL.
-- ☐ Design and implement the next upstream-alignment slice: `delete-ghost-images`, keeping the current DB-first planner
+- ☑ Design and implement the next upstream-alignment slice: `delete-ghost-images`, keeping the current DB-first planner
   shape.
+- ☐ Run the newly added `delete-ghost-images` live scenarios in GitHub Actions and record the first green matrix that
+  includes them.
 - ☐ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
 - ☑ Add package scopes to the DB schema so one SQLite database can store multiple owner/package scans.
 - ☑ Add a real GitHub Packages and GHCR ingest adapter beside the fixture loader.
@@ -191,6 +194,8 @@ This section is the canonical place for session-to-session continuity.
   - `manual-run-test.yml` now switches to `GHCR_TEST_PAT` automatically when the requested owner matches
     `GHCR_TEST_OWNER`, so private test-org packages remain scannable without a separate ad hoc workflow edit
   - the latest completed matrix baseline passed for all 14 scenarios × 2 executors (28 jobs)
+  - that confirmed green baseline predates the locally added `delete-ghost-images` scenarios; those are committed in
+    workflow/scenario definitions but still need a fresh live matrix run
   - the committed scenario workflow definitions now cover:
     - `delete-untagged-noop`
     - `delete-untagged-real`
@@ -202,6 +207,8 @@ This section is the canonical place for session-to-session continuity.
     - `keep-n-tagged-overflow`
     - `keep-n-untagged-overflow`
     - `delete-tags-keep-n-tagged-overflow`
+    - `delete-ghost-images-real`
+    - `delete-ghost-images-noop`
     - `delete-orphaned-images-real`
     - `delete-orphaned-images-noop`
     - `wildcard-tagged-fully-deletable`
@@ -224,6 +231,9 @@ This section is the canonical place for session-to-session continuity.
     `id-token: write` because the called workflow requests it
   - prior upstream compatibility issues in the dedicated test org were resolved sufficiently for the current live
     scenario matrix to pass with both executors
+  - `delete-ghost-images` now resolves concrete tags from the latest scan by selecting tagged `image_index` roots whose
+    descriptor children are all absent from the package scan, using current root metadata instead of an in-memory
+    reducer
 - Current `untag-only` execution strategy:
   - informed by the linked shared ChatGPT discussion on the upstream hack
   - fetch the source manifest by digest from GHCR

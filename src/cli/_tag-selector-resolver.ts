@@ -2,16 +2,23 @@ import type Database from "better-sqlite3";
 import type { PlanCommandInputs } from "./_planner-options.js";
 
 export function resolveTagSelectors(database: Database.Database, inputs: PlanCommandInputs): PlanCommandInputs {
-  if (inputs.deleteTags.length === 0 && inputs.excludeTags.length === 0 && !inputs.deleteOrphanedImages) {
+  if (
+    inputs.deleteTags.length === 0 &&
+    inputs.excludeTags.length === 0 &&
+    !inputs.deleteGhostImages &&
+    !inputs.deleteOrphanedImages
+  ) {
     return inputs;
   }
 
   const availableTags = _listLatestPackageTags(database, inputs.owner, inputs.packageName);
   return {
     ...inputs,
-    deleteTags: inputs.deleteOrphanedImages
-      ? _listLatestOrphanedTags(database, inputs.owner, inputs.packageName, inputs.cutoffTimestamp)
-      : _resolveSelectors(availableTags, inputs.deleteTags, inputs.useRegex),
+    deleteTags: inputs.deleteGhostImages
+      ? _listLatestGhostTags(database, inputs.owner, inputs.packageName, inputs.cutoffTimestamp)
+      : inputs.deleteOrphanedImages
+        ? _listLatestOrphanedTags(database, inputs.owner, inputs.packageName, inputs.cutoffTimestamp)
+        : _resolveSelectors(availableTags, inputs.deleteTags, inputs.useRegex),
     excludeTags: _resolveSelectors(availableTags, inputs.excludeTags, inputs.useRegex)
   };
 }
@@ -43,6 +50,52 @@ function _resolveSelectors(availableTags: string[], selectors: string[], useRege
     }
   }
   return [...resolved];
+}
+
+function _listLatestGhostTags(
+  database: Database.Database,
+  owner: string,
+  packageName: string,
+  cutoffTimestamp?: string
+): string[] {
+  const rows = database
+    .prepare(
+      `
+        WITH ghost_roots AS (
+          SELECT
+            srm.scan_id,
+            srm.root_version_id AS version_id
+          FROM v_scan_root_manifests srm
+          JOIN package_versions pv
+            ON pv.scan_id = srm.scan_id
+           AND pv.version_id = srm.root_version_id
+          JOIN manifest_descriptors md
+            ON md.scan_id = srm.scan_id
+           AND md.parent_digest = srm.root_digest
+          LEFT JOIN v_missing_digests vmd
+            ON vmd.scan_id = md.scan_id
+           AND vmd.anchor_digest = md.parent_digest
+           AND vmd.missing_digest = md.child_digest
+          WHERE srm.owner = ?
+            AND srm.package_name = ?
+            AND srm.root_manifest_kind = 'image_index'
+            AND srm.is_tagged = 1
+            AND srm.has_ancestor = 0
+            AND (? IS NULL OR pv.created_at < ?)
+          GROUP BY srm.scan_id, srm.root_version_id
+          HAVING COUNT(*) > 0
+             AND COUNT(vmd.missing_digest) = COUNT(*)
+        )
+        SELECT DISTINCT t.tag
+        FROM ghost_roots gr
+        JOIN tags t
+          ON t.scan_id = gr.scan_id
+         AND t.version_id = gr.version_id
+        ORDER BY t.tag
+      `
+    )
+    .all(owner, packageName, cutoffTimestamp ?? null, cutoffTimestamp ?? null) as Array<{ tag: string }>;
+  return rows.map((row) => row.tag);
 }
 
 // Some OCI tooling publishes companion artifacts such as signatures or attestations under

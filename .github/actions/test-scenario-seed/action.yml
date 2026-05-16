@@ -374,6 +374,138 @@ runs:
           --tag "$IMAGE_REF:${SCENARIO_ID}--delete-new" \
           "$delete_new_dir"
 
+    - name: Prepare delete-ghost-images contexts
+      if:
+        ${{ inputs.seed_strategy == 'delete-ghost-images-real' || inputs.seed_strategy == 'delete-ghost-images-noop' }}
+      id: ghost-contexts
+      shell: bash
+      env:
+        SCENARIO_ID: ${{ inputs.seed_strategy }}
+      run: |
+        set -euo pipefail
+        base_dir="$(mktemp -d)"
+
+        keep_dir="$base_dir/keep"
+        mkdir -p "$keep_dir"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$keep_dir/Dockerfile"
+        printf '%s\n' "${SCENARIO_ID} keep" > "$keep_dir/payload.txt"
+
+        noop_child_dir="$base_dir/noop-child"
+        mkdir -p "$noop_child_dir"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$noop_child_dir/Dockerfile"
+        printf '%s\n' "${SCENARIO_ID} noop child" > "$noop_child_dir/payload.txt"
+
+        echo "keep_dir=$keep_dir" >> "$GITHUB_OUTPUT"
+        echo "noop_child_dir=$noop_child_dir" >> "$GITHUB_OUTPUT"
+
+    - name: Seed delete-ghost-images keep image
+      if:
+        ${{ inputs.seed_strategy == 'delete-ghost-images-real' || inputs.seed_strategy == 'delete-ghost-images-noop' }}
+      shell: bash
+      env:
+        IMAGE_REF: ${{ inputs.image_ref }}
+        SCENARIO_ID: ${{ inputs.seed_strategy }}
+        KEEP_DIR: ${{ steps.ghost-contexts.outputs.keep_dir }}
+      run: |
+        set -euo pipefail
+        docker buildx build \
+          --platform linux/amd64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--keep" \
+          "$KEEP_DIR"
+
+    - name: Build delete-ghost-images noop child
+      if: ${{ inputs.seed_strategy == 'delete-ghost-images-noop' }}
+      id: ghost-noop-child
+      uses: ./.github/actions/test-registry-build-image
+      with:
+        context: ${{ steps.ghost-contexts.outputs.noop_child_dir }}
+        dockerfile: ${{ steps.ghost-contexts.outputs.noop_child_dir }}/Dockerfile
+        image_ref: ${{ inputs.image_ref }}
+        arch: delete-ghost-images-noop-amd64
+        platform: linux/amd64
+        registry_username: ${{ inputs.registry_username }}
+        registry_password: ${{ inputs.registry_password }}
+
+    - name: Publish delete-ghost-images fake index
+      if:
+        ${{ inputs.seed_strategy == 'delete-ghost-images-real' || inputs.seed_strategy == 'delete-ghost-images-noop' }}
+      shell: bash
+      env:
+        IMAGE_REF: ${{ inputs.image_ref }}
+        REGISTRY_USERNAME: ${{ inputs.registry_username }}
+        REGISTRY_PASSWORD: ${{ inputs.registry_password }}
+        SCENARIO_ID: ${{ inputs.seed_strategy }}
+        NOOP_CHILD_DIGEST: ${{ steps.ghost-noop-child.outputs.digest }}
+      run: |
+        set -euo pipefail
+
+        ref_path="${IMAGE_REF#ghcr.io/}"
+        owner="${ref_path%%/*}"
+        package="${ref_path#*/}"
+        scope="repository:${owner}/${package}:pull,push"
+        token="$(
+          curl -fsSL -u "${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}" \
+            "https://ghcr.io/token?service=ghcr.io&scope=${scope}" \
+            | jq -r '.token'
+        )"
+        [[ -n "$token" && "$token" != "null" ]] || {
+          echo "Failed to acquire GHCR push token for $owner/$package" >&2
+          exit 1
+        }
+
+        manifest_media_type="application/vnd.oci.image.manifest.v1+json"
+        missing_amd64_digest="sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        missing_arm64_digest="sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+
+        if [[ "$SCENARIO_ID" == "delete-ghost-images-noop" ]]; then
+          [[ -n "$NOOP_CHILD_DIGEST" ]] || {
+            echo "Missing noop child digest for delete-ghost-images-noop" >&2
+            exit 1
+          }
+          amd64_digest="$NOOP_CHILD_DIGEST"
+        else
+          amd64_digest="$missing_amd64_digest"
+        fi
+
+        index_json_path="$(mktemp)"
+        jq -n \
+          --arg amd64Digest "$amd64_digest" \
+          --arg arm64Digest "$missing_arm64_digest" \
+          --arg manifestMediaType "$manifest_media_type" \
+          '{
+            schemaVersion: 2,
+            mediaType: "application/vnd.oci.image.index.v1+json",
+            manifests: [
+              {
+                mediaType: $manifestMediaType,
+                digest: $amd64Digest,
+                size: 702,
+                platform: {
+                  architecture: "amd64",
+                  os: "linux"
+                }
+              },
+              {
+                mediaType: $manifestMediaType,
+                digest: $arm64Digest,
+                size: 702,
+                platform: {
+                  architecture: "arm64",
+                  os: "linux"
+                }
+              }
+            ]
+          }' > "$index_json_path"
+
+        curl -fsSL \
+          -X PUT \
+          -H "Authorization: Bearer $token" \
+          -H "Content-Type: application/vnd.oci.image.index.v1+json" \
+          --data-binary "@$index_json_path" \
+          "https://ghcr.io/v2/${owner}/${package}/manifests/${SCENARIO_ID}--ghost"
+
     - name: Seed delete-orphaned-images-real
       if: ${{ inputs.seed_strategy == 'delete-orphaned-images-real' }}
       shell: bash
@@ -448,7 +580,8 @@ runs:
         inputs.seed_strategy != 'untag-only-multiarch-shared-root' && inputs.seed_strategy != 'blocked-shared-closure'
         && inputs.seed_strategy != 'exclude-tag-protected-root' && inputs.seed_strategy != 'keep-n-tagged-overflow' &&
         inputs.seed_strategy != 'keep-n-untagged-overflow' && inputs.seed_strategy !=
-        'delete-tags-keep-n-tagged-overflow' && inputs.seed_strategy != 'delete-orphaned-images-real' &&
+        'delete-tags-keep-n-tagged-overflow' && inputs.seed_strategy != 'delete-ghost-images-real' &&
+        inputs.seed_strategy != 'delete-ghost-images-noop' && inputs.seed_strategy != 'delete-orphaned-images-real' &&
         inputs.seed_strategy != 'delete-orphaned-images-noop' }}
       shell: bash
       run: |

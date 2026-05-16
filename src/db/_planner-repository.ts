@@ -112,6 +112,7 @@ export interface DeletePlan {
   scanCompletedAt: string;
   plannerInputs: {
     deleteUntagged: boolean;
+    deleteGhostImages?: boolean;
     deleteOrphanedImages?: boolean;
     deleteTags: string[];
     excludeTags: string[];
@@ -178,6 +179,7 @@ export class PlannerRepository {
       scanCompletedAt: scan.scan_completed_at,
       plannerInputs: {
         deleteUntagged: true,
+        deleteGhostImages: undefined,
         deleteOrphanedImages: undefined,
         deleteTags: [],
         excludeTags: [],
@@ -213,6 +215,7 @@ export class PlannerRepository {
       scanCompletedAt: scan.scan_completed_at,
       plannerInputs: {
         deleteUntagged: false,
+        deleteGhostImages: undefined,
         deleteOrphanedImages: undefined,
         deleteTags: [],
         excludeTags: [],
@@ -250,6 +253,7 @@ export class PlannerRepository {
       scanCompletedAt: scan.scan_completed_at,
       plannerInputs: {
         deleteUntagged: false,
+        deleteGhostImages: undefined,
         deleteOrphanedImages: undefined,
         deleteTags: [],
         excludeTags,
@@ -273,6 +277,7 @@ export class PlannerRepository {
     excludeTags: string[],
     options?: {
       deleteTagsRequested?: boolean;
+      deleteGhostImages?: boolean;
       deleteOrphanedImages?: boolean;
       keepNTagged?: number;
       olderThan?: string;
@@ -301,6 +306,7 @@ export class PlannerRepository {
       scanCompletedAt: scan.scan_completed_at,
       plannerInputs: {
         deleteUntagged: false,
+        deleteGhostImages: options?.deleteGhostImages || undefined,
         deleteOrphanedImages: options?.deleteOrphanedImages || undefined,
         deleteTags,
         excludeTags,
