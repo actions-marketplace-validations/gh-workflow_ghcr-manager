@@ -73,6 +73,14 @@ Sometimes a fetched manifest payload references a digest that is not part of the
   `manifests`.
 - Query recipes: [missing-manifests-queries.md](missing-manifests-queries.md)
 
+## Derived Digest-Tag Relations
+
+Some OCI tooling publishes companion artifacts under digest-derived tags such as `sha256-<digest>.sig`.
+
+- `v_digest_derived_tag_relations` is a derived latest-scan view over those digest-shaped tags.
+- It infers the candidate parent digest from the tag name and reports whether that parent digest exists in `manifests`.
+- This is heuristic helper data for planning and validation, not a substitute for `manifest_edges`.
+
 ## Raw JSON Side Tables
 
 - `package_version_payloads`: full raw GitHub package-version JSON items.

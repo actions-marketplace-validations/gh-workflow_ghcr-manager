@@ -116,7 +116,7 @@ test("initializeSchema creates SQL views from sql/views", () => {
   const database = new Database(":memory:");
   initializeSchema(database);
 
-  const row = database
+  const missingDigestsRelatedManifestsRow = database
     .prepare(
       `
         SELECT sql
@@ -126,7 +126,20 @@ test("initializeSchema creates SQL views from sql/views", () => {
     )
     .get() as { sql?: string } | undefined;
 
-  assert.match(row?.sql ?? "", /CREATE VIEW v_missing_digests_related_manifests AS/);
+  assert.match(missingDigestsRelatedManifestsRow?.sql ?? "", /CREATE VIEW v_missing_digests_related_manifests AS/);
+
+  const digestDerivedTagRelationsRow = database
+    .prepare(
+      `
+        SELECT sql
+        FROM sqlite_master
+        WHERE type = 'view' AND name = 'v_digest_derived_tag_relations'
+      `
+    )
+    .get() as { sql?: string } | undefined;
+
+  assert.match(digestDerivedTagRelationsRow?.sql ?? "", /CREATE VIEW v_digest_derived_tag_relations AS/);
+  assert.match(digestDerivedTagRelationsRow?.sql ?? "", /SUBSTR\(t\.tag, 8, 64\)/);
 
   database.close();
 });

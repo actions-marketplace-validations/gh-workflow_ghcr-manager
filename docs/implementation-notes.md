@@ -88,6 +88,8 @@ This section is the canonical place for session-to-session continuity.
   executor harness to pass upstream `use-regex` inputs.
 - ☑ Add DB-derived `delete-orphaned-images` planning/execution by resolving orphan-style `sha256-*` tags from the latest
   scan before the tagged planner runs.
+- ☑ Add a derived `v_digest_derived_tag_relations` SQL view for digest-shaped `sha256-*` tags without weakening the
+  strict manifest graph tables.
 - ☐ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
 - ☑ Add package scopes to the DB schema so one SQLite database can store multiple owner/package scans.
 - ☑ Add a real GitHub Packages and GHCR ingest adapter beside the fixture loader.
