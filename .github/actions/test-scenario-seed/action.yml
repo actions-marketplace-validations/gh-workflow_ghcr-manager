@@ -374,6 +374,62 @@ runs:
           --tag "$IMAGE_REF:${SCENARIO_ID}--delete-new" \
           "$delete_new_dir"
 
+    - name: Seed delete-orphaned-images-real
+      if: ${{ inputs.seed_strategy == 'delete-orphaned-images-real' }}
+      shell: bash
+      env:
+        IMAGE_REF: ${{ inputs.image_ref }}
+        SCENARIO_ID: delete-orphaned-images-real
+      run: |
+        set -euo pipefail
+        orphan_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$orphan_dir/Dockerfile"
+        printf '%s\n' "$SCENARIO_ID" > "$orphan_dir/payload.txt"
+        docker buildx build \
+          --platform linux/amd64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.sig" \
+          "$orphan_dir"
+
+    - name: Seed delete-orphaned-images-noop
+      if: ${{ inputs.seed_strategy == 'delete-orphaned-images-noop' }}
+      shell: bash
+      env:
+        IMAGE_REF: ${{ inputs.image_ref }}
+        SCENARIO_ID: delete-orphaned-images-noop
+      run: |
+        set -euo pipefail
+
+        parent_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$parent_dir/Dockerfile"
+        printf '%s\n' "${SCENARIO_ID} parent" > "$parent_dir/payload.txt"
+        docker buildx build \
+          --platform linux/amd64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--parent" \
+          "$parent_dir"
+
+        parent_digest="$(
+          docker buildx imagetools inspect "$IMAGE_REF:${SCENARIO_ID}--parent" \
+            | awk '/Digest:/ {print $2; exit}'
+        )"
+        [[ "$parent_digest" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+          echo "Failed to resolve parent digest for $IMAGE_REF:${SCENARIO_ID}--parent" >&2
+          exit 1
+        }
+
+        referrer_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$referrer_dir/Dockerfile"
+        printf '%s\n' "${SCENARIO_ID} referrer" > "$referrer_dir/payload.txt"
+        docker buildx build \
+          --platform linux/amd64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:sha256-${parent_digest#sha256:}.sig" \
+          "$referrer_dir"
+
     - name: Reject unknown seed strategy
       if:
         ${{ inputs.seed_strategy != 'delete-untagged-noop' && inputs.seed_strategy != 'delete-untagged-real' &&
@@ -381,7 +437,8 @@ runs:
         inputs.seed_strategy != 'untag-only-multiarch-shared-root' && inputs.seed_strategy != 'blocked-shared-closure'
         && inputs.seed_strategy != 'exclude-tag-protected-root' && inputs.seed_strategy != 'keep-n-tagged-overflow' &&
         inputs.seed_strategy != 'keep-n-untagged-overflow' && inputs.seed_strategy !=
-        'delete-tags-keep-n-tagged-overflow' }}
+        'delete-tags-keep-n-tagged-overflow' && inputs.seed_strategy != 'delete-orphaned-images-real' &&
+        inputs.seed_strategy != 'delete-orphaned-images-noop' }}
       shell: bash
       run: |
         echo "Unknown seed strategy: ${{ inputs.seed_strategy }}" >&2

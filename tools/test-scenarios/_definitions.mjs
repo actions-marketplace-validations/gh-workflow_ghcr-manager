@@ -136,6 +136,26 @@ export const scenarios = {
       keepTag: "keep"
     }
   },
+  "delete-orphaned-images-real": {
+    id: "delete-orphaned-images-real",
+    packageSuffix: "scenario--delete-orphaned-images-real",
+    seedStrategy: "delete-orphaned-images-real",
+    supportedExecutors: ["ghcr-manager", "ghcr-cleanup-action"],
+    ghcrManagerArgs: ["--delete-orphaned-images"],
+    dataaxiomInputs: {
+      "delete-orphaned-images": "true"
+    }
+  },
+  "delete-orphaned-images-noop": {
+    id: "delete-orphaned-images-noop",
+    packageSuffix: "scenario--delete-orphaned-images-noop",
+    seedStrategy: "delete-orphaned-images-noop",
+    supportedExecutors: ["ghcr-manager", "ghcr-cleanup-action"],
+    ghcrManagerArgs: ["--delete-orphaned-images"],
+    dataaxiomInputs: {
+      "delete-orphaned-images": "true"
+    }
+  },
   "wildcard-tagged-fully-deletable": {
     id: "wildcard-tagged-fully-deletable",
     packageSuffix: "scenario--wildcard-tagged-fully-deletable",

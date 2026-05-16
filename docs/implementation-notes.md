@@ -86,8 +86,8 @@ This section is the canonical place for session-to-session continuity.
   rules against the dedicated test org.
 - ☑ Add CLI-side wildcard and regex tag selector expansion for tagged planner/execution flows, and wire the scenario
   executor harness to pass upstream `use-regex` inputs.
-- ☑ Add DB-derived `delete-orphaned-images` planning/execution by resolving orphan-style `sha256-*` tags from the
-  latest scan before the tagged planner runs.
+- ☑ Add DB-derived `delete-orphaned-images` planning/execution by resolving orphan-style `sha256-*` tags from the latest
+  scan before the tagged planner runs.
 - ☐ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
 - ☑ Add package scopes to the DB schema so one SQLite database can store multiple owner/package scans.
 - ☑ Add a real GitHub Packages and GHCR ingest adapter beside the fixture loader.
@@ -157,9 +157,9 @@ This section is the canonical place for session-to-session continuity.
     older overflow roots of one owner/package
   - `plan --delete-tag <tag> [--delete-tag <tag> ...] [--exclude-tag <tag> ...] [--keep-n-tagged <count>]` emits a
     dry-run tag delete/untag plan for one owner/package, optionally keeping the newest matched tagged roots
-  - `plan --delete-orphaned-images [--exclude-tag <tag> ...] [--keep-n-tagged <count>]` resolves orphan-style
-    `sha256-*` tags whose implied parent digest is absent from the latest scan, then emits the normal tagged
-    delete/untag dry-run plan for those concrete tags
+  - `plan --delete-orphaned-images [--exclude-tag <tag> ...] [--keep-n-tagged <count>]` resolves orphan-style `sha256-*`
+    tags whose implied parent digest is absent from the latest scan, then emits the normal tagged delete/untag dry-run
+    plan for those concrete tags
   - tagged selector families now treat `--delete-tag` and `--exclude-tag` values as wildcard patterns by default and as
     regex selectors when `--use-regex` is present
   - all current plan selector families accept optional `--older-than <interval>` as a root-level eligibility filter
@@ -198,10 +198,12 @@ This section is the canonical place for session-to-session continuity.
     - `keep-n-tagged-overflow`
     - `keep-n-untagged-overflow`
     - `delete-tags-keep-n-tagged-overflow`
+    - `delete-orphaned-images-real`
+    - `delete-orphaned-images-noop`
     - `wildcard-tagged-fully-deletable`
     - `regex-untag-only-single-shared-root`
-  - the latest completed live baseline still reflects the earlier 10-scenario matrix; the two new selector-pattern
-    scenarios were added after that run and still need a GitHub Actions pass
+  - the latest completed live baseline still reflects the earlier 10-scenario matrix; the two selector-pattern scenarios
+    and the two orphaned-image scenarios were added after that run and still need a GitHub Actions pass
   - scenario-managed tags are namespaced as `${scenarioId}--<tag>` so later mixed-scenario packages can avoid tag
     collisions
   - `blocked-shared-closure` now builds its platform children through the shared `test-registry-build-image` action so
