@@ -139,6 +139,8 @@ jobs:
           image_ref: ${{ env.IMAGE_REF }}
           arch: amd64
           platform: linux/amd64
+          registry_username: ${{ vars.GHCR_TEST_PAT_USERNAME }}
+          registry_password: ${{ secrets.GHCR_TEST_PAT }}
 
   publish_beta:
     name: Publish beta multi-arch image
