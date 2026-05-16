@@ -20,7 +20,10 @@ interface _RegistryManifestDocument {
 }
 
 export function classifyManifestKind(document: _RegistryManifestDocument): ManifestKind | undefined {
-  if (document.mediaType === "application/vnd.oci.image.index.v1+json") {
+  if (
+    document.mediaType === "application/vnd.oci.image.index.v1+json" ||
+    document.mediaType === "application/vnd.docker.distribution.manifest.list.v2+json"
+  ) {
     return "image_index";
   }
 

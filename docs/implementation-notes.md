@@ -237,6 +237,9 @@ This section is the canonical place for session-to-session continuity.
     reducer
   - the follow-up optimization rewrites the ghost-tag selector query against base tables for the hot path, keeping the
     same behavior while avoiding stacked `v_missing_digests` + `v_scan_root_manifests` view expansion during planning
+  - manifest-kind classification now treats Docker manifest lists
+    (`application/vnd.docker.distribution.manifest.list.v2+json`) as `image_index`, but the current live scenario set
+    still does not explicitly seed or assert Docker-media-type multi-arch cases
 - Current `untag-only` execution strategy:
   - informed by the linked shared ChatGPT discussion on the upstream hack
   - fetch the source manifest by digest from GHCR

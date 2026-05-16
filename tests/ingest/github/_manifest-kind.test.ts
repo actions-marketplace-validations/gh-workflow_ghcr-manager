@@ -6,6 +6,13 @@ test("classifyManifestKind identifies image indexes", () => {
   assert.equal(classifyManifestKind({ mediaType: "application/vnd.oci.image.index.v1+json" }), "image_index");
 });
 
+test("classifyManifestKind identifies docker manifest lists as image indexes", () => {
+  assert.equal(
+    classifyManifestKind({ mediaType: "application/vnd.docker.distribution.manifest.list.v2+json" }),
+    "image_index"
+  );
+});
+
 test("classifyManifestKind identifies plain image manifests", () => {
   assert.equal(classifyManifestKind({ mediaType: "application/vnd.oci.image.manifest.v1+json" }), "image_manifest");
 });
