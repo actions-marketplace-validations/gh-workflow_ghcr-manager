@@ -178,9 +178,6 @@ This section is the canonical place for session-to-session continuity.
   - `test-registry-fill-*.yml` performs one-time GHCR fixture seeding
   - `test-registry-validate.yml` runs one scan against an already-seeded fixture, then executes one or all applicable
     validation scenarios without republishing it
-  - `test-registry-execute.yml` runs one scan against an already-seeded fixture, executes a guarded destructive or
-    non-destructive cleanup scenario, then reruns the action against the same local `db-path` so the action itself
-    uploads the final rescan DB artifact
   - `test-scenario-executor.yml` clears and reseeds a dedicated package per scenario, runs either `ghcr-manager` or
     `dataaxiom/ghcr-cleanup-action`, then reruns the local action against the shared `db-path` so the action itself can
     upload the final rescan DB artifact
@@ -427,15 +424,6 @@ src/
   - early `--token` validation for `execute`
   - successful delete-only execution against a mocked GitHub API
   - fail-fast behavior when a plan contains `untag-only` roots
-- Added `.github/workflows/test-registry-execute.yml` as the first destructive test-registry workflow:
-  - `delete-untagged` exercises the current executor on the seeded fixture without requiring a deletion to occur
-  - `first-fully-deletable-tagged-root` scans the seeded fixture, finds the first exact-match tag whose plan has
-    `fullyDeletableRoots > 0` and no `untag-only` roots, executes it, rescans, and verifies the selected tag is no
-    longer directly targetable
-  - the action now supports an optional local `db-path` so the workflow can rescan through the action and still use the
-    action's built-in DB artifact upload behavior for the final history DB
-  - destructive runs are intentionally reseed-required; the workflow is for explicit manual or called execution, not the
-    default validation loop
 - Added the first dedicated scenario-per-package executor harness:
   - `tools/test-scenarios/_definitions.mjs` now holds small scenario records with package suffixes, seed strategies, and
     executor-specific inputs
