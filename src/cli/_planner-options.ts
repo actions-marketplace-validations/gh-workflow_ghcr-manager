@@ -8,6 +8,7 @@ export interface PlanCommandInputs {
   packageName: string;
   deleteTags: string[];
   deleteTagsRequested: boolean;
+  deleteOrphanedImages: boolean;
   excludeTags: string[];
   deleteUntagged: boolean;
   useRegex: boolean;
@@ -22,6 +23,7 @@ export function resolvePlanCommandInputs(args: string[]): PlanCommandInputs {
   const owner = requireOption(args, "--owner");
   const packageName = requireOption(args, "--package");
   const deleteTags = collectRepeatedOption(args, "--delete-tag");
+  const deleteOrphanedImages = hasFlag(args, "--delete-orphaned-images");
   const excludeTags = collectRepeatedOption(args, "--exclude-tag");
   const deleteUntagged = hasFlag(args, "--delete-untagged");
   const useRegex = hasFlag(args, "--use-regex");
@@ -38,17 +40,17 @@ export function resolvePlanCommandInputs(args: string[]): PlanCommandInputs {
 
   const keepNTagged = keepNTaggedRaw[0] ? resolveKeepCount("--keep-n-tagged", keepNTaggedRaw[0]) : undefined;
   const keepNUntagged = keepNUntaggedRaw[0] ? resolveKeepCount("--keep-n-untagged", keepNUntaggedRaw[0]) : undefined;
-  const taggedSelectorActive = deleteTags.length > 0 || keepNTagged !== undefined;
+  const taggedSelectorActive = deleteTags.length > 0 || deleteOrphanedImages || keepNTagged !== undefined;
   const selectorCount =
     (deleteUntagged ? 1 : 0) + (taggedSelectorActive ? 1 : 0) + (keepNUntagged !== undefined ? 1 : 0);
   if (selectorCount > 1) {
     throw new Error(
-      "plan currently supports exactly one selector family: --delete-untagged, --delete-tag, --keep-n-tagged, or --keep-n-untagged"
+      "plan currently supports exactly one selector family: --delete-untagged, --delete-tag, --delete-orphaned-images, --keep-n-tagged, or --keep-n-untagged"
     );
   }
   if (selectorCount === 0) {
     throw new Error(
-      "missing required cleanup selector: --delete-untagged, --delete-tag, --keep-n-tagged, or --keep-n-untagged"
+      "missing required cleanup selector: --delete-untagged, --delete-tag, --delete-orphaned-images, --keep-n-tagged, or --keep-n-untagged"
     );
   }
 
@@ -66,7 +68,8 @@ export function resolvePlanCommandInputs(args: string[]): PlanCommandInputs {
     owner,
     packageName,
     deleteTags,
-    deleteTagsRequested: deleteTags.length > 0,
+    deleteTagsRequested: deleteTags.length > 0 || deleteOrphanedImages,
+    deleteOrphanedImages,
     excludeTags,
     deleteUntagged,
     useRegex,
@@ -92,7 +95,7 @@ export function loadDeletePlan(repository: PlannerRepository, inputs: PlanComman
     });
   }
 
-  if (!inputs.deleteTagsRequested && inputs.keepNTagged !== undefined) {
+  if (!inputs.deleteTagsRequested && !inputs.deleteOrphanedImages && inputs.keepNTagged !== undefined) {
     return repository.getKeepNTaggedPlanWithCutoff(inputs.owner, inputs.packageName, inputs.keepNTagged, [], {
       olderThan: inputs.olderThan,
       cutoffTimestamp: inputs.cutoffTimestamp
@@ -105,6 +108,7 @@ export function loadDeletePlan(repository: PlannerRepository, inputs: PlanComman
     inputs.deleteTags,
     inputs.excludeTags,
     {
+      deleteOrphanedImages: inputs.deleteOrphanedImages,
       deleteTagsRequested: inputs.deleteTagsRequested,
       keepNTagged: inputs.keepNTagged,
       olderThan: inputs.olderThan,

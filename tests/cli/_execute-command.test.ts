@@ -286,3 +286,82 @@ test("handleExecute treats unmatched regex delete-tag selectors as a no-op", asy
   assert.deepEqual(summary.untaggedTags, []);
   assert.deepEqual(summary.blockedRoots, []);
 });
+
+test("handleExecute deletes orphaned sha256 tag versions", async () => {
+  const tempDirectory = mkdtempSync(join(tmpdir(), "ghcr-manager-"));
+  const databasePath = join(tempDirectory, "scan.sqlite");
+  const database = openDatabase(databasePath);
+  const writer = new ScanWriter(database);
+  const orphanParentDigest = `sha256:${"a".repeat(64)}`;
+  writer.resetScan("acme", "example", "2026-05-15T00:00:00.000Z");
+  writer.insertPackageVersion({
+    versionId: 201,
+    createdAt: "2026-05-10T00:00:00.000Z",
+    updatedAt: "2026-05-10T00:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 201,
+    digest: "sha256:orphaned-signature",
+    mediaType: "application/vnd.oci.image.manifest.v1+json",
+    manifestKind: "signature_manifest"
+  });
+  writer.insertTag({
+    tag: `${orphanParentDigest.replace("sha256:", "sha256-")}.sig`,
+    versionId: 201
+  });
+  writer.markScanCompleted("2026-05-15T00:00:00.000Z");
+  database.close();
+
+  const fetchCalls: Array<{ url: string; method?: string }> = [];
+  const originalFetch = globalThis.fetch;
+  const originalLog = console.log;
+  const writes: string[] = [];
+  globalThis.fetch = async (input, init) => {
+    fetchCalls.push({ url: String(input), method: init?.method });
+    return {
+      ok: true,
+      status: 204,
+      headers: new Headers(),
+      async json() {
+        return {};
+      }
+    } as Response;
+  };
+  console.log = (message?: unknown) => {
+    writes.push(String(message));
+  };
+
+  try {
+    assert.equal(
+      await handleExecute([
+        "--db",
+        databasePath,
+        "--owner",
+        "acme",
+        "--package",
+        "example",
+        "--token",
+        "token",
+        "--delete-orphaned-images"
+      ]),
+      0
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.log = originalLog;
+    rmSync(tempDirectory, { recursive: true, force: true });
+  }
+
+  assert.deepEqual(fetchCalls, [
+    {
+      url: "https://api.github.com/orgs/acme/packages/container/example/versions/201",
+      method: "DELETE"
+    }
+  ]);
+  const summary = JSON.parse(writes[0] as string) as {
+    plannerInputs: { deleteOrphanedImages?: boolean };
+    deletedPackageVersions: Array<{ versionId: number; digest: string }>;
+  };
+  assert.equal(summary.plannerInputs.deleteOrphanedImages, true);
+  assert.deepEqual(summary.deletedPackageVersions, [{ versionId: 201, digest: "sha256:orphaned-signature" }]);
+});

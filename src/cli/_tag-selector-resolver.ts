@@ -2,14 +2,16 @@ import type Database from "better-sqlite3";
 import type { PlanCommandInputs } from "./_planner-options.js";
 
 export function resolveTagSelectors(database: Database.Database, inputs: PlanCommandInputs): PlanCommandInputs {
-  if (inputs.deleteTags.length === 0 && inputs.excludeTags.length === 0) {
+  if (inputs.deleteTags.length === 0 && inputs.excludeTags.length === 0 && !inputs.deleteOrphanedImages) {
     return inputs;
   }
 
   const availableTags = _listLatestPackageTags(database, inputs.owner, inputs.packageName);
   return {
     ...inputs,
-    deleteTags: _resolveSelectors(availableTags, inputs.deleteTags, inputs.useRegex),
+    deleteTags: inputs.deleteOrphanedImages
+      ? _listLatestOrphanedTags(database, inputs.owner, inputs.packageName, inputs.cutoffTimestamp)
+      : _resolveSelectors(availableTags, inputs.deleteTags, inputs.useRegex),
     excludeTags: _resolveSelectors(availableTags, inputs.excludeTags, inputs.useRegex)
   };
 }
@@ -41,6 +43,50 @@ function _resolveSelectors(availableTags: string[], selectors: string[], useRege
     }
   }
   return [...resolved];
+}
+
+// Some OCI tooling publishes companion artifacts such as signatures or attestations under
+// digest-derived tags in the same repository, for example `sha256-<digest>.sig`, while the
+// actual relationship is the artifact's subject/referrer link to the parent digest.
+//
+// Public references:
+// - Sigstore Cosign example pushing `sha256-<digest>.sig`:
+//   https://docs.sigstore.dev/cosign/signing/other_types/
+// - OCI referrers / subject model:
+//   https://github.com/opencontainers/distribution-spec/blob/main/spec.md
+//
+// This resolver intentionally mirrors the `delete-orphaned-images` behavior from
+// `dataaxiom/ghcr-cleanup-action`, but keeps the check narrow and local to the current package
+// scan: derive the parent digest from the tag, then treat the tag as orphaned only when that
+// digest is absent from the scanned manifests for the same package.
+function _listLatestOrphanedTags(
+  database: Database.Database,
+  owner: string,
+  packageName: string,
+  cutoffTimestamp?: string
+): string[] {
+  const rows = database
+    .prepare(
+      `
+        SELECT DISTINCT t.tag
+        FROM tags t
+        INNER JOIN v_latest_scan_per_package latest_scan ON latest_scan.scan_id = t.scan_id
+        INNER JOIN package_versions pv
+          ON pv.scan_id = t.scan_id
+         AND pv.version_id = t.version_id
+        LEFT JOIN manifests parent_manifest
+          ON parent_manifest.scan_id = t.scan_id
+         AND parent_manifest.digest = SUBSTR(REPLACE(t.tag, 'sha256-', 'sha256:'), 1, 71)
+        WHERE latest_scan.owner = ?
+          AND latest_scan.package_name = ?
+          AND t.tag LIKE 'sha256-%'
+          AND parent_manifest.digest IS NULL
+          AND (? IS NULL OR pv.created_at < ?)
+        ORDER BY t.tag
+      `
+    )
+    .all(owner, packageName, cutoffTimestamp ?? null, cutoffTimestamp ?? null) as Array<{ tag: string }>;
+  return rows.map((row) => row.tag);
 }
 
 function _buildRegexMatcher(selector: string): (tag: string) => boolean {

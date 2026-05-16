@@ -25,7 +25,7 @@ async function _withSampleDatabase(run: (databasePath: string) => Promise<void>)
 test("handlePlan requires the delete-untagged selector", async () => {
   await assert.rejects(
     () => handlePlan(["--db", "scan.sqlite", "--owner", "acme", "--package", "example"]),
-    /missing required cleanup selector: --delete-untagged, --delete-tag, --keep-n-tagged, or --keep-n-untagged/
+    /missing required cleanup selector: --delete-untagged, --delete-tag, --delete-orphaned-images, --keep-n-tagged, or --keep-n-untagged/
   );
 });
 
@@ -43,7 +43,63 @@ test("handlePlan rejects mixed selector families", async () => {
         "--delete-tag",
         "latest"
       ]),
-    /exactly one selector family: --delete-untagged, --delete-tag, --keep-n-tagged, or --keep-n-untagged/
+    /exactly one selector family: --delete-untagged, --delete-tag, --delete-orphaned-images, --keep-n-tagged, or --keep-n-untagged/
+  );
+});
+
+test("handlePlan prints a delete-orphaned-images plan for orphaned sha256 tags", async () => {
+  const tempDirectory = mkdtempSync(join(tmpdir(), "ghcr-manager-"));
+  const databasePath = join(tempDirectory, "scan.sqlite");
+  const database = openDatabase(databasePath);
+  const writer = new ScanWriter(database);
+  const orphanParentDigest = `sha256:${"a".repeat(64)}`;
+  const orphanTag = `${orphanParentDigest.replace("sha256:", "sha256-")}.sig`;
+  writer.resetScan("acme", "example", "2026-05-15T00:00:00.000Z");
+  writer.insertPackageVersion({
+    versionId: 201,
+    createdAt: "2026-05-10T00:00:00.000Z",
+    updatedAt: "2026-05-10T00:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 201,
+    digest: "sha256:orphaned-signature",
+    mediaType: "application/vnd.oci.image.manifest.v1+json",
+    manifestKind: "signature_manifest"
+  });
+  writer.insertTag({
+    tag: orphanTag,
+    versionId: 201
+  });
+  writer.markScanCompleted("2026-05-15T00:00:00.000Z");
+  database.close();
+
+  const originalLog = console.log;
+  const writes: string[] = [];
+  console.log = (message?: unknown) => {
+    writes.push(String(message));
+  };
+
+  try {
+    assert.equal(
+      await handlePlan(["--db", databasePath, "--owner", "acme", "--package", "example", "--delete-orphaned-images"]),
+      0
+    );
+  } finally {
+    console.log = originalLog;
+    rmSync(tempDirectory, { recursive: true, force: true });
+  }
+
+  const plan = JSON.parse(writes[0] as string) as {
+    plannerInputs: { deleteOrphanedImages?: boolean; deleteTags: string[] };
+    directTargetTags: string[];
+    fullyDeletableRoots: Array<{ digest: string }>;
+  };
+  assert.equal(plan.plannerInputs.deleteOrphanedImages, true);
+  assert.deepEqual(plan.plannerInputs.deleteTags, [orphanTag]);
+  assert.deepEqual(plan.directTargetTags, [orphanTag]);
+  assert.deepEqual(
+    plan.fullyDeletableRoots.map((root) => root.digest),
+    ["sha256:orphaned-signature"]
   );
 });
 

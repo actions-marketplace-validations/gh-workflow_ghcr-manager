@@ -86,6 +86,8 @@ This section is the canonical place for session-to-session continuity.
   rules against the dedicated test org.
 - ☑ Add CLI-side wildcard and regex tag selector expansion for tagged planner/execution flows, and wire the scenario
   executor harness to pass upstream `use-regex` inputs.
+- ☑ Add DB-derived `delete-orphaned-images` planning/execution by resolving orphan-style `sha256-*` tags from the
+  latest scan before the tagged planner runs.
 - ☐ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
 - ☑ Add package scopes to the DB schema so one SQLite database can store multiple owner/package scans.
 - ☑ Add a real GitHub Packages and GHCR ingest adapter beside the fixture loader.
@@ -155,6 +157,9 @@ This section is the canonical place for session-to-session continuity.
     older overflow roots of one owner/package
   - `plan --delete-tag <tag> [--delete-tag <tag> ...] [--exclude-tag <tag> ...] [--keep-n-tagged <count>]` emits a
     dry-run tag delete/untag plan for one owner/package, optionally keeping the newest matched tagged roots
+  - `plan --delete-orphaned-images [--exclude-tag <tag> ...] [--keep-n-tagged <count>]` resolves orphan-style
+    `sha256-*` tags whose implied parent digest is absent from the latest scan, then emits the normal tagged
+    delete/untag dry-run plan for those concrete tags
   - tagged selector families now treat `--delete-tag` and `--exclude-tag` values as wildcard patterns by default and as
     regex selectors when `--use-regex` is present
   - all current plan selector families accept optional `--older-than <interval>` as a root-level eligibility filter
@@ -247,6 +252,9 @@ This section is the canonical place for session-to-session continuity.
   - standalone `keep-n-tagged` now also drives from `package_versions(scan_id, created_at)`
   - exact `delete-tag` planning now starts from matched `tags(scan_id, tag)` rows, then aggregates within that reduced
     matched-root set instead of grouping the entire tagged root population first
+  - `delete-orphaned-images` now stays on the same DB-first path by resolving orphan-style `sha256-*` tags from the
+    latest scan up front, then reusing the existing tagged planner and execution flow instead of adding a separate
+    iterative cleanup pass
   - closure and blocked-root analysis now consume direct target roots from a connection-local SQLite temp table, which
     avoids SQL variable-limit failures on very large plans
   - blocked-root validation no longer uses the global `v_scan_root_overlap` view on the hot path; it joins selected

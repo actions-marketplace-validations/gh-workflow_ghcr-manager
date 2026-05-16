@@ -17,6 +17,7 @@ test("resolvePlanCommandInputs parses delete-untagged inputs", () => {
   assert.equal(inputs.owner, "acme");
   assert.equal(inputs.packageName, "example");
   assert.equal(inputs.deleteUntagged, true);
+  assert.equal(inputs.deleteOrphanedImages, false);
   assert.equal(inputs.deleteTagsRequested, false);
 });
 
@@ -55,4 +56,23 @@ test("resolvePlanCommandInputs parses use-regex for tagged selectors", () => {
   assert.equal(inputs.useRegex, true);
   assert.equal(inputs.deleteTagsRequested, true);
   assert.deepEqual(inputs.deleteTags, ["^latest$"]);
+});
+
+test("resolvePlanCommandInputs parses delete-orphaned-images as a tagged selector family", () => {
+  const inputs = resolvePlanCommandInputs([
+    "--db",
+    "scan.sqlite",
+    "--owner",
+    "acme",
+    "--package",
+    "example",
+    "--delete-orphaned-images",
+    "--keep-n-tagged",
+    "0"
+  ]);
+
+  assert.equal(inputs.deleteOrphanedImages, true);
+  assert.equal(inputs.deleteTagsRequested, true);
+  assert.equal(inputs.keepNTagged, 0);
+  assert.deepEqual(inputs.deleteTags, []);
 });
