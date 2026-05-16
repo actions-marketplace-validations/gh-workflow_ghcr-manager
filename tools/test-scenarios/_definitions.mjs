@@ -156,6 +156,26 @@ export const scenarios = {
       "delete-ghost-images": "true"
     }
   },
+  "delete-partial-images-real": {
+    id: "delete-partial-images-real",
+    packageSuffix: "scenario--delete-partial-images-real",
+    seedStrategy: "delete-partial-images-real",
+    supportedExecutors: ["ghcr-manager", "ghcr-cleanup-action"],
+    ghcrManagerArgs: ["--delete-partial-images"],
+    dataaxiomInputs: {
+      "delete-partial-images": "true"
+    }
+  },
+  "delete-partial-images-noop": {
+    id: "delete-partial-images-noop",
+    packageSuffix: "scenario--delete-partial-images-noop",
+    seedStrategy: "delete-partial-images-noop",
+    supportedExecutors: ["ghcr-manager", "ghcr-cleanup-action"],
+    ghcrManagerArgs: ["--delete-partial-images"],
+    dataaxiomInputs: {
+      "delete-partial-images": "true"
+    }
+  },
   "delete-orphaned-images-real": {
     id: "delete-orphaned-images-real",
     packageSuffix: "scenario--delete-orphaned-images-real",

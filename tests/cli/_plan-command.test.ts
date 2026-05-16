@@ -25,7 +25,7 @@ async function _withSampleDatabase(run: (databasePath: string) => Promise<void>)
 test("handlePlan requires the delete-untagged selector", async () => {
   await assert.rejects(
     () => handlePlan(["--db", "scan.sqlite", "--owner", "acme", "--package", "example"]),
-    /missing required cleanup selector: --delete-untagged, --delete-tag, --delete-ghost-images, --delete-orphaned-images, --keep-n-tagged, or --keep-n-untagged/
+    /missing required cleanup selector: --delete-untagged, --delete-tag, --delete-ghost-images, --delete-partial-images, --delete-orphaned-images, --keep-n-tagged, or --keep-n-untagged/
   );
 });
 
@@ -43,7 +43,7 @@ test("handlePlan rejects mixed selector families", async () => {
         "--delete-tag",
         "latest"
       ]),
-    /exactly one selector family: --delete-untagged, --delete-tag, --delete-ghost-images, --delete-orphaned-images, --keep-n-tagged, or --keep-n-untagged/
+    /exactly one selector family: --delete-untagged, --delete-tag, --delete-ghost-images, --delete-partial-images, --delete-orphaned-images, --keep-n-tagged, or --keep-n-untagged/
   );
 });
 
@@ -167,6 +167,84 @@ test("handlePlan prints a delete-orphaned-images plan for orphaned sha256 tags",
   assert.deepEqual(
     plan.fullyDeletableRoots.map((root) => root.digest),
     ["sha256:orphaned-signature"]
+  );
+});
+
+test("handlePlan prints a delete-partial-images plan for partial image indexes", async () => {
+  const tempDirectory = mkdtempSync(join(tmpdir(), "ghcr-manager-"));
+  const databasePath = join(tempDirectory, "scan.sqlite");
+  const database = openDatabase(databasePath);
+  const writer = new ScanWriter(database);
+  writer.resetScan("acme", "example", "2026-05-15T00:00:00.000Z");
+  writer.insertPackageVersion({
+    versionId: 201,
+    createdAt: "2026-05-10T00:00:00.000Z",
+    updatedAt: "2026-05-10T00:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 201,
+    digest: "sha256:partial-index",
+    mediaType: "application/vnd.oci.image.index.v1+json",
+    manifestKind: "image_index"
+  });
+  writer.insertTag({
+    tag: "partial",
+    versionId: 201
+  });
+  writer.insertManifestDescriptor({
+    parentDigest: "sha256:partial-index",
+    childDigest: "sha256:present-child",
+    mediaType: "application/vnd.oci.image.manifest.v1+json",
+    platform: { os: "linux", architecture: "amd64" }
+  });
+  writer.insertManifestDescriptor({
+    parentDigest: "sha256:partial-index",
+    childDigest: "sha256:missing-child",
+    mediaType: "application/vnd.oci.image.manifest.v1+json",
+    platform: { os: "linux", architecture: "arm64" }
+  });
+  writer.insertPackageVersion({
+    versionId: 202,
+    createdAt: "2026-05-11T00:00:00.000Z",
+    updatedAt: "2026-05-11T00:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 202,
+    digest: "sha256:present-child",
+    mediaType: "application/vnd.oci.image.manifest.v1+json",
+    manifestKind: "image_manifest"
+  });
+  writer.rebuildManifestReachability();
+  writer.markScanCompleted("2026-05-15T00:00:00.000Z");
+  database.close();
+
+  const originalLog = console.log;
+  const writes: string[] = [];
+  console.log = (message?: unknown) => {
+    writes.push(String(message));
+  };
+
+  try {
+    assert.equal(
+      await handlePlan(["--db", databasePath, "--owner", "acme", "--package", "example", "--delete-partial-images"]),
+      0
+    );
+  } finally {
+    console.log = originalLog;
+    rmSync(tempDirectory, { recursive: true, force: true });
+  }
+
+  const plan = JSON.parse(writes[0] as string) as {
+    plannerInputs: { deletePartialImages?: boolean; deleteTags: string[] };
+    directTargetTags: string[];
+    fullyDeletableRoots: Array<{ digest: string }>;
+  };
+  assert.equal(plan.plannerInputs.deletePartialImages, true);
+  assert.deepEqual(plan.plannerInputs.deleteTags, ["partial"]);
+  assert.deepEqual(plan.directTargetTags, ["partial"]);
+  assert.deepEqual(
+    plan.fullyDeletableRoots.map((root) => root.digest),
+    ["sha256:partial-index"]
   );
 });
 

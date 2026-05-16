@@ -18,6 +18,7 @@ test("resolvePlanCommandInputs parses delete-untagged inputs", () => {
   assert.equal(inputs.packageName, "example");
   assert.equal(inputs.deleteUntagged, true);
   assert.equal(inputs.deleteGhostImages, false);
+  assert.equal(inputs.deletePartialImages, false);
   assert.equal(inputs.deleteOrphanedImages, false);
   assert.equal(inputs.deleteTagsRequested, false);
 });
@@ -73,6 +74,25 @@ test("resolvePlanCommandInputs parses delete-ghost-images as a tagged selector f
   ]);
 
   assert.equal(inputs.deleteGhostImages, true);
+  assert.equal(inputs.deleteTagsRequested, true);
+  assert.equal(inputs.keepNTagged, 0);
+  assert.deepEqual(inputs.deleteTags, []);
+});
+
+test("resolvePlanCommandInputs parses delete-partial-images as a tagged selector family", () => {
+  const inputs = resolvePlanCommandInputs([
+    "--db",
+    "scan.sqlite",
+    "--owner",
+    "acme",
+    "--package",
+    "example",
+    "--delete-partial-images",
+    "--keep-n-tagged",
+    "0"
+  ]);
+
+  assert.equal(inputs.deletePartialImages, true);
   assert.equal(inputs.deleteTagsRequested, true);
   assert.equal(inputs.keepNTagged, 0);
   assert.deepEqual(inputs.deleteTags, []);

@@ -22,6 +22,8 @@ run-name: Test Scenario Scan (${{ inputs.scenario }})
           - delete-tags-keep-n-tagged-overflow
           - delete-ghost-images-real
           - delete-ghost-images-noop
+          - delete-partial-images-real
+          - delete-partial-images-noop
           - delete-orphaned-images-real
           - delete-orphaned-images-noop
           - wildcard-tagged-fully-deletable

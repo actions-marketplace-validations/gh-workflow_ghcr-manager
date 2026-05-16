@@ -22,6 +22,8 @@ run-name: Test Scenario Executor (${{ inputs.scenario }} / ${{ inputs.executor }
           - delete-tags-keep-n-tagged-overflow
           - delete-ghost-images-real
           - delete-ghost-images-noop
+          - delete-partial-images-real
+          - delete-partial-images-noop
           - delete-orphaned-images-real
           - delete-orphaned-images-noop
           - wildcard-tagged-fully-deletable
@@ -199,6 +201,7 @@ jobs:
           keep_n_tagged="$(jq -r '.dataaxiomInputs["keep-n-tagged"] // ""' "$RESOLUTION_PATH")"
           keep_n_untagged="$(jq -r '.dataaxiomInputs["keep-n-untagged"] // ""' "$RESOLUTION_PATH")"
           delete_ghost_images="$(jq -r '.dataaxiomInputs["delete-ghost-images"] // ""' "$RESOLUTION_PATH")"
+          delete_partial_images="$(jq -r '.dataaxiomInputs["delete-partial-images"] // ""' "$RESOLUTION_PATH")"
           delete_orphaned_images="$(jq -r '.dataaxiomInputs["delete-orphaned-images"] // ""' "$RESOLUTION_PATH")"
           use_regex="$(jq -r '.dataaxiomInputs["use-regex"] // ""' "$RESOLUTION_PATH")"
           echo "delete_untagged=$delete_untagged" >> "$GITHUB_OUTPUT"
@@ -207,6 +210,7 @@ jobs:
           echo "keep_n_tagged=$keep_n_tagged" >> "$GITHUB_OUTPUT"
           echo "keep_n_untagged=$keep_n_untagged" >> "$GITHUB_OUTPUT"
           echo "delete_ghost_images=$delete_ghost_images" >> "$GITHUB_OUTPUT"
+          echo "delete_partial_images=$delete_partial_images" >> "$GITHUB_OUTPUT"
           echo "delete_orphaned_images=$delete_orphaned_images" >> "$GITHUB_OUTPUT"
           echo "use_regex=$use_regex" >> "$GITHUB_OUTPUT"
 
@@ -223,6 +227,7 @@ jobs:
           keep-n-tagged: ${{ steps.upstream-inputs.outputs.keep_n_tagged }}
           keep-n-untagged: ${{ steps.upstream-inputs.outputs.keep_n_untagged }}
           delete-ghost-images: ${{ steps.upstream-inputs.outputs.delete_ghost_images }}
+          delete-partial-images: ${{ steps.upstream-inputs.outputs.delete_partial_images }}
           delete-orphaned-images: ${{ steps.upstream-inputs.outputs.delete_orphaned_images }}
           use-regex: ${{ steps.upstream-inputs.outputs.use_regex }}
 

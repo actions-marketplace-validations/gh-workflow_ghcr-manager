@@ -113,6 +113,7 @@ export interface DeletePlan {
   plannerInputs: {
     deleteUntagged: boolean;
     deleteGhostImages?: boolean;
+    deletePartialImages?: boolean;
     deleteOrphanedImages?: boolean;
     deleteTags: string[];
     excludeTags: string[];
@@ -180,6 +181,7 @@ export class PlannerRepository {
       plannerInputs: {
         deleteUntagged: true,
         deleteGhostImages: undefined,
+        deletePartialImages: undefined,
         deleteOrphanedImages: undefined,
         deleteTags: [],
         excludeTags: [],
@@ -216,6 +218,7 @@ export class PlannerRepository {
       plannerInputs: {
         deleteUntagged: false,
         deleteGhostImages: undefined,
+        deletePartialImages: undefined,
         deleteOrphanedImages: undefined,
         deleteTags: [],
         excludeTags: [],
@@ -254,6 +257,7 @@ export class PlannerRepository {
       plannerInputs: {
         deleteUntagged: false,
         deleteGhostImages: undefined,
+        deletePartialImages: undefined,
         deleteOrphanedImages: undefined,
         deleteTags: [],
         excludeTags,
@@ -278,6 +282,7 @@ export class PlannerRepository {
     options?: {
       deleteTagsRequested?: boolean;
       deleteGhostImages?: boolean;
+      deletePartialImages?: boolean;
       deleteOrphanedImages?: boolean;
       keepNTagged?: number;
       olderThan?: string;
@@ -307,6 +312,7 @@ export class PlannerRepository {
       plannerInputs: {
         deleteUntagged: false,
         deleteGhostImages: options?.deleteGhostImages || undefined,
+        deletePartialImages: options?.deletePartialImages || undefined,
         deleteOrphanedImages: options?.deleteOrphanedImages || undefined,
         deleteTags,
         excludeTags,

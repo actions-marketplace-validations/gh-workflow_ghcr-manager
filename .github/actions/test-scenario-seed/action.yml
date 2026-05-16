@@ -374,10 +374,15 @@ runs:
           --tag "$IMAGE_REF:${SCENARIO_ID}--delete-new" \
           "$delete_new_dir"
 
-    - name: Prepare delete-ghost-images contexts
-      if:
-        ${{ inputs.seed_strategy == 'delete-ghost-images-real' || inputs.seed_strategy == 'delete-ghost-images-noop' }}
-      id: ghost-contexts
+    - name: Prepare broken-index scenario contexts
+      if: >-
+        ${{
+          inputs.seed_strategy == 'delete-ghost-images-real' ||
+          inputs.seed_strategy == 'delete-ghost-images-noop' ||
+          inputs.seed_strategy == 'delete-partial-images-real' ||
+          inputs.seed_strategy == 'delete-partial-images-noop'
+        }}
+      id: broken-index-contexts
       shell: bash
       env:
         SCENARIO_ID: ${{ inputs.seed_strategy }}
@@ -395,17 +400,28 @@ runs:
         cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$noop_child_dir/Dockerfile"
         printf '%s\n' "${SCENARIO_ID} noop child" > "$noop_child_dir/payload.txt"
 
+        second_child_dir="$base_dir/second-child"
+        mkdir -p "$second_child_dir"
+        cp "$GITHUB_ACTION_PATH/../../test-scenarios/minimal-image/Dockerfile" "$second_child_dir/Dockerfile"
+        printf '%s\n' "${SCENARIO_ID} second child" > "$second_child_dir/payload.txt"
+
         echo "keep_dir=$keep_dir" >> "$GITHUB_OUTPUT"
         echo "noop_child_dir=$noop_child_dir" >> "$GITHUB_OUTPUT"
+        echo "second_child_dir=$second_child_dir" >> "$GITHUB_OUTPUT"
 
-    - name: Seed delete-ghost-images keep image
-      if:
-        ${{ inputs.seed_strategy == 'delete-ghost-images-real' || inputs.seed_strategy == 'delete-ghost-images-noop' }}
+    - name: Seed broken-index keep image
+      if: >-
+        ${{
+          inputs.seed_strategy == 'delete-ghost-images-real' ||
+          inputs.seed_strategy == 'delete-ghost-images-noop' ||
+          inputs.seed_strategy == 'delete-partial-images-real' ||
+          inputs.seed_strategy == 'delete-partial-images-noop'
+        }}
       shell: bash
       env:
         IMAGE_REF: ${{ inputs.image_ref }}
         SCENARIO_ID: ${{ inputs.seed_strategy }}
-        KEEP_DIR: ${{ steps.ghost-contexts.outputs.keep_dir }}
+        KEEP_DIR: ${{ steps.broken-index-contexts.outputs.keep_dir }}
       run: |
         set -euo pipefail
         docker buildx build \
@@ -415,29 +431,50 @@ runs:
           --tag "$IMAGE_REF:${SCENARIO_ID}--keep" \
           "$KEEP_DIR"
 
-    - name: Build delete-ghost-images noop child
-      if: ${{ inputs.seed_strategy == 'delete-ghost-images-noop' }}
-      id: ghost-noop-child
+    - name: Build broken-index primary child
+      if:
+        ${{ inputs.seed_strategy == 'delete-ghost-images-noop' || inputs.seed_strategy == 'delete-partial-images-real'
+        || inputs.seed_strategy == 'delete-partial-images-noop' }}
+      id: broken-index-primary-child
       uses: ./.github/actions/test-registry-build-image
       with:
-        context: ${{ steps.ghost-contexts.outputs.noop_child_dir }}
-        dockerfile: ${{ steps.ghost-contexts.outputs.noop_child_dir }}/Dockerfile
+        context: ${{ steps.broken-index-contexts.outputs.noop_child_dir }}
+        dockerfile: ${{ steps.broken-index-contexts.outputs.noop_child_dir }}/Dockerfile
         image_ref: ${{ inputs.image_ref }}
-        arch: delete-ghost-images-noop-amd64
+        arch: ${{ inputs.seed_strategy }}-amd64
         platform: linux/amd64
         registry_username: ${{ inputs.registry_username }}
         registry_password: ${{ inputs.registry_password }}
 
-    - name: Publish delete-ghost-images fake index
-      if:
-        ${{ inputs.seed_strategy == 'delete-ghost-images-real' || inputs.seed_strategy == 'delete-ghost-images-noop' }}
+    - name: Build broken-index secondary child
+      if: ${{ inputs.seed_strategy == 'delete-partial-images-noop' }}
+      id: broken-index-secondary-child
+      uses: ./.github/actions/test-registry-build-image
+      with:
+        context: ${{ steps.broken-index-contexts.outputs.second_child_dir }}
+        dockerfile: ${{ steps.broken-index-contexts.outputs.second_child_dir }}/Dockerfile
+        image_ref: ${{ inputs.image_ref }}
+        arch: ${{ inputs.seed_strategy }}-arm64
+        platform: linux/arm64
+        registry_username: ${{ inputs.registry_username }}
+        registry_password: ${{ inputs.registry_password }}
+
+    - name: Publish broken-index fake index
+      if: >-
+        ${{
+          inputs.seed_strategy == 'delete-ghost-images-real' ||
+          inputs.seed_strategy == 'delete-ghost-images-noop' ||
+          inputs.seed_strategy == 'delete-partial-images-real' ||
+          inputs.seed_strategy == 'delete-partial-images-noop'
+        }}
       shell: bash
       env:
         IMAGE_REF: ${{ inputs.image_ref }}
         REGISTRY_USERNAME: ${{ inputs.registry_username }}
         REGISTRY_PASSWORD: ${{ inputs.registry_password }}
         SCENARIO_ID: ${{ inputs.seed_strategy }}
-        NOOP_CHILD_DIGEST: ${{ steps.ghost-noop-child.outputs.digest }}
+        PRIMARY_CHILD_DIGEST: ${{ steps.broken-index-primary-child.outputs.digest }}
+        SECONDARY_CHILD_DIGEST: ${{ steps.broken-index-secondary-child.outputs.digest }}
       run: |
         set -euo pipefail
 
@@ -460,19 +497,35 @@ runs:
         missing_arm64_digest="sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
         if [[ "$SCENARIO_ID" == "delete-ghost-images-noop" ]]; then
-          [[ -n "$NOOP_CHILD_DIGEST" ]] || {
+          [[ -n "$PRIMARY_CHILD_DIGEST" ]] || {
             echo "Missing noop child digest for delete-ghost-images-noop" >&2
             exit 1
           }
-          amd64_digest="$NOOP_CHILD_DIGEST"
+          amd64_digest="$PRIMARY_CHILD_DIGEST"
+          arm64_digest="$missing_arm64_digest"
+        elif [[ "$SCENARIO_ID" == "delete-partial-images-real" ]]; then
+          [[ -n "$PRIMARY_CHILD_DIGEST" ]] || {
+            echo "Missing primary child digest for delete-partial-images-real" >&2
+            exit 1
+          }
+          amd64_digest="$PRIMARY_CHILD_DIGEST"
+          arm64_digest="$missing_arm64_digest"
+        elif [[ "$SCENARIO_ID" == "delete-partial-images-noop" ]]; then
+          [[ -n "$PRIMARY_CHILD_DIGEST" && -n "$SECONDARY_CHILD_DIGEST" ]] || {
+            echo "Missing child digests for delete-partial-images-noop" >&2
+            exit 1
+          }
+          amd64_digest="$PRIMARY_CHILD_DIGEST"
+          arm64_digest="$SECONDARY_CHILD_DIGEST"
         else
           amd64_digest="$missing_amd64_digest"
+          arm64_digest="$missing_arm64_digest"
         fi
 
         index_json_path="$(mktemp)"
         jq -n \
           --arg amd64Digest "$amd64_digest" \
-          --arg arm64Digest "$missing_arm64_digest" \
+          --arg arm64Digest "$arm64_digest" \
           --arg manifestMediaType "$manifest_media_type" \
           '{
             schemaVersion: 2,
@@ -581,7 +634,8 @@ runs:
         && inputs.seed_strategy != 'exclude-tag-protected-root' && inputs.seed_strategy != 'keep-n-tagged-overflow' &&
         inputs.seed_strategy != 'keep-n-untagged-overflow' && inputs.seed_strategy !=
         'delete-tags-keep-n-tagged-overflow' && inputs.seed_strategy != 'delete-ghost-images-real' &&
-        inputs.seed_strategy != 'delete-ghost-images-noop' && inputs.seed_strategy != 'delete-orphaned-images-real' &&
+        inputs.seed_strategy != 'delete-ghost-images-noop' && inputs.seed_strategy != 'delete-partial-images-real' &&
+        inputs.seed_strategy != 'delete-partial-images-noop' && inputs.seed_strategy != 'delete-orphaned-images-real' &&
         inputs.seed_strategy != 'delete-orphaned-images-noop' }}
       shell: bash
       run: |

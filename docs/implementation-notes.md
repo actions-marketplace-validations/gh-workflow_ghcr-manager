@@ -91,7 +91,10 @@ This section is the canonical place for session-to-session continuity.
   inspected without ad hoc SQL.
 - ☑ Design and implement the next upstream-alignment slice: `delete-ghost-images`, keeping the current DB-first planner
   shape.
-- ☐ Run the newly added `delete-ghost-images` live scenarios in GitHub Actions and record the first green matrix that
+- ☑ Record the first green GitHub Actions matrix that includes the `delete-ghost-images` live scenarios.
+- ☑ Design and implement the next upstream-alignment slice: `delete-partial-images`, keeping the current DB-first
+  planner shape and treating it as the strict some-but-not-all-missing sibling to `delete-ghost-images`.
+- ☐ Run the newly added `delete-partial-images` live scenarios in GitHub Actions and record the first green matrix that
   includes them.
 - ☐ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
 - ☑ Add package scopes to the DB schema so one SQLite database can store multiple owner/package scans.
@@ -164,6 +167,9 @@ This section is the canonical place for session-to-session continuity.
     older overflow roots of one owner/package
   - `plan --delete-tag <tag> [--delete-tag <tag> ...] [--exclude-tag <tag> ...] [--keep-n-tagged <count>]` emits a
     dry-run tag delete/untag plan for one owner/package, optionally keeping the newest matched tagged roots
+  - `plan --delete-partial-images [--exclude-tag <tag> ...] [--keep-n-tagged <count>]` resolves tagged multi-arch roots
+    whose child descriptors are only partially present in the latest scan, then emits the normal tagged delete/untag
+    dry-run plan for those concrete tags
   - `plan --delete-orphaned-images [--exclude-tag <tag> ...] [--keep-n-tagged <count>]` resolves orphan-style `sha256-*`
     tags whose implied parent digest is absent from the latest scan, then emits the normal tagged delete/untag dry-run
     plan for those concrete tags
@@ -196,6 +202,8 @@ This section is the canonical place for session-to-session continuity.
     `GHCR_TEST_OWNER`, so private test-org packages remain scannable without a separate ad hoc workflow edit
   - the latest completed matrix baseline passed for all 16 scenarios × 2 executors (32 jobs), including the
     `delete-ghost-images` scenarios
+  - the locally added `delete-partial-images` scenarios are committed in workflow/scenario definitions but still need a
+    fresh live matrix run
   - the committed scenario workflow definitions now cover:
     - `delete-untagged-noop`
     - `delete-untagged-real`
@@ -209,6 +217,8 @@ This section is the canonical place for session-to-session continuity.
     - `delete-tags-keep-n-tagged-overflow`
     - `delete-ghost-images-real`
     - `delete-ghost-images-noop`
+    - `delete-partial-images-real`
+    - `delete-partial-images-noop`
     - `delete-orphaned-images-real`
     - `delete-orphaned-images-noop`
     - `wildcard-tagged-fully-deletable`
@@ -234,6 +244,9 @@ This section is the canonical place for session-to-session continuity.
   - `delete-ghost-images` now resolves concrete tags from the latest scan by selecting tagged `image_index` roots whose
     descriptor children are all absent from the package scan, using current root metadata instead of an in-memory
     reducer
+  - `delete-partial-images` now resolves concrete tags from the latest scan by selecting tagged multi-arch roots whose
+    child descriptors are only partially present; unlike upstream's current reducer, the DB-first planner keeps this
+    selector non-overlapping with `delete-ghost-images`
   - the follow-up optimization rewrites the ghost-tag selector query against base tables for the hot path, keeping the
     same behavior while avoiding stacked `v_missing_digests` + `v_scan_root_manifests` view expansion during planning
   - manifest-kind classification now treats Docker manifest lists

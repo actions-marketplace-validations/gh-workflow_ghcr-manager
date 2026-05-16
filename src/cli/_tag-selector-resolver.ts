@@ -6,6 +6,7 @@ export function resolveTagSelectors(database: Database.Database, inputs: PlanCom
     inputs.deleteTags.length === 0 &&
     inputs.excludeTags.length === 0 &&
     !inputs.deleteGhostImages &&
+    !inputs.deletePartialImages &&
     !inputs.deleteOrphanedImages
   ) {
     return inputs;
@@ -16,9 +17,11 @@ export function resolveTagSelectors(database: Database.Database, inputs: PlanCom
     ...inputs,
     deleteTags: inputs.deleteGhostImages
       ? _listLatestGhostTags(database, inputs.owner, inputs.packageName, inputs.cutoffTimestamp)
-      : inputs.deleteOrphanedImages
-        ? _listLatestOrphanedTags(database, inputs.owner, inputs.packageName, inputs.cutoffTimestamp)
-        : _resolveSelectors(availableTags, inputs.deleteTags, inputs.useRegex),
+      : inputs.deletePartialImages
+        ? _listLatestPartialTags(database, inputs.owner, inputs.packageName, inputs.cutoffTimestamp)
+        : inputs.deleteOrphanedImages
+          ? _listLatestOrphanedTags(database, inputs.owner, inputs.packageName, inputs.cutoffTimestamp)
+          : _resolveSelectors(availableTags, inputs.deleteTags, inputs.useRegex),
     excludeTags: _resolveSelectors(availableTags, inputs.excludeTags, inputs.useRegex)
   };
 }
@@ -58,6 +61,29 @@ function _listLatestGhostTags(
   packageName: string,
   cutoffTimestamp?: string
 ): string[] {
+  return _listLatestBrokenIndexTags(database, owner, packageName, cutoffTimestamp, "all-missing");
+}
+
+function _listLatestPartialTags(
+  database: Database.Database,
+  owner: string,
+  packageName: string,
+  cutoffTimestamp?: string
+): string[] {
+  return _listLatestBrokenIndexTags(database, owner, packageName, cutoffTimestamp, "some-missing");
+}
+
+function _listLatestBrokenIndexTags(
+  database: Database.Database,
+  owner: string,
+  packageName: string,
+  cutoffTimestamp: string | undefined,
+  mode: "all-missing" | "some-missing"
+): string[] {
+  const havingClause =
+    mode === "all-missing"
+      ? "COUNT(*) > 0 AND COUNT(child.digest) = 0"
+      : "COUNT(child.digest) > 0 AND COUNT(child.digest) < COUNT(*)";
   const rows = database
     .prepare(
       `
@@ -100,8 +126,7 @@ function _listLatestGhostTags(
             )
             AND (? IS NULL OR pv.created_at < ?)
           GROUP BY m.scan_id, m.version_id
-          HAVING COUNT(*) > 0
-             AND COUNT(child.digest) = 0
+          HAVING ${havingClause}
         )
         SELECT DISTINCT t.tag
         FROM ghost_roots gr
