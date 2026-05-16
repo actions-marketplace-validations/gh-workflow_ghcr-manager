@@ -92,6 +92,8 @@ This section is the canonical place for session-to-session continuity.
   strict manifest graph tables.
 - ☑ Add a repo-local digest-derived tag relation reporting tool and query note so latest-scan heuristic rows can be
   inspected without ad hoc SQL.
+- ☑ Split live test-org workflow intent between public scenario/fixture packages for easy DB inspection and separate
+  private-registry hardening coverage.
 - ☐ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
 - ☑ Add package scopes to the DB schema so one SQLite database can store multiple owner/package scans.
 - ☑ Add a real GitHub Packages and GHCR ingest adapter beside the fixture loader.
@@ -182,6 +184,8 @@ This section is the canonical place for session-to-session continuity.
   - `test-scenario-executor.yml` clears and reseeds a dedicated package per scenario, runs either `ghcr-manager` or
     `dataaxiom/ghcr-cleanup-action`, then reruns the local action against the shared `db-path` so the action itself can
     upload the final rescan DB artifact
+  - `test-scenario-scan.yml` now clears, reseeds, publicizes, and scans one dedicated scenario package so a fresh DB can
+    be captured without running a cleanup executor
   - test workflows no longer upload DBs directly or upload plan, execution-summary, or scenario helper artifacts; DB
     artifact upload remains solely the composite action's responsibility so the non-public encryption safeguard stays
     centralized
@@ -190,6 +194,12 @@ This section is the canonical place for session-to-session continuity.
   - after the matrix fan-out completes, the matrix workflow now downloads the per-scenario action-owned DB artifacts,
     decrypts them when needed, repacks them into one tarball, re-encrypts that bundle with the same optional passphrase,
     uploads the single bundle artifact, and deletes the intermediate per-scenario DB artifacts from the run
+  - the matrix DB bundle job now runs under `always()` so successful scenario DB artifacts are still collected when one
+    or more matrix legs fail
+  - `manual-run-test.yml` now switches to `GHCR_TEST_PAT` automatically when the requested owner matches
+    `GHCR_TEST_OWNER`, so private test-org packages remain scannable without a separate ad hoc workflow edit
+  - scenario packages plus the seeded `single` and `complex` fixture packages are now made public after publishing so
+    everyday live DB inspection does not require encrypted artifact handling
   - the latest completed matrix baseline passed for all 10 scenarios × 2 executors (20 jobs)
   - the committed scenario workflow definitions now cover:
     - `delete-untagged-noop`

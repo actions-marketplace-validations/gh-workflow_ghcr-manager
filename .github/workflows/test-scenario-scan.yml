@@ -1,0 +1,128 @@
+name: Test Scenario Scan
+run-name: Test Scenario Scan (${{ inputs.scenario }})
+
+"on":
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: Dedicated scenario package to clear, seed, publicize, and scan.
+        required: true
+        default: delete-untagged-noop
+        type: choice
+        options:
+          - delete-untagged-noop
+          - tagged-fully-deletable
+          - untag-only-single-shared-root
+          - untag-only-multiarch-shared-root
+          - blocked-shared-closure
+          - delete-untagged-real
+          - exclude-tag-protected-root
+          - keep-n-tagged-overflow
+          - keep-n-untagged-overflow
+          - delete-tags-keep-n-tagged-overflow
+          - delete-orphaned-images-real
+          - delete-orphaned-images-noop
+          - wildcard-tagged-fully-deletable
+          - regex-untag-only-single-shared-root
+      upload_db_artifact:
+        description: Upload the scan DB artifact from inside the action.
+        required: false
+        default: true
+        type: boolean
+      db_artifact_encryption_passphrase:
+        description: Optional passphrase for encrypting uploaded DB artifacts; still accepted for manual use.
+        required: false
+        default: ""
+        type: string
+      artifact_retention_days:
+        description: Optional artifact retention-days override for action-owned DB uploads.
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+  actions: write
+  id-token: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ghcr-manager__scenario-scan__${{ inputs.scenario }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Require test org configuration
+        shell: bash
+        env:
+          GHCR_TEST_OWNER: ${{ vars.GHCR_TEST_OWNER }}
+          GHCR_TEST_PAT_USERNAME: ${{ vars.GHCR_TEST_PAT_USERNAME }}
+          GHCR_TEST_PAT: ${{ secrets.GHCR_TEST_PAT }}
+        run: |
+          set -euo pipefail
+          [[ -n "$GHCR_TEST_OWNER" ]] || { echo "Missing repo variable GHCR_TEST_OWNER" >&2; exit 1; }
+          [[ -n "$GHCR_TEST_PAT_USERNAME" ]] || { echo "Missing repo variable GHCR_TEST_PAT_USERNAME" >&2; exit 1; }
+          [[ -n "$GHCR_TEST_PAT" ]] || { echo "Missing repo secret GHCR_TEST_PAT" >&2; exit 1; }
+
+      - name: Resolve scenario
+        id: scenario
+        shell: bash
+        env:
+          REPOSITORY_NAME: ${{ github.event.repository.name }}
+          RUNNER_TEMP: ${{ runner.temp }}
+          SCENARIO: ${{ inputs.scenario }}
+          TEST_OWNER: ${{ vars.GHCR_TEST_OWNER }}
+        run: |
+          set -euo pipefail
+          work_dir="$RUNNER_TEMP/ghcr-manager/scenario-scan-${SCENARIO}"
+          mkdir -p "$work_dir"
+          resolution_path="$work_dir/scenario.json"
+          node tools/resolve-test-scenario.mjs "$SCENARIO" "ghcr-manager" "$REPOSITORY_NAME" > "$resolution_path"
+          package_name="$(jq -r '.packageName' "$resolution_path")"
+          db_path="$work_dir/${TEST_OWNER}__${package_name}__scan-history.sqlite"
+          echo "resolution_path=$resolution_path" >> "$GITHUB_OUTPUT"
+          echo "db_path=$db_path" >> "$GITHUB_OUTPUT"
+          echo "package_name=$package_name" >> "$GITHUB_OUTPUT"
+          echo "seed_strategy=$(jq -r '.seedStrategy' "$resolution_path")" >> "$GITHUB_OUTPUT"
+          echo "image_ref=ghcr.io/${TEST_OWNER}/${package_name}" >> "$GITHUB_OUTPUT"
+
+      - name: Clear scenario package
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GHCR_TEST_PAT }}
+          OWNER: ${{ vars.GHCR_TEST_OWNER }}
+          PACKAGE: ${{ steps.scenario.outputs.package_name }}
+        run: |
+          set -euo pipefail
+          node tools/delete-ghcr-package.mjs "$OWNER" "$PACKAGE" "$GITHUB_TOKEN"
+
+      - name: Seed scenario package
+        uses: ./.github/actions/test-scenario-seed
+        with:
+          image_ref: ${{ steps.scenario.outputs.image_ref }}
+          seed_strategy: ${{ steps.scenario.outputs.seed_strategy }}
+          registry_username: ${{ vars.GHCR_TEST_PAT_USERNAME }}
+          registry_password: ${{ secrets.GHCR_TEST_PAT }}
+
+      - name: Make scenario package public
+        uses: ./.github/actions/test-org-set-package-visibility
+        with:
+          owner: ${{ vars.GHCR_TEST_OWNER }}
+          package_name: ${{ steps.scenario.outputs.package_name }}
+          github_token: ${{ secrets.GHCR_TEST_PAT }}
+          visibility: public
+
+      - name: Scan scenario package
+        id: ghcr-manager
+        uses: ./
+        with:
+          github-token: ${{ secrets.GHCR_TEST_PAT }}
+          owner: ${{ vars.GHCR_TEST_OWNER }}
+          package: ${{ steps.scenario.outputs.package_name }}
+          db-path: ${{ steps.scenario.outputs.db_path }}
+          upload-db-artifact: ${{ inputs.upload_db_artifact }}
+          db-artifact-encryption-passphrase: ${{ inputs.db_artifact_encryption_passphrase }}
+          db-artifact-retention-days: ${{ inputs.artifact_retention_days }}

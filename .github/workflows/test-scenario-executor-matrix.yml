@@ -58,7 +58,7 @@ jobs:
       package_name_suffix: ${{ matrix.executor }}
 
   bundle-db-artifacts:
-    if: ${{ inputs.upload_db_artifact }}
+    if: ${{ always() && inputs.upload_db_artifact }}
     needs: execute
     runs-on: ubuntu-latest
     permissions:

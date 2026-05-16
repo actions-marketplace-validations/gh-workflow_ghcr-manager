@@ -11,6 +11,12 @@ Current intended organization:
 
 - `gh-workflow-test`
 
+Visibility intent:
+
+- scenario and seeded fixture packages should normally be made `public` after publishing
+- private-package behavior should be covered by dedicated hardening-focused workflows instead of forcing every live
+  scenario through encrypted DB artifact handling
+
 ## Configuration Names
 
 Use these repository-level configuration names:
@@ -57,6 +63,7 @@ test owner rather than the repository owner.
 Intended behavior:
 
 - publish scenario packages to `ghcr.io/<GHCR_TEST_OWNER>/...`
+- set scenario and seeded fixture package visibility to `public` after publishing
 - delete scenario packages via the org-scoped GitHub Packages API for `GHCR_TEST_OWNER`
 - scan and execute against packages owned by `GHCR_TEST_OWNER`
 
