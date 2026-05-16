@@ -10,6 +10,7 @@ This section is the canonical place for session-to-session continuity.
 
 ### Completed Checkpoints
 
+- ☑ `01116c1` Add delete-ghost-images planner and scenarios.
 - ☑ `57b252a` Keep orphan scenarios from deleting last package tag.
 - ☑ `cdb7121` Add test registry validation workflow.
 - ☑ `ed36f7c` Add delete-untagged planner command.
@@ -234,6 +235,8 @@ This section is the canonical place for session-to-session continuity.
   - `delete-ghost-images` now resolves concrete tags from the latest scan by selecting tagged `image_index` roots whose
     descriptor children are all absent from the package scan, using current root metadata instead of an in-memory
     reducer
+  - the follow-up optimization rewrites the ghost-tag selector query against base tables for the hot path, keeping the
+    same behavior while avoiding stacked `v_missing_digests` + `v_scan_root_manifests` view expansion during planning
 - Current `untag-only` execution strategy:
   - informed by the linked shared ChatGPT discussion on the upstream hack
   - fetch the source manifest by digest from GHCR

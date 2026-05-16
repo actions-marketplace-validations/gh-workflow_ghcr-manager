@@ -61,30 +61,44 @@ function _listLatestGhostTags(
   const rows = database
     .prepare(
       `
-        WITH ghost_roots AS (
+        WITH latest_scan AS (
+          SELECT scan_id
+          FROM v_latest_scan_per_package
+          WHERE owner = ?
+            AND package_name = ?
+          LIMIT 1
+        ),
+        ghost_roots AS (
           SELECT
-            srm.scan_id,
-            srm.root_version_id AS version_id
-          FROM v_scan_root_manifests srm
+            m.scan_id,
+            m.version_id
+          FROM latest_scan ls
+          JOIN manifests m
+            ON m.scan_id = ls.scan_id
           JOIN package_versions pv
-            ON pv.scan_id = srm.scan_id
-           AND pv.version_id = srm.root_version_id
+            ON pv.scan_id = m.scan_id
+           AND pv.version_id = m.version_id
+          JOIN tags root_tags
+            ON root_tags.scan_id = m.scan_id
+           AND root_tags.version_id = m.version_id
           JOIN manifest_descriptors md
-            ON md.scan_id = srm.scan_id
-           AND md.parent_digest = srm.root_digest
-          LEFT JOIN v_missing_digests vmd
-            ON vmd.scan_id = md.scan_id
-           AND vmd.anchor_digest = md.parent_digest
-           AND vmd.missing_digest = md.child_digest
-          WHERE srm.owner = ?
-            AND srm.package_name = ?
-            AND srm.root_manifest_kind = 'image_index'
-            AND srm.is_tagged = 1
-            AND srm.has_ancestor = 0
+            ON md.scan_id = m.scan_id
+           AND md.parent_digest = m.digest
+          LEFT JOIN manifests child
+            ON child.scan_id = md.scan_id
+           AND child.digest = md.child_digest
+          WHERE m.manifest_kind = 'image_index'
+            AND NOT EXISTS (
+              SELECT 1
+              FROM manifest_reachability mr
+              WHERE mr.scan_id = m.scan_id
+                AND mr.descendant_digest = m.digest
+                AND mr.min_distance > 0
+            )
             AND (? IS NULL OR pv.created_at < ?)
-          GROUP BY srm.scan_id, srm.root_version_id
+          GROUP BY m.scan_id, m.version_id
           HAVING COUNT(*) > 0
-             AND COUNT(vmd.missing_digest) = COUNT(*)
+             AND COUNT(child.digest) = 0
         )
         SELECT DISTINCT t.tag
         FROM ghost_roots gr
