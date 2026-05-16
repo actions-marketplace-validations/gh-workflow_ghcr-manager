@@ -385,7 +385,8 @@ export class PlannerRepository {
           selectionMode: root.selectionMode,
           selectionReason: root.reason,
           validationStatus: "untag-only",
-          validationReason: "selected tags do not cover every tag on the root"
+          validationReason:
+            "matched tags cover only part of this root's tag set, so the version is retained and only those tags can be detached"
         };
       }
 
@@ -397,7 +398,8 @@ export class PlannerRepository {
           selectionMode: root.selectionMode,
           selectionReason: root.reason,
           validationStatus: "fully-deletable",
-          validationReason: "root closure does not overlap any retained root"
+          validationReason:
+            "selected tags cover the whole root and its manifest closure does not overlap any retained root"
         };
       }
 
@@ -409,7 +411,7 @@ export class PlannerRepository {
         selectionMode: root.selectionMode,
         selectionReason: root.reason,
         validationStatus: "blocked",
-        validationReason: blockedRoot?.reason ?? "root closure overlaps a retained root",
+        validationReason: _buildBlockedValidationReason(blockedRoot),
         blockingVersionId: blockedRoot?.blockingVersionId,
         blockingDigest: blockedRoot?.blockingDigest,
         overlapDigest: blockedRoot?.overlapDigest,
@@ -425,7 +427,7 @@ export class PlannerRepository {
       const current = protectedRoots.get(key) ?? {
         versionId: blockedRoot.blockingVersionId,
         digest: blockedRoot.blockingDigest,
-        reason: "retained root required by overlapping selected root closures",
+        reason: "retained because selected delete-root closures still need shared manifest members from this root",
         blocks: []
       };
       current.blocks.push({
@@ -1141,3 +1143,11 @@ const _silentPlannerLogger: _PlannerLogger = {
   trace() {},
   debug() {}
 };
+
+function _buildBlockedValidationReason(blockedRoot?: DeletePlanBlockedRoot): string {
+  if (!blockedRoot) {
+    return "root closure overlaps manifest members still required by a retained root";
+  }
+
+  return `blocked because retained root ${blockedRoot.blockingDigest} still requires shared manifest ${blockedRoot.overlapDigest}`;
+}

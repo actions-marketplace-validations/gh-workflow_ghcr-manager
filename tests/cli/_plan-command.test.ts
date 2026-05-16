@@ -441,6 +441,7 @@ test("handlePlan prints a delete-tags plan for the selected package", async () =
       selectionMode: string;
       selectionReason: string;
       validationStatus: string;
+      validationReason: string;
     }>;
     protectedRoots: Array<{ digest: string }>;
     fullyDeletableRoots: Array<{ digest: string }>;
@@ -468,14 +469,17 @@ test("handlePlan prints a delete-tags plan for the selected package", async () =
       digest: decision.digest,
       selectionMode: decision.selectionMode,
       selectionReason: decision.selectionReason,
-      validationStatus: decision.validationStatus
+      validationStatus: decision.validationStatus,
+      validationReason: decision.validationReason
     })),
     [
       {
         digest: "sha256:index-current",
         selectionMode: "delete-root",
         selectionReason: "delete-tags-all-tags-selected",
-        validationStatus: "fully-deletable"
+        validationStatus: "fully-deletable",
+        validationReason:
+          "selected tags cover the whole root and its manifest closure does not overlap any retained root"
       }
     ]
   );

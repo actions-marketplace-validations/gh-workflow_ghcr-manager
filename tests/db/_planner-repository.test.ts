@@ -681,7 +681,8 @@ test("planner repository blocks delete-untagged roots whose closure overlaps ret
       selectionMode: "delete-root",
       selectionReason: "delete-untagged",
       validationStatus: "blocked",
-      validationReason: "overlap-with-retained-root",
+      validationReason:
+        "blocked because retained root sha256:tagged-root still requires shared manifest sha256:shared-child",
       blockingVersionId: 1,
       blockingDigest: "sha256:tagged-root",
       overlapDigest: "sha256:shared-child",
@@ -692,7 +693,7 @@ test("planner repository blocks delete-untagged roots whose closure overlaps ret
     {
       versionId: 1,
       digest: "sha256:tagged-root",
-      reason: "retained root required by overlapping selected root closures",
+      reason: "retained because selected delete-root closures still need shared manifest members from this root",
       blocks: [
         {
           blockedVersionId: 2,
@@ -1033,6 +1034,18 @@ test("planner repository keeps partial tag matches as untag-only roots", () => {
       manifestKind: "image_manifest",
       reason: "delete-tags-partial-tag-match",
       selectionMode: "untag-only"
+    }
+  ]);
+  assert.deepEqual(plan.rootDecisions, [
+    {
+      versionId: 1,
+      digest: "sha256:multi-tag-root",
+      manifestKind: "image_manifest",
+      selectionMode: "untag-only",
+      selectionReason: "delete-tags-partial-tag-match",
+      validationStatus: "untag-only",
+      validationReason:
+        "matched tags cover only part of this root's tag set, so the version is retained and only those tags can be detached"
     }
   ]);
   assert.deepEqual(plan.closureManifests, []);

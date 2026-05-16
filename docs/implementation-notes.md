@@ -122,7 +122,7 @@ This section is the canonical place for session-to-session continuity.
 - ☑ Add automated assertions for seeded test-registry validation runs so fixture drift fails the validation workflow.
 - ☑ Remove the legacy seeded-fixture validation workflow and its helper scripts now that scenario workflows are the
   active live test surface.
-- ☐ Expand planner output so it explains why versions are protected or deletable.
+- ☑ Expand planner output so it explains more clearly why versions are protected or deletable.
 - ☑ Add manifest kind classification so image indexes, image manifests, signatures, and attestations are queryable
   without ad-hoc JSON inspection.
 
@@ -245,6 +245,8 @@ This section is the canonical place for session-to-session continuity.
   - `delete-partial-images` now resolves concrete tags from the latest scan by selecting tagged multi-arch roots whose
     child descriptors are only partially present; unlike upstream's current reducer, the DB-first planner keeps this
     selector non-overlapping with `delete-ghost-images`
+  - planner `rootDecisions` and `protectedRoots` now use more explicit human-facing validation wording so plans explain
+    not just that a root is blocked, fully deletable, or `untag-only`, but why
   - the follow-up optimization rewrites the ghost-tag selector query against base tables for the hot path, keeping the
     same behavior while avoiding stacked `v_missing_digests` + `v_scan_root_manifests` view expansion during planning
   - manifest-kind classification now treats Docker manifest lists
