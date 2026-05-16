@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- The GitHub Action now builds and runs the repo-local CLI directly instead of installing `ghcr-manager` from npm at
+  runtime.
+
 ## [0.0.6] - 2026-04-30
 
 ### Changed

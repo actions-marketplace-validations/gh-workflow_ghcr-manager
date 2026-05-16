@@ -96,7 +96,9 @@ This section is the canonical place for session-to-session continuity.
   planner shape and treating it as the strict some-but-not-all-missing sibling to `delete-ghost-images`.
 - ☑ Run the newly added `delete-partial-images` live scenarios in GitHub Actions and record the first green matrix that
   includes them.
-- ☐ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
+- ☑ Revisit action packaging after the live ingest path and cleanup execution path are both stable.
+- ☐ Add explicit live scenario coverage for Docker manifest-list multi-arch roots now that manifest-kind classification
+  treats them as `image_index`.
 - ☑ Add package scopes to the DB schema so one SQLite database can store multiple owner/package scans.
 - ☑ Add a real GitHub Packages and GHCR ingest adapter beside the fixture loader.
 - ☑ Normalize live package, version, tag, manifest, and edge data into the existing SQLite schema.
@@ -154,7 +156,8 @@ This section is the canonical place for session-to-session continuity.
   - `manifest_edges` remains known-to-known, with both endpoints referencing `manifests(scan_id, digest)`
   - missing referenced digests are derived from descriptor and subject references instead of being represented as
     manifest rows
-- Current action shape: thin composite wrapper that invokes the shared CLI.
+- Current action shape: thin composite wrapper that installs dependencies, builds the repo-local CLI from source, and
+  invokes that shared CLI directly without installing the package from npm at runtime.
 - Current action DB handling:
   - by default the action creates a fresh DB path under runner temp storage
   - the action also supports an optional local `db-path` input so later scans can append to the same SQLite file
@@ -723,3 +726,14 @@ src/
 - [x] Extracted the test-registry architecture image build and smoke test into a local composite action.
 - [x] Kept separate amd64 and arm64 build jobs so each architecture digest remains a deterministic job output for later
       manifest-combination jobs.
+
+### 2026-05-16 (action packaging cleanup)
+
+- [x] Removed the action's runtime dependency on npm package publication.
+- [x] Updated `action.yml` so the composite action now runs `npm ci`, builds the repo-local TypeScript sources, and
+      executes `node dist/cli/index.js` directly.
+- [x] Kept npm publication as a secondary distribution channel for local CLI use instead of the action's execution
+      mechanism.
+- [x] Chosen packaging stance for now:
+  - GitHub Actions consumes repo-owned code from the tagged action revision.
+  - npm publication remains for local/dev CLI usage, not for action bootstrapping.

@@ -28,6 +28,7 @@
     "build": "tsc --project tsconfig.json",
     "coverage": "c8 --src src --reporter=text --reporter=text-summary node --import tsx --test",
     "ghcr-manager": "tsx src/cli/index.ts",
+    "ghcr-manager:dist": "node dist/cli/index.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "npm run check:file-names && npm run check:test-mapping && npm run check:test-scenario-config && npm run typecheck && npm run lint:ts && npm run lint:yaml && npm run lint:markdown && npm run format:check",
