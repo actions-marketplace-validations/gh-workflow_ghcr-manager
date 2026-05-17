@@ -130,11 +130,17 @@ CREATE TABLE IF NOT EXISTS cleanup_root_decisions (
   selection_mode TEXT NOT NULL,
   selection_reason TEXT NOT NULL,
   validation_status TEXT NOT NULL,
+  validation_reason_code TEXT NOT NULL,
   validation_reason TEXT NOT NULL,
   blocking_digest TEXT,
   overlap_digest TEXT,
   PRIMARY KEY(cleanup_run_id, digest),
   CHECK(validation_status IN ('fully-deletable', 'blocked', 'untag-only')),
+  CHECK(validation_reason_code IN (
+    'untag-only-partial-tag-match',
+    'fully-deletable-no-retained-overlap',
+    'blocked-overlap-with-retained-root'
+  )),
   FOREIGN KEY(cleanup_run_id, scan_id) REFERENCES cleanup_runs(cleanup_run_id, scan_id),
   FOREIGN KEY(scan_id, digest) REFERENCES manifests(scan_id, digest),
   FOREIGN KEY(scan_id, blocking_digest) REFERENCES manifests(scan_id, digest),
@@ -155,8 +161,10 @@ CREATE TABLE IF NOT EXISTS cleanup_protected_root_blocks (
   scan_id INTEGER NOT NULL,
   protected_digest TEXT NOT NULL,
   blocked_digest TEXT NOT NULL,
+  block_reason_code TEXT NOT NULL,
   overlap_digest TEXT NOT NULL,
   PRIMARY KEY(cleanup_run_id, protected_digest, blocked_digest, overlap_digest),
+  CHECK(block_reason_code IN ('overlap-with-retained-root')),
   FOREIGN KEY(cleanup_run_id, scan_id) REFERENCES cleanup_runs(cleanup_run_id, scan_id),
   FOREIGN KEY(cleanup_run_id, protected_digest)
     REFERENCES cleanup_protected_roots(cleanup_run_id, digest),

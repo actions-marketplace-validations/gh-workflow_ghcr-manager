@@ -681,6 +681,7 @@ test("planner repository blocks delete-untagged roots whose closure overlaps ret
       selectionMode: "delete-root",
       selectionReason: "delete-untagged",
       validationStatus: "blocked",
+      validationReasonCode: "blocked-overlap-with-retained-root",
       validationReason:
         "blocked because retained root sha256:tagged-root still requires shared manifest sha256:shared-child",
       blockingVersionId: 1,
@@ -697,6 +698,7 @@ test("planner repository blocks delete-untagged roots whose closure overlaps ret
         {
           blockedVersionId: 2,
           blockedDigest: "sha256:untagged-root",
+          blockReasonCode: "overlap-with-retained-root",
           overlapDigest: "sha256:shared-child",
           overlapManifestKind: "image_manifest"
         }
@@ -1043,6 +1045,7 @@ test("planner repository keeps partial tag matches as untag-only roots", () => {
       selectionMode: "untag-only",
       selectionReason: "delete-tags-partial-tag-match",
       validationStatus: "untag-only",
+      validationReasonCode: "untag-only-partial-tag-match",
       validationReason:
         "matched tags cover only part of this root's tag set, so the version is retained and only those tags can be detached"
     }

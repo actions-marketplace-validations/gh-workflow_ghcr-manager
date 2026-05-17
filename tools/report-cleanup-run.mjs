@@ -36,6 +36,7 @@ try {
           selection_mode,
           selection_reason,
           validation_status,
+          validation_reason_code,
           validation_reason,
           blocking_manifest.version_id AS blocking_version_id,
           decision.blocking_digest,
@@ -75,6 +76,7 @@ try {
           protected_manifest.version_id AS protected_version_id,
           blocked_manifest.version_id AS blocked_version_id,
           block.blocked_digest,
+          block.block_reason_code,
           block.overlap_digest
         FROM cleanup_protected_root_blocks block
         JOIN manifests protected_manifest
@@ -97,6 +99,7 @@ try {
       .map((block) => ({
         blockedVersionId: block.blocked_version_id,
         blockedDigest: block.blocked_digest,
+        blockReasonCode: block.block_reason_code,
         overlapDigest: block.overlap_digest
       }))
   }));
@@ -127,6 +130,7 @@ try {
           selectionMode: row.selection_mode,
           selectionReason: row.selection_reason,
           validationStatus: row.validation_status,
+          validationReasonCode: row.validation_reason_code,
           validationReason: row.validation_reason,
           blockingVersionId: row.blocking_version_id ?? undefined,
           blockingDigest: row.blocking_digest ?? undefined,

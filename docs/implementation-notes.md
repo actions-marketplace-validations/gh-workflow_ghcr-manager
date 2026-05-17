@@ -106,7 +106,8 @@ This section is the canonical place for session-to-session continuity.
 - ☑ Add a first repo-local read/query surface for persisted cleanup planner runs.
 - ☑ Add narrow scenario-level cleanup audit assertions for one blocked and one fully deletable live executor case so
   action-owned DB artifacts prove cleanup-run persistence end to end.
-- ☐ Decide whether the next cleanup-audit slice should add stable reason codes or persisted closure members.
+- ☑ Add stable cleanup-audit reason codes for root validation outcomes and protected-root block relations.
+- ☐ Decide whether the next cleanup-audit slice should add persisted closure members.
 - ☑ Add package scopes to the DB schema so one SQLite database can store multiple owner/package scans.
 - ☑ Add a real GitHub Packages and GHCR ingest adapter beside the fixture loader.
 - ☑ Normalize live package, version, tag, manifest, and edge data into the existing SQLite schema.
@@ -180,6 +181,8 @@ This section is the canonical place for session-to-session continuity.
   - the first persisted slice stores planner inputs plus summary counts in `cleanup_runs`
   - root-level planner decisions are stored in `cleanup_root_decisions` as digest-based rows scoped by explicit
     `scan_id`, with digest foreign keys back to `manifests(scan_id, digest)` instead of hidden `package_versions` joins
+  - cleanup audit rows now persist stable code fields beside human-readable prose: `validation_reason_code` on
+    `cleanup_root_decisions` and `block_reason_code` on `cleanup_protected_root_blocks`
   - `cleanup_protected_roots` now stores only the protected digest identity; per-row explanation lives in the normalized
     `cleanup_protected_root_blocks` rows rather than a constant reason string
   - protected-root blocking relations are normalized into `cleanup_protected_root_blocks` as

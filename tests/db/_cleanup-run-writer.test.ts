@@ -79,6 +79,7 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
         selectionMode: "delete-root",
         selectionReason: "delete-tags-exact-tag-match",
         validationStatus: "blocked",
+        validationReasonCode: "blocked-overlap-with-retained-root",
         validationReason: "blocked because retained root sha256:keep-root still requires shared manifest sha256:shared",
         blockingVersionId: 102,
         blockingDigest: "sha256:keep-root",
@@ -93,6 +94,7 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
           {
             blockedVersionId: 101,
             blockedDigest: "sha256:delete-root",
+            blockReasonCode: "overlap-with-retained-root",
             overlapDigest: "sha256:shared"
           }
         ]
@@ -134,7 +136,7 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
   const rootDecision = database
     .prepare(
       `
-        SELECT digest, validation_status, blocking_digest, overlap_digest
+        SELECT digest, validation_status, validation_reason_code, blocking_digest, overlap_digest
         FROM cleanup_root_decisions
         WHERE cleanup_run_id = ?
           AND digest = 'sha256:delete-root'
@@ -143,11 +145,13 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
     .get(cleanupRunId) as {
     digest: string;
     validation_status: string;
+    validation_reason_code: string;
     blocking_digest: string;
     overlap_digest: string;
   };
   assert.equal(rootDecision.digest, "sha256:delete-root");
   assert.equal(rootDecision.validation_status, "blocked");
+  assert.equal(rootDecision.validation_reason_code, "blocked-overlap-with-retained-root");
   assert.equal(rootDecision.blocking_digest, "sha256:keep-root");
   assert.equal(rootDecision.overlap_digest, "sha256:shared");
 
@@ -168,7 +172,7 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
   const protectedRootBlocks = database
     .prepare(
       `
-        SELECT scan_id, protected_digest, blocked_digest, overlap_digest
+        SELECT scan_id, protected_digest, blocked_digest, block_reason_code, overlap_digest
         FROM cleanup_protected_root_blocks
         WHERE cleanup_run_id = ?
           AND protected_digest = 'sha256:keep-root'
@@ -178,6 +182,7 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
     scan_id: number;
     protected_digest: string;
     blocked_digest: string;
+    block_reason_code: string;
     overlap_digest: string;
   }>;
   assert.deepEqual(protectedRootBlocks, [
@@ -185,6 +190,7 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
       scan_id: scanId,
       protected_digest: "sha256:keep-root",
       blocked_digest: "sha256:delete-root",
+      block_reason_code: "overlap-with-retained-root",
       overlap_digest: "sha256:shared"
     }
   ]);
@@ -259,12 +265,22 @@ test("cleanup audit rows must use the same scan as their cleanup run", () => {
               selection_mode,
               selection_reason,
               validation_status,
+              validation_reason_code,
               validation_reason
             )
-            VALUES(?, ?, ?, ?, ?, ?, ?)
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?)
           `
         )
-        .run(cleanupRunId, secondScanId, "sha256:second", "delete-root", "test", "fully-deletable", "test"),
+        .run(
+          cleanupRunId,
+          secondScanId,
+          "sha256:second",
+          "delete-root",
+          "test",
+          "fully-deletable",
+          "fully-deletable-no-retained-overlap",
+          "test"
+        ),
     /FOREIGN KEY constraint failed/
   );
 

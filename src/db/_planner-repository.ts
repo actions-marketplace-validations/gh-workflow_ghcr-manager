@@ -81,6 +81,10 @@ export interface DeletePlanRootDecision {
   selectionMode: string;
   selectionReason: string;
   validationStatus: "fully-deletable" | "blocked" | "untag-only";
+  validationReasonCode:
+    | "untag-only-partial-tag-match"
+    | "fully-deletable-no-retained-overlap"
+    | "blocked-overlap-with-retained-root";
   validationReason: string;
   blockingVersionId?: number;
   blockingDigest?: string;
@@ -94,6 +98,7 @@ export interface DeletePlanProtectedRoot {
   blocks: Array<{
     blockedVersionId: number;
     blockedDigest: string;
+    blockReasonCode: string;
     overlapDigest: string;
     overlapManifestKind?: string;
   }>;
@@ -388,6 +393,7 @@ export class PlannerRepository {
           selectionMode: root.selectionMode,
           selectionReason: root.reason,
           validationStatus: "untag-only",
+          validationReasonCode: "untag-only-partial-tag-match",
           validationReason:
             "matched tags cover only part of this root's tag set, so the version is retained and only those tags can be detached"
         };
@@ -401,6 +407,7 @@ export class PlannerRepository {
           selectionMode: root.selectionMode,
           selectionReason: root.reason,
           validationStatus: "fully-deletable",
+          validationReasonCode: "fully-deletable-no-retained-overlap",
           validationReason:
             "selected tags cover the whole root and its manifest closure does not overlap any retained root"
         };
@@ -414,6 +421,7 @@ export class PlannerRepository {
         selectionMode: root.selectionMode,
         selectionReason: root.reason,
         validationStatus: "blocked",
+        validationReasonCode: "blocked-overlap-with-retained-root",
         validationReason: _buildBlockedValidationReason(blockedRoot),
         blockingVersionId: blockedRoot?.blockingVersionId,
         blockingDigest: blockedRoot?.blockingDigest,
@@ -435,6 +443,7 @@ export class PlannerRepository {
       current.blocks.push({
         blockedVersionId: blockedRoot.blockedVersionId,
         blockedDigest: blockedRoot.blockedDigest,
+        blockReasonCode: blockedRoot.reason,
         overlapDigest: blockedRoot.overlapDigest,
         overlapManifestKind: blockedRoot.overlapManifestKind
       });

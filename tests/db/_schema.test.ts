@@ -192,6 +192,7 @@ test("initializeSchema creates cleanup audit tables", () => {
     )
     .get() as { sql?: string } | undefined;
   assert.match(cleanupRootDecisionsRow?.sql ?? "", /validation_status TEXT NOT NULL/);
+  assert.match(cleanupRootDecisionsRow?.sql ?? "", /validation_reason_code TEXT NOT NULL/);
   assert.match(cleanupRootDecisionsRow?.sql ?? "", /CHECK\(validation_status IN/);
   assert.doesNotMatch(cleanupRootDecisionsRow?.sql ?? "", /manifest_kind/);
   assert.match(cleanupRootDecisionsRow?.sql ?? "", /digest TEXT NOT NULL/);
@@ -221,6 +222,7 @@ test("initializeSchema creates cleanup audit tables", () => {
   assert.match(cleanupProtectedRootBlocksRow?.sql ?? "", /scan_id INTEGER NOT NULL/);
   assert.match(cleanupProtectedRootBlocksRow?.sql ?? "", /protected_digest TEXT NOT NULL/);
   assert.match(cleanupProtectedRootBlocksRow?.sql ?? "", /blocked_digest TEXT NOT NULL/);
+  assert.match(cleanupProtectedRootBlocksRow?.sql ?? "", /block_reason_code TEXT NOT NULL/);
   assert.match(cleanupProtectedRootBlocksRow?.sql ?? "", /overlap_digest TEXT NOT NULL/);
 
   database.close();

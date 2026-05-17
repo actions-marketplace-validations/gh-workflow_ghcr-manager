@@ -22,11 +22,12 @@ export class CleanupRunWriter {
                 selection_mode,
                 selection_reason,
                 validation_status,
+                validation_reason_code,
                 validation_reason,
                 blocking_digest,
                 overlap_digest
               )
-              VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `
           )
           .run(
@@ -36,6 +37,7 @@ export class CleanupRunWriter {
             rootDecision.selectionMode,
             rootDecision.selectionReason,
             rootDecision.validationStatus,
+            rootDecision.validationReasonCode,
             rootDecision.validationReason,
             rootDecision.blockingDigest ?? null,
             rootDecision.overlapDigest ?? null
@@ -65,12 +67,20 @@ export class CleanupRunWriter {
                   scan_id,
                   protected_digest,
                   blocked_digest,
+                  block_reason_code,
                   overlap_digest
                 )
-                VALUES(?, ?, ?, ?, ?)
+                VALUES(?, ?, ?, ?, ?, ?)
               `
             )
-            .run(cleanupRunId, scanId, protectedRoot.digest, block.blockedDigest, block.overlapDigest);
+            .run(
+              cleanupRunId,
+              scanId,
+              protectedRoot.digest,
+              block.blockedDigest,
+              block.blockReasonCode,
+              block.overlapDigest
+            );
         }
       }
 
