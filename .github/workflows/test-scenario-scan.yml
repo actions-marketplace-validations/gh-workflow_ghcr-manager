@@ -16,6 +16,7 @@ run-name: Test Scenario Scan (${{ inputs.scenario }})
           - untag-only-multiarch-shared-root
           - docker-manifest-list-untag-only-shared-root
           - cosign-referrer-kept-multiarch
+          - cosign-referrer-kept-multiarch-index-signature
           - blocked-shared-closure
           - delete-untagged-real
           - exclude-tag-protected-root

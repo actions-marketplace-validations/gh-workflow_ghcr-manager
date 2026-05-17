@@ -301,11 +301,15 @@ runs:
         done
 
     - name: Prepare cosign referrer kept-multiarch contexts
-      if: ${{ inputs.seed_strategy == 'cosign-referrer-kept-multiarch' }}
+      if: >-
+        ${{
+          inputs.seed_strategy == 'cosign-referrer-kept-multiarch' ||
+          inputs.seed_strategy == 'cosign-referrer-kept-multiarch-index-signature'
+        }}
       id: cosign-referrer-contexts
       shell: bash
       env:
-        SCENARIO_ID: cosign-referrer-kept-multiarch
+        SCENARIO_ID: ${{ inputs.seed_strategy }}
       run: |
         set -euo pipefail
         echo "GHCR_MANAGER_SCENARIO_SEED_HANDLED=true" >> "$GITHUB_ENV"
@@ -325,43 +329,55 @@ runs:
         echo "arm64_dir=$arm64_dir" >> "$GITHUB_OUTPUT"
 
     - name: Build cosign referrer amd64 child
-      if: ${{ inputs.seed_strategy == 'cosign-referrer-kept-multiarch' }}
+      if: >-
+        ${{
+          inputs.seed_strategy == 'cosign-referrer-kept-multiarch' ||
+          inputs.seed_strategy == 'cosign-referrer-kept-multiarch-index-signature'
+        }}
       id: cosign-referrer-amd64
       uses: ./.github/actions/test-registry-build-image
       with:
         context: ${{ steps.cosign-referrer-contexts.outputs.amd64_dir }}
         dockerfile: ${{ steps.cosign-referrer-contexts.outputs.amd64_dir }}/Dockerfile
         image_ref: ${{ inputs.image_ref }}
-        arch: cosign-referrer-kept-multiarch-source-amd64
+        arch: ${{ inputs.seed_strategy }}-source-amd64
         platform: linux/amd64
         registry_username: ${{ inputs.registry_username }}
         registry_password: ${{ inputs.registry_password }}
 
     - name: Build cosign referrer arm64 child
-      if: ${{ inputs.seed_strategy == 'cosign-referrer-kept-multiarch' }}
+      if: >-
+        ${{
+          inputs.seed_strategy == 'cosign-referrer-kept-multiarch' ||
+          inputs.seed_strategy == 'cosign-referrer-kept-multiarch-index-signature'
+        }}
       id: cosign-referrer-arm64
       uses: ./.github/actions/test-registry-build-image
       with:
         context: ${{ steps.cosign-referrer-contexts.outputs.arm64_dir }}
         dockerfile: ${{ steps.cosign-referrer-contexts.outputs.arm64_dir }}/Dockerfile
         image_ref: ${{ inputs.image_ref }}
-        arch: cosign-referrer-kept-multiarch-source-arm64
+        arch: ${{ inputs.seed_strategy }}-source-arm64
         platform: linux/arm64
         registry_username: ${{ inputs.registry_username }}
         registry_password: ${{ inputs.registry_password }}
 
     - name: Publish cosign referrer kept multi-arch root
-      if: ${{ inputs.seed_strategy == 'cosign-referrer-kept-multiarch' }}
+      if: >-
+        ${{
+          inputs.seed_strategy == 'cosign-referrer-kept-multiarch' ||
+          inputs.seed_strategy == 'cosign-referrer-kept-multiarch-index-signature'
+        }}
       uses: gh-workflow/multiarch-image-publish@c5eac5dd8f7ed6b39fffc6e2c2242966b4917260 # 0.2.1
       with:
         image_ref: ${{ inputs.image_ref }}
         tags: |
-          cosign-referrer-kept-multiarch--keep-me
+          ${{ inputs.seed_strategy }}--keep-me
         platform_digests: |
           linux/amd64=${{ steps.cosign-referrer-amd64.outputs.digest }}
           linux/arm64=${{ steps.cosign-referrer-arm64.outputs.digest }}
         annotations: |
-          org.opencontainers.image.version=cosign-referrer-kept-multiarch
+          org.opencontainers.image.version=${{ inputs.seed_strategy }}
         publish_platform_tags: "false"
 
     - name: Seed tagged-fully-deletable

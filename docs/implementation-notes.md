@@ -268,9 +268,10 @@ This section is the canonical place for session-to-session continuity.
     - `delete-partial-images-noop`
     - `delete-orphaned-images-real`
     - `delete-orphaned-images-noop`
-  - there is now one additional manual-only repro scenario, `cosign-referrer-kept-multiarch`, that is available in the
-    reusable scan/executor workflows for both executors but intentionally excluded from the automatic matrix until the
-    upstream `ghcr-cleanup-action` OCI referrer behavior is confirmed
+  - there are now two additional manual-only repro scenarios, `cosign-referrer-kept-multiarch` and
+    `cosign-referrer-kept-multiarch-index-signature`, both available in the reusable scan/executor workflows for both
+    executors but intentionally excluded from the automatic matrix until the upstream `ghcr-cleanup-action` OCI referrer
+    behavior is confirmed
     - `wildcard-tagged-fully-deletable`
     - `regex-untag-only-single-shared-root`
   - the selector-pattern, orphan, ghost, partial, and regex scenarios now pass in GitHub Actions for both executors

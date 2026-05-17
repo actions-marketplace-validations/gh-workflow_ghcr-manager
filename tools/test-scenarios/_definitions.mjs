@@ -120,6 +120,38 @@ export const scenarios = {
       }
     ]
   },
+  "cosign-referrer-kept-multiarch-index-signature": {
+    id: "cosign-referrer-kept-multiarch-index-signature",
+    packageSuffix: "scenario--cosign-referrer-kept-multiarch-index-signature",
+    seedStrategy: "cosign-referrer-kept-multiarch-index-signature",
+    supportedExecutors: ["ghcr-manager", "ghcr-cleanup-action"],
+    includeInMatrix: false,
+    ghcrManagerArgs: ["--delete-untagged"],
+    dataaxiomInputs: {
+      "delete-untagged": "true"
+    },
+    tagNames: {
+      keepTag: "keep-me"
+    },
+    scanAssertions: [
+      {
+        tagNameKey: "keepTag",
+        expectedManifestKind: "image_index",
+        expectedManifestMediaType: "application/vnd.oci.image.index.v1+json",
+        requireRoot: true
+      }
+    ],
+    signatureSubjectAssertions: [
+      {
+        tagNameKey: "keepTag",
+        requiredArtifactType: "application/vnd.dev.sigstore.bundle.v0.3+json",
+        requiredSubjectManifestKind: "image_index",
+        requireUntaggedRoots: true,
+        minDistinctSubjectCount: 1,
+        minSignatureRootCount: 1
+      }
+    ]
+  },
   "blocked-shared-closure": {
     id: "blocked-shared-closure",
     packageSuffix: "scenario--blocked-shared-closure",
