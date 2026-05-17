@@ -101,6 +101,10 @@ This section is the canonical place for session-to-session continuity.
   treats them as `image_index`.
 - ☐ Run the expanded scenario matrix in GitHub Actions and record the first green baseline that includes the Docker
   manifest-list shared-root scenario.
+- ☑ Persist cleanup planner runs in SQLite for both `cleanup --dry-run` and live `cleanup`, starting with the run
+  header, root decisions, and protected roots.
+- ☐ Decide whether the next cleanup-audit slice should add stable reason codes, persisted closure members, or a first
+  read/query surface.
 - ☑ Add package scopes to the DB schema so one SQLite database can store multiple owner/package scans.
 - ☑ Add a real GitHub Packages and GHCR ingest adapter beside the fixture loader.
 - ☑ Normalize live package, version, tag, manifest, and edge data into the existing SQLite schema.
@@ -168,6 +172,14 @@ This section is the canonical place for session-to-session continuity.
   - `command: scan` always uploads the resulting DB artifact
   - `command: cleanup` always runs an implicit pre-scan and optionally uploads the resulting DB
   - live `cleanup` only runs the second post-mutation scan when the caller opts into `scan-after-cleanup`
+- Current cleanup audit persistence:
+  - every CLI `cleanup` invocation now stores one `cleanup_runs` row linked to the exact latest completed scan used by
+    the planner
+  - the first persisted slice stores planner inputs plus summary counts in `cleanup_runs`
+  - root-level planner decisions are stored in `cleanup_root_decisions`
+  - protected-root explanations are stored in `cleanup_protected_roots`, with the nested blocking details kept as
+    `blocks_json` for now
+  - this first slice intentionally does not persist `closureManifests` or per-manifest execution effects yet
 - Current CLI shape:
   - `scan` imports live GitHub Packages + GHCR state into SQLite
   - `cleanup --dry-run ...` emits the dry-run delete plan for the latest completed scan of one owner/package

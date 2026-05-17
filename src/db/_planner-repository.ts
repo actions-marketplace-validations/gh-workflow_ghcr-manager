@@ -154,6 +154,10 @@ export class PlannerRepository {
     return this.getDeleteUntaggedPlanWithCutoff(owner, packageName);
   }
 
+  getLatestCompletedScanId(owner: string, packageName: string): number {
+    return this.#getLatestCompletedScan(owner, packageName).scan_id;
+  }
+
   getKeepNUntaggedPlan(owner: string, packageName: string, keepCount: number): DeletePlan {
     return this.getKeepNUntaggedPlanWithCutoff(owner, packageName, keepCount);
   }

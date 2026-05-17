@@ -1,4 +1,4 @@
-import { openDatabase, PlannerRepository } from "../db/index.js";
+import { CleanupRunWriter, openDatabase, PlannerRepository } from "../db/index.js";
 import { executeDeletePlan } from "../execute/index.js";
 import { hasFlag, resolveGitHubToken, resolveLogLevel } from "./_args.js";
 import { createLogger } from "./_logger.js";
@@ -13,8 +13,13 @@ export async function handleCleanup(args: string[]): Promise<number> {
   const database = openDatabase(inputs.databasePath);
   try {
     const repository = new PlannerRepository(database, logger);
+    const cleanupRunWriter = new CleanupRunWriter(database);
     logger.debug(`Starting cleanup for ${inputs.owner}/${inputs.packageName}`);
     const plan = loadDeletePlan(repository, resolveTagSelectors(database, inputs));
+    cleanupRunWriter.persistCleanupRun(repository.getLatestCompletedScanId(inputs.owner, inputs.packageName), plan, {
+      dryRun,
+      cleanupStartedAt: new Date().toISOString()
+    });
     if (dryRun) {
       logger.debug(`Completed dry-run cleanup for ${inputs.owner}/${inputs.packageName}`);
       console.log(JSON.stringify(plan, null, 2));

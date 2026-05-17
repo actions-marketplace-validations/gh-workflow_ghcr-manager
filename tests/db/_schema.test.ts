@@ -164,3 +164,48 @@ test("initializeSchema creates v_scan_root_manifests with distance-based ancesto
 
   database.close();
 });
+
+test("initializeSchema creates cleanup audit tables", () => {
+  const database = new Database(":memory:");
+  initializeSchema(database);
+
+  const cleanupRunsRow = database
+    .prepare(
+      `
+        SELECT sql
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'cleanup_runs'
+      `
+    )
+    .get() as { sql?: string } | undefined;
+  assert.match(cleanupRunsRow?.sql ?? "", /dry_run INTEGER NOT NULL/);
+  assert.match(cleanupRunsRow?.sql ?? "", /planner_inputs_json TEXT NOT NULL/);
+  assert.match(cleanupRunsRow?.sql ?? "", /UNIQUE\(cleanup_run_id, scan_id\)/);
+
+  const cleanupRootDecisionsRow = database
+    .prepare(
+      `
+        SELECT sql
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'cleanup_root_decisions'
+      `
+    )
+    .get() as { sql?: string } | undefined;
+  assert.match(cleanupRootDecisionsRow?.sql ?? "", /validation_status TEXT NOT NULL/);
+  assert.match(cleanupRootDecisionsRow?.sql ?? "", /CHECK\(validation_status IN/);
+  assert.match(cleanupRootDecisionsRow?.sql ?? "", /UNIQUE\(cleanup_run_id, digest\)/);
+
+  const cleanupProtectedRootsRow = database
+    .prepare(
+      `
+        SELECT sql
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'cleanup_protected_roots'
+      `
+    )
+    .get() as { sql?: string } | undefined;
+  assert.match(cleanupProtectedRootsRow?.sql ?? "", /blocks_json TEXT NOT NULL/);
+  assert.match(cleanupProtectedRootsRow?.sql ?? "", /UNIQUE\(cleanup_run_id, digest\)/);
+
+  database.close();
+});

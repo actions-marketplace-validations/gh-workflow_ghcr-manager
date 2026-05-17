@@ -105,10 +105,63 @@ CREATE TABLE IF NOT EXISTS manifest_reachability (
   CHECK(min_distance >= 0)
 );
 
+CREATE TABLE IF NOT EXISTS cleanup_runs (
+  cleanup_run_id INTEGER PRIMARY KEY,
+  scan_id INTEGER NOT NULL,
+  cleanup_started_at TEXT NOT NULL,
+  dry_run INTEGER NOT NULL,
+  planner_inputs_json TEXT NOT NULL,
+  direct_target_tag_count INTEGER NOT NULL,
+  direct_target_root_count INTEGER NOT NULL,
+  delete_root_candidate_count INTEGER NOT NULL,
+  untag_only_root_count INTEGER NOT NULL,
+  fully_deletable_root_count INTEGER NOT NULL,
+  blocked_delete_root_count INTEGER NOT NULL,
+  protected_root_count INTEGER NOT NULL,
+  CHECK(dry_run IN (0, 1)),
+  UNIQUE(cleanup_run_id, scan_id),
+  FOREIGN KEY(scan_id) REFERENCES package_scans(scan_id)
+);
+
+CREATE TABLE IF NOT EXISTS cleanup_root_decisions (
+  cleanup_run_id INTEGER NOT NULL,
+  scan_id INTEGER NOT NULL,
+  version_id INTEGER NOT NULL,
+  digest TEXT NOT NULL,
+  manifest_kind TEXT,
+  selection_mode TEXT NOT NULL,
+  selection_reason TEXT NOT NULL,
+  validation_status TEXT NOT NULL,
+  validation_reason TEXT NOT NULL,
+  blocking_version_id INTEGER,
+  blocking_digest TEXT,
+  overlap_digest TEXT,
+  overlap_manifest_kind TEXT,
+  PRIMARY KEY(cleanup_run_id, version_id),
+  UNIQUE(cleanup_run_id, digest),
+  CHECK(validation_status IN ('fully-deletable', 'blocked', 'untag-only')),
+  FOREIGN KEY(cleanup_run_id, scan_id) REFERENCES cleanup_runs(cleanup_run_id, scan_id),
+  FOREIGN KEY(scan_id, version_id) REFERENCES package_versions(scan_id, version_id)
+);
+
+CREATE TABLE IF NOT EXISTS cleanup_protected_roots (
+  cleanup_run_id INTEGER NOT NULL,
+  scan_id INTEGER NOT NULL,
+  version_id INTEGER NOT NULL,
+  digest TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  blocks_json TEXT NOT NULL,
+  PRIMARY KEY(cleanup_run_id, version_id),
+  UNIQUE(cleanup_run_id, digest),
+  FOREIGN KEY(cleanup_run_id, scan_id) REFERENCES cleanup_runs(cleanup_run_id, scan_id),
+  FOREIGN KEY(scan_id, version_id) REFERENCES package_versions(scan_id, version_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_package_versions_scan_created_at ON package_versions(scan_id, created_at);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_package_scans_scan_uuid ON package_scans(scan_uuid);
 CREATE INDEX IF NOT EXISTS idx_package_scans_owner_name_started_at
   ON package_scans(owner, package_name, scan_started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_cleanup_runs_scan_id ON cleanup_runs(scan_id);
 CREATE INDEX IF NOT EXISTS idx_tags_scan_version ON tags(scan_id, version_id);
 CREATE INDEX IF NOT EXISTS idx_manifest_descriptors_scan_child ON manifest_descriptors(scan_id, child_digest);
 CREATE INDEX IF NOT EXISTS idx_manifest_edges_scan_parent ON manifest_edges(scan_id, parent_digest);
