@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadPackageMetadata } from "../../../src/ingest/github/_package-metadata-load.js";
+import { loadPackageMetadata } from "../../../src/ingest/github/index.js";
 
 test("package metadata loader returns whether the package is public", async () => {
   const metadata = await loadPackageMetadata(
