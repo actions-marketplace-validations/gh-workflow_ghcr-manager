@@ -103,8 +103,8 @@ This section is the canonical place for session-to-session continuity.
   manifest-list shared-root scenario.
 - ☑ Persist cleanup planner runs in SQLite for both `cleanup --dry-run` and live `cleanup`, starting with the run
   header, root decisions, and protected roots.
-- ☐ Decide whether the next cleanup-audit slice should add stable reason codes, persisted closure members, or a first
-  read/query surface.
+- ☑ Add a first repo-local read/query surface for persisted cleanup planner runs.
+- ☐ Decide whether the next cleanup-audit slice should add stable reason codes or persisted closure members.
 - ☑ Add package scopes to the DB schema so one SQLite database can store multiple owner/package scans.
 - ☑ Add a real GitHub Packages and GHCR ingest adapter beside the fixture loader.
 - ☑ Normalize live package, version, tag, manifest, and edge data into the existing SQLite schema.
@@ -176,9 +176,13 @@ This section is the canonical place for session-to-session continuity.
   - every CLI `cleanup` invocation now stores one `cleanup_runs` row linked to the exact latest completed scan used by
     the planner
   - the first persisted slice stores planner inputs plus summary counts in `cleanup_runs`
-  - root-level planner decisions are stored in `cleanup_root_decisions`
-  - protected-root explanations are stored in `cleanup_protected_roots`, with the nested blocking details kept as
-    `blocks_json` for now
+  - root-level planner decisions are stored in `cleanup_root_decisions` as digest-based rows scoped by explicit
+    `scan_id`, with digest foreign keys back to `manifests(scan_id, digest)` instead of hidden `package_versions` joins
+  - protected-root explanations are stored in `cleanup_protected_roots` with the same digest-plus-scan identity
+  - protected-root blocking relations are normalized into `cleanup_protected_root_blocks` as
+    `protected_digest`/`blocked_digest`/`overlap_digest` rows, again scoped by explicit `scan_id`
+  - `tools/report-cleanup-run.mjs` can now render one persisted cleanup run back into planner-shaped JSON, either by
+    explicit `--cleanup-run-id` or by latest run for `--owner` plus `--package`
   - this first slice intentionally does not persist `closureManifests` or per-manifest execution effects yet
 - Current CLI shape:
   - `scan` imports live GitHub Packages + GHCR state into SQLite

@@ -126,35 +126,44 @@ CREATE TABLE IF NOT EXISTS cleanup_runs (
 CREATE TABLE IF NOT EXISTS cleanup_root_decisions (
   cleanup_run_id INTEGER NOT NULL,
   scan_id INTEGER NOT NULL,
-  version_id INTEGER NOT NULL,
   digest TEXT NOT NULL,
-  manifest_kind TEXT,
   selection_mode TEXT NOT NULL,
   selection_reason TEXT NOT NULL,
   validation_status TEXT NOT NULL,
   validation_reason TEXT NOT NULL,
-  blocking_version_id INTEGER,
   blocking_digest TEXT,
   overlap_digest TEXT,
-  overlap_manifest_kind TEXT,
-  PRIMARY KEY(cleanup_run_id, version_id),
-  UNIQUE(cleanup_run_id, digest),
+  PRIMARY KEY(cleanup_run_id, digest),
   CHECK(validation_status IN ('fully-deletable', 'blocked', 'untag-only')),
   FOREIGN KEY(cleanup_run_id, scan_id) REFERENCES cleanup_runs(cleanup_run_id, scan_id),
-  FOREIGN KEY(scan_id, version_id) REFERENCES package_versions(scan_id, version_id)
+  FOREIGN KEY(scan_id, digest) REFERENCES manifests(scan_id, digest),
+  FOREIGN KEY(scan_id, blocking_digest) REFERENCES manifests(scan_id, digest),
+  FOREIGN KEY(scan_id, overlap_digest) REFERENCES manifests(scan_id, digest)
 );
 
 CREATE TABLE IF NOT EXISTS cleanup_protected_roots (
   cleanup_run_id INTEGER NOT NULL,
   scan_id INTEGER NOT NULL,
-  version_id INTEGER NOT NULL,
   digest TEXT NOT NULL,
   reason TEXT NOT NULL,
-  blocks_json TEXT NOT NULL,
-  PRIMARY KEY(cleanup_run_id, version_id),
-  UNIQUE(cleanup_run_id, digest),
+  PRIMARY KEY(cleanup_run_id, digest),
   FOREIGN KEY(cleanup_run_id, scan_id) REFERENCES cleanup_runs(cleanup_run_id, scan_id),
-  FOREIGN KEY(scan_id, version_id) REFERENCES package_versions(scan_id, version_id)
+  FOREIGN KEY(scan_id, digest) REFERENCES manifests(scan_id, digest)
+);
+
+CREATE TABLE IF NOT EXISTS cleanup_protected_root_blocks (
+  cleanup_run_id INTEGER NOT NULL,
+  scan_id INTEGER NOT NULL,
+  protected_digest TEXT NOT NULL,
+  blocked_digest TEXT NOT NULL,
+  overlap_digest TEXT NOT NULL,
+  PRIMARY KEY(cleanup_run_id, protected_digest, blocked_digest, overlap_digest),
+  FOREIGN KEY(cleanup_run_id, scan_id) REFERENCES cleanup_runs(cleanup_run_id, scan_id),
+  FOREIGN KEY(cleanup_run_id, protected_digest)
+    REFERENCES cleanup_protected_roots(cleanup_run_id, digest),
+  FOREIGN KEY(scan_id, protected_digest) REFERENCES manifests(scan_id, digest),
+  FOREIGN KEY(scan_id, blocked_digest) REFERENCES manifests(scan_id, digest),
+  FOREIGN KEY(scan_id, overlap_digest) REFERENCES manifests(scan_id, digest)
 );
 
 CREATE INDEX IF NOT EXISTS idx_package_versions_scan_created_at ON package_versions(scan_id, created_at);
@@ -162,6 +171,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_package_scans_scan_uuid ON package_scans(s
 CREATE INDEX IF NOT EXISTS idx_package_scans_owner_name_started_at
   ON package_scans(owner, package_name, scan_started_at DESC);
 CREATE INDEX IF NOT EXISTS idx_cleanup_runs_scan_id ON cleanup_runs(scan_id);
+CREATE INDEX IF NOT EXISTS idx_cleanup_protected_root_blocks_run_blocked
+  ON cleanup_protected_root_blocks(cleanup_run_id, blocked_digest);
 CREATE INDEX IF NOT EXISTS idx_tags_scan_version ON tags(scan_id, version_id);
 CREATE INDEX IF NOT EXISTS idx_manifest_descriptors_scan_child ON manifest_descriptors(scan_id, child_digest);
 CREATE INDEX IF NOT EXISTS idx_manifest_edges_scan_parent ON manifest_edges(scan_id, parent_digest);

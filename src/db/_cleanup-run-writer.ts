@@ -18,35 +18,27 @@ export class CleanupRunWriter {
               INSERT INTO cleanup_root_decisions(
                 cleanup_run_id,
                 scan_id,
-                version_id,
                 digest,
-                manifest_kind,
                 selection_mode,
                 selection_reason,
                 validation_status,
                 validation_reason,
-                blocking_version_id,
                 blocking_digest,
-                overlap_digest,
-                overlap_manifest_kind
+                overlap_digest
               )
-              VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
             `
           )
           .run(
             cleanupRunId,
             scanId,
-            rootDecision.versionId,
             rootDecision.digest,
-            rootDecision.manifestKind ?? null,
             rootDecision.selectionMode,
             rootDecision.selectionReason,
             rootDecision.validationStatus,
             rootDecision.validationReason,
-            rootDecision.blockingVersionId ?? null,
             rootDecision.blockingDigest ?? null,
-            rootDecision.overlapDigest ?? null,
-            rootDecision.overlapManifestKind ?? null
+            rootDecision.overlapDigest ?? null
           );
       }
 
@@ -57,22 +49,30 @@ export class CleanupRunWriter {
               INSERT INTO cleanup_protected_roots(
                 cleanup_run_id,
                 scan_id,
-                version_id,
                 digest,
-                reason,
-                blocks_json
+                reason
               )
-              VALUES(?, ?, ?, ?, ?, ?)
+              VALUES(?, ?, ?, ?)
             `
           )
-          .run(
-            cleanupRunId,
-            scanId,
-            protectedRoot.versionId,
-            protectedRoot.digest,
-            protectedRoot.reason,
-            JSON.stringify(protectedRoot.blocks)
-          );
+          .run(cleanupRunId, scanId, protectedRoot.digest, protectedRoot.reason);
+
+        for (const block of protectedRoot.blocks) {
+          this.#database
+            .prepare(
+              `
+                INSERT INTO cleanup_protected_root_blocks(
+                  cleanup_run_id,
+                  scan_id,
+                  protected_digest,
+                  blocked_digest,
+                  overlap_digest
+                )
+                VALUES(?, ?, ?, ?, ?)
+              `
+            )
+            .run(cleanupRunId, scanId, protectedRoot.digest, block.blockedDigest, block.overlapDigest);
+        }
       }
 
       return cleanupRunId;

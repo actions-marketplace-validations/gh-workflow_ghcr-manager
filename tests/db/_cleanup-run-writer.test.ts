@@ -14,10 +14,33 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
     createdAt: "2026-05-17T08:00:00.000Z",
     updatedAt: "2026-05-17T08:00:00.000Z"
   });
+  scanWriter.insertManifest({
+    versionId: 101,
+    digest: "sha256:delete-root",
+    mediaType: "application/vnd.oci.image.manifest.v1+json",
+    manifestKind: "image_manifest"
+  });
   scanWriter.insertPackageVersion({
     versionId: 102,
     createdAt: "2026-05-17T08:05:00.000Z",
     updatedAt: "2026-05-17T08:05:00.000Z"
+  });
+  scanWriter.insertManifest({
+    versionId: 102,
+    digest: "sha256:keep-root",
+    mediaType: "application/vnd.oci.image.manifest.v1+json",
+    manifestKind: "image_manifest"
+  });
+  scanWriter.insertPackageVersion({
+    versionId: 103,
+    createdAt: "2026-05-17T08:10:00.000Z",
+    updatedAt: "2026-05-17T08:10:00.000Z"
+  });
+  scanWriter.insertManifest({
+    versionId: 103,
+    digest: "sha256:shared",
+    mediaType: "application/vnd.oci.image.manifest.v1+json",
+    manifestKind: "image_manifest"
   });
   scanWriter.markScanCompleted("2026-05-17T09:00:00.000Z");
   const scanId = scanWriter.getActiveScanId();
@@ -45,7 +68,6 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
       {
         versionId: 101,
         digest: "sha256:delete-root",
-        manifestKind: "image_manifest",
         reason: "delete-tags-exact-tag-match",
         selectionMode: "delete-root"
       }
@@ -54,15 +76,13 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
       {
         versionId: 101,
         digest: "sha256:delete-root",
-        manifestKind: "image_manifest",
         selectionMode: "delete-root",
         selectionReason: "delete-tags-exact-tag-match",
         validationStatus: "blocked",
         validationReason: "blocked because retained root sha256:keep-root still requires shared manifest sha256:shared",
         blockingVersionId: 102,
         blockingDigest: "sha256:keep-root",
-        overlapDigest: "sha256:shared",
-        overlapManifestKind: "image_manifest"
+        overlapDigest: "sha256:shared"
       }
     ],
     protectedRoots: [
@@ -74,8 +94,7 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
           {
             blockedVersionId: 101,
             blockedDigest: "sha256:delete-root",
-            overlapDigest: "sha256:shared",
-            overlapManifestKind: "image_manifest"
+            overlapDigest: "sha256:shared"
           }
         ]
       }
@@ -116,40 +135,62 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
   const rootDecision = database
     .prepare(
       `
-        SELECT digest, validation_status, blocking_version_id, overlap_digest
+        SELECT digest, validation_status, blocking_digest, overlap_digest
         FROM cleanup_root_decisions
         WHERE cleanup_run_id = ?
-          AND version_id = 101
+          AND digest = 'sha256:delete-root'
       `
     )
     .get(cleanupRunId) as {
     digest: string;
     validation_status: string;
-    blocking_version_id: number;
+    blocking_digest: string;
     overlap_digest: string;
   };
   assert.equal(rootDecision.digest, "sha256:delete-root");
   assert.equal(rootDecision.validation_status, "blocked");
-  assert.equal(rootDecision.blocking_version_id, 102);
+  assert.equal(rootDecision.blocking_digest, "sha256:keep-root");
   assert.equal(rootDecision.overlap_digest, "sha256:shared");
 
   const protectedRoot = database
     .prepare(
       `
-        SELECT digest, reason, blocks_json
+        SELECT digest, reason
         FROM cleanup_protected_roots
         WHERE cleanup_run_id = ?
-          AND version_id = 102
+          AND digest = 'sha256:keep-root'
       `
     )
     .get(cleanupRunId) as {
     digest: string;
     reason: string;
-    blocks_json: string;
   };
   assert.equal(protectedRoot.digest, "sha256:keep-root");
   assert.equal(protectedRoot.reason, "retained root still requires shared manifest members");
-  assert.deepEqual(JSON.parse(protectedRoot.blocks_json), plan.protectedRoots[0]?.blocks);
+
+  const protectedRootBlocks = database
+    .prepare(
+      `
+        SELECT scan_id, protected_digest, blocked_digest, overlap_digest
+        FROM cleanup_protected_root_blocks
+        WHERE cleanup_run_id = ?
+          AND protected_digest = 'sha256:keep-root'
+      `
+    )
+    .all(cleanupRunId) as Array<{
+    scan_id: number;
+    protected_digest: string;
+    blocked_digest: string;
+    overlap_digest: string;
+  }>;
+  assert.deepEqual(protectedRootBlocks, [
+    {
+      scan_id: scanId,
+      protected_digest: "sha256:keep-root",
+      blocked_digest: "sha256:delete-root",
+      overlap_digest: "sha256:shared"
+    }
+  ]);
 
   database.close();
 });
@@ -164,6 +205,11 @@ test("cleanup audit rows must use the same scan as their cleanup run", () => {
     createdAt: "2026-05-17T08:00:00.000Z",
     updatedAt: "2026-05-17T08:00:00.000Z"
   });
+  scanWriter.insertManifest({
+    versionId: 101,
+    digest: "sha256:first",
+    mediaType: "application/vnd.oci.image.manifest.v1+json"
+  });
   scanWriter.markScanCompleted("2026-05-17T09:00:00.000Z");
   const firstScanId = scanWriter.getActiveScanId();
 
@@ -172,6 +218,11 @@ test("cleanup audit rows must use the same scan as their cleanup run", () => {
     versionId: 201,
     createdAt: "2026-05-17T09:30:00.000Z",
     updatedAt: "2026-05-17T09:30:00.000Z"
+  });
+  scanWriter.insertManifest({
+    versionId: 201,
+    digest: "sha256:second",
+    mediaType: "application/vnd.oci.image.manifest.v1+json"
   });
   scanWriter.markScanCompleted("2026-05-17T10:00:00.000Z");
   const secondScanId = scanWriter.getActiveScanId();
@@ -207,28 +258,16 @@ test("cleanup audit rows must use the same scan as their cleanup run", () => {
             INSERT INTO cleanup_root_decisions(
               cleanup_run_id,
               scan_id,
-              version_id,
               digest,
-              manifest_kind,
               selection_mode,
               selection_reason,
               validation_status,
               validation_reason
             )
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES(?, ?, ?, ?, ?, ?, ?)
           `
         )
-        .run(
-          cleanupRunId,
-          secondScanId,
-          201,
-          "sha256:wrong-scan",
-          "image_manifest",
-          "delete-root",
-          "test",
-          "fully-deletable",
-          "test"
-        ),
+        .run(cleanupRunId, secondScanId, "sha256:second", "delete-root", "test", "fully-deletable", "test"),
     /FOREIGN KEY constraint failed/
   );
 

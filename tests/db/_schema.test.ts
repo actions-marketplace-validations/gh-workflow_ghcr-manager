@@ -193,7 +193,9 @@ test("initializeSchema creates cleanup audit tables", () => {
     .get() as { sql?: string } | undefined;
   assert.match(cleanupRootDecisionsRow?.sql ?? "", /validation_status TEXT NOT NULL/);
   assert.match(cleanupRootDecisionsRow?.sql ?? "", /CHECK\(validation_status IN/);
-  assert.match(cleanupRootDecisionsRow?.sql ?? "", /UNIQUE\(cleanup_run_id, digest\)/);
+  assert.doesNotMatch(cleanupRootDecisionsRow?.sql ?? "", /manifest_kind/);
+  assert.match(cleanupRootDecisionsRow?.sql ?? "", /digest TEXT NOT NULL/);
+  assert.match(cleanupRootDecisionsRow?.sql ?? "", /blocking_digest TEXT/);
 
   const cleanupProtectedRootsRow = database
     .prepare(
@@ -204,8 +206,21 @@ test("initializeSchema creates cleanup audit tables", () => {
       `
     )
     .get() as { sql?: string } | undefined;
-  assert.match(cleanupProtectedRootsRow?.sql ?? "", /blocks_json TEXT NOT NULL/);
-  assert.match(cleanupProtectedRootsRow?.sql ?? "", /UNIQUE\(cleanup_run_id, digest\)/);
+  assert.match(cleanupProtectedRootsRow?.sql ?? "", /digest TEXT NOT NULL/);
+
+  const cleanupProtectedRootBlocksRow = database
+    .prepare(
+      `
+        SELECT sql
+        FROM sqlite_master
+        WHERE type = 'table' AND name = 'cleanup_protected_root_blocks'
+      `
+    )
+    .get() as { sql?: string } | undefined;
+  assert.match(cleanupProtectedRootBlocksRow?.sql ?? "", /scan_id INTEGER NOT NULL/);
+  assert.match(cleanupProtectedRootBlocksRow?.sql ?? "", /protected_digest TEXT NOT NULL/);
+  assert.match(cleanupProtectedRootBlocksRow?.sql ?? "", /blocked_digest TEXT NOT NULL/);
+  assert.match(cleanupProtectedRootBlocksRow?.sql ?? "", /overlap_digest TEXT NOT NULL/);
 
   database.close();
 });
