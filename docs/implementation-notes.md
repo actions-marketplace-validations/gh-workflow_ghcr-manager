@@ -107,7 +107,9 @@ This section is the canonical place for session-to-session continuity.
 - ☑ Add narrow scenario-level cleanup audit assertions for one blocked and one fully deletable live executor case so
   action-owned DB artifacts prove cleanup-run persistence end to end.
 - ☑ Add stable cleanup-audit reason codes for root validation outcomes and protected-root block relations.
-- ☐ Decide whether the next cleanup-audit slice should add persisted closure members.
+- ☑ Add derived cleanup-audit SQL views for selected-root closure members and blocking overlaps instead of persisting
+  another high-cardinality table.
+- ☐ Decide whether any further cleanup-audit read surface beyond repo-local tools and SQL views is still needed.
 - ☑ Add package scopes to the DB schema so one SQLite database can store multiple owner/package scans.
 - ☑ Add a real GitHub Packages and GHCR ingest adapter beside the fixture loader.
 - ☑ Normalize live package, version, tag, manifest, and edge data into the existing SQLite schema.
@@ -183,6 +185,9 @@ This section is the canonical place for session-to-session continuity.
     `scan_id`, with digest foreign keys back to `manifests(scan_id, digest)` instead of hidden `package_versions` joins
   - cleanup audit rows now persist stable code fields beside human-readable prose: `validation_reason_code` on
     `cleanup_root_decisions` and `block_reason_code` on `cleanup_protected_root_blocks`
+  - cleanup-audit read ergonomics now rely on derived SQL views instead of persisting closure-member rows:
+    `v_cleanup_root_closure_members` materializes selected-root closures from existing graph data, and
+    `v_cleanup_blocking_overlaps` materializes protected/blocking overlap evidence from the persisted audit rows
   - `cleanup_protected_roots` now stores only the protected digest identity; per-row explanation lives in the normalized
     `cleanup_protected_root_blocks` rows rather than a constant reason string
   - protected-root blocking relations are normalized into `cleanup_protected_root_blocks` as

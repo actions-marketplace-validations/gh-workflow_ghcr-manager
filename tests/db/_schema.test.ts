@@ -141,6 +141,30 @@ test("initializeSchema creates SQL views from sql/views", () => {
   assert.match(digestDerivedTagRelationsRow?.sql ?? "", /CREATE VIEW v_digest_derived_tag_relations AS/);
   assert.match(digestDerivedTagRelationsRow?.sql ?? "", /SUBSTR\(t\.tag, 8, 64\)/);
 
+  const cleanupRootClosureMembersRow = database
+    .prepare(
+      `
+        SELECT sql
+        FROM sqlite_master
+        WHERE type = 'view' AND name = 'v_cleanup_root_closure_members'
+      `
+    )
+    .get() as { sql?: string } | undefined;
+  assert.match(cleanupRootClosureMembersRow?.sql ?? "", /CREATE VIEW v_cleanup_root_closure_members AS/);
+  assert.match(cleanupRootClosureMembersRow?.sql ?? "", /validation_reason_code/);
+
+  const cleanupBlockingOverlapsRow = database
+    .prepare(
+      `
+        SELECT sql
+        FROM sqlite_master
+        WHERE type = 'view' AND name = 'v_cleanup_blocking_overlaps'
+      `
+    )
+    .get() as { sql?: string } | undefined;
+  assert.match(cleanupBlockingOverlapsRow?.sql ?? "", /CREATE VIEW v_cleanup_blocking_overlaps AS/);
+  assert.match(cleanupBlockingOverlapsRow?.sql ?? "", /block_reason_code/);
+
   database.close();
 });
 

@@ -42,6 +42,14 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
     mediaType: "application/vnd.oci.image.manifest.v1+json",
     manifestKind: "image_manifest"
   });
+  database
+    .prepare(
+      `
+        INSERT INTO manifest_reachability(scan_id, ancestor_digest, descendant_digest, min_distance)
+        VALUES(?, ?, ?, ?)
+      `
+    )
+    .run(scanWriter.getActiveScanId(), "sha256:delete-root", "sha256:shared", 1);
   scanWriter.markScanCompleted("2026-05-17T09:00:00.000Z");
   const scanId = scanWriter.getActiveScanId();
 
@@ -190,6 +198,69 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
       scan_id: scanId,
       protected_digest: "sha256:keep-root",
       blocked_digest: "sha256:delete-root",
+      block_reason_code: "overlap-with-retained-root",
+      overlap_digest: "sha256:shared"
+    }
+  ]);
+
+  const closureMembers = database
+    .prepare(
+      `
+        SELECT root_digest, member_digest, hops_from_root, member_role, validation_reason_code
+        FROM v_cleanup_root_closure_members
+        WHERE cleanup_run_id = ?
+        ORDER BY hops_from_root, member_digest
+      `
+    )
+    .all(cleanupRunId) as Array<{
+    root_digest: string;
+    member_digest: string;
+    hops_from_root: number;
+    member_role: string;
+    validation_reason_code: string;
+  }>;
+  assert.deepEqual(closureMembers, [
+    {
+      root_digest: "sha256:delete-root",
+      member_digest: "sha256:delete-root",
+      hops_from_root: 0,
+      member_role: "root",
+      validation_reason_code: "blocked-overlap-with-retained-root"
+    },
+    {
+      root_digest: "sha256:delete-root",
+      member_digest: "sha256:shared",
+      hops_from_root: 1,
+      member_role: "descendant",
+      validation_reason_code: "blocked-overlap-with-retained-root"
+    }
+  ]);
+
+  const blockingOverlaps = database
+    .prepare(
+      `
+        SELECT
+          protected_digest,
+          blocked_digest,
+          blocked_validation_reason_code,
+          block_reason_code,
+          overlap_digest
+        FROM v_cleanup_blocking_overlaps
+        WHERE cleanup_run_id = ?
+      `
+    )
+    .all(cleanupRunId) as Array<{
+    protected_digest: string;
+    blocked_digest: string;
+    blocked_validation_reason_code: string;
+    block_reason_code: string;
+    overlap_digest: string;
+  }>;
+  assert.deepEqual(blockingOverlaps, [
+    {
+      protected_digest: "sha256:keep-root",
+      blocked_digest: "sha256:delete-root",
+      blocked_validation_reason_code: "blocked-overlap-with-retained-root",
       block_reason_code: "overlap-with-retained-root",
       overlap_digest: "sha256:shared"
     }
