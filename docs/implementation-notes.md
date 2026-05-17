@@ -160,6 +160,8 @@ This section is the canonical place for session-to-session continuity.
     manifest rows
 - Current action shape: thin composite wrapper that installs dependencies, builds the repo-local CLI from source, and
   invokes that shared CLI directly without installing the package from npm at runtime.
+- Action interface direction:
+  - `command` is explicit and required; the action no longer defaults to `scan` when callers omit it
 - Current action DB handling:
   - by default the action creates a fresh DB path under runner temp storage
   - the action also supports an optional local `db-path` input so later scans can append to the same SQLite file

@@ -84,7 +84,7 @@ jobs:
 
 | Input                               | Description                                                                                                      | Required | Default                        |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------ |
-| `command`                           | Action command: `scan` or `cleanup`                                                                              | No       | `scan`                         |
+| `command`                           | Action command: `scan` or `cleanup`                                                                              | Yes      |                                |
 | `github-token`                      | GitHub token used for GitHub/GHCR API calls                                                                      | Yes      | `${{ github.token }}`          |
 | `owner`                             | GitHub owner of the container package (user or org)                                                              | Yes      |                                |
 | `package`                           | Container package name                                                                                           | Yes      |                                |

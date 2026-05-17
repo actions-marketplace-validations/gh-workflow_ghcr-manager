@@ -61,6 +61,7 @@ jobs:
         id: ghcr-manager
         uses: gh-workflow/ghcr-manager@0.0.6
         with:
+          command: scan
           github-token: ${{ steps.token.outputs.token }}
           owner: ${{ inputs.owner }}
           package: ${{ inputs.package }}

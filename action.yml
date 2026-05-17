@@ -8,8 +8,7 @@ branding:
 inputs:
   command:
     description: Action command to run (`scan` or `cleanup`)
-    required: false
-    default: scan
+    required: true
   github-token:
     description: GitHub token used for GitHub/GHCR API calls
     required: true
