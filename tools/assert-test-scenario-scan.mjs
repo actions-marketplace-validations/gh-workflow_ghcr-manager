@@ -17,7 +17,8 @@ if (!scenario) {
 }
 
 const scanAssertions = scenario.scanAssertions ?? [];
-if (scanAssertions.length === 0) {
+const signatureSubjectAssertions = scenario.signatureSubjectAssertions ?? [];
+if (scanAssertions.length === 0 && signatureSubjectAssertions.length === 0) {
   process.stdout.write(`No scan assertions configured for scenario '${scenarioId}'.\n`);
   process.exit(0);
 }
@@ -93,4 +94,70 @@ for (const scanAssertion of scanAssertions) {
   }
 }
 
-process.stdout.write(`Verified ${scanAssertions.length} scan assertion(s) for scenario '${scenarioId}'.\n`);
+for (const signatureAssertion of signatureSubjectAssertions) {
+  const tag = tagNames[signatureAssertion.tagNameKey];
+  assert.ok(tag, `scenario '${scenarioId}' is missing tag '${signatureAssertion.tagNameKey}' for signature assertions`);
+
+  const keepRoot = database
+    .prepare(
+      `
+        SELECT roots.root_digest
+        FROM v_scan_root_manifests roots
+        JOIN tags t
+          ON t.scan_id = roots.scan_id
+         AND t.version_id = roots.root_version_id
+        WHERE roots.scan_id = ?
+          AND t.tag = ?
+      `
+    )
+    .get(latestScan.scan_id, tag);
+
+  assert.ok(keepRoot, `scan ${latestScan.scan_id} did not contain a root manifest for tag '${tag}'`);
+
+  const rows = database
+    .prepare(
+      `
+        SELECT
+          sig.digest AS signature_digest,
+          sig.subject_digest,
+          subjects.manifest_kind AS subject_manifest_kind,
+          sig_roots.tag_count AS signature_root_tag_count
+        FROM manifests sig
+        JOIN manifests subjects
+          ON subjects.scan_id = sig.scan_id
+         AND subjects.digest = sig.subject_digest
+        JOIN v_scan_root_manifests sig_roots
+          ON sig_roots.scan_id = sig.scan_id
+         AND sig_roots.root_digest = sig.digest
+        JOIN manifest_reachability mr
+          ON mr.scan_id = sig.scan_id
+         AND mr.ancestor_digest = ?
+         AND mr.descendant_digest = sig.subject_digest
+        WHERE sig.scan_id = ?
+          AND sig.artifact_type = ?
+          AND sig.subject_digest IS NOT NULL
+          AND subjects.manifest_kind = ?
+          ${signatureAssertion.requireUntaggedRoots ? "AND sig_roots.tag_count = 0" : ""}
+      `
+    )
+    .all(
+      keepRoot.root_digest,
+      latestScan.scan_id,
+      signatureAssertion.requiredArtifactType,
+      signatureAssertion.requiredSubjectManifestKind
+    );
+
+  const distinctSubjectCount = new Set(rows.map((row) => row.subject_digest)).size;
+  assert.ok(
+    rows.length >= signatureAssertion.minSignatureRootCount,
+    `tag '${tag}' did not retain enough matching signature roots: expected at least ${signatureAssertion.minSignatureRootCount}, found ${rows.length}`
+  );
+  assert.ok(
+    distinctSubjectCount >= signatureAssertion.minDistinctSubjectCount,
+    `tag '${tag}' did not retain enough distinct signature subjects: expected at least ${signatureAssertion.minDistinctSubjectCount}, found ${distinctSubjectCount}`
+  );
+}
+
+process.stdout.write(
+  `Verified ${scanAssertions.length} scan assertion(s) and ${signatureSubjectAssertions.length} signature assertion(s) for scenario '${scenarioId}'.\n`
+);

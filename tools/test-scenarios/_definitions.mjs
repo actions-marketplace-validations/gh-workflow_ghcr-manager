@@ -88,6 +88,38 @@ export const scenarios = {
       }
     ]
   },
+  "cosign-referrer-kept-multiarch": {
+    id: "cosign-referrer-kept-multiarch",
+    packageSuffix: "scenario--cosign-referrer-kept-multiarch",
+    seedStrategy: "cosign-referrer-kept-multiarch",
+    supportedExecutors: ["ghcr-manager", "ghcr-cleanup-action"],
+    includeInMatrix: false,
+    ghcrManagerArgs: ["--delete-untagged"],
+    dataaxiomInputs: {
+      "delete-untagged": "true"
+    },
+    tagNames: {
+      keepTag: "keep-me"
+    },
+    scanAssertions: [
+      {
+        tagNameKey: "keepTag",
+        expectedManifestKind: "image_index",
+        expectedManifestMediaType: "application/vnd.oci.image.index.v1+json",
+        requireRoot: true
+      }
+    ],
+    signatureSubjectAssertions: [
+      {
+        tagNameKey: "keepTag",
+        requiredArtifactType: "application/vnd.dev.sigstore.bundle.v0.3+json",
+        requiredSubjectManifestKind: "image_manifest",
+        requireUntaggedRoots: true,
+        minDistinctSubjectCount: 2,
+        minSignatureRootCount: 2
+      }
+    ]
+  },
   "blocked-shared-closure": {
     id: "blocked-shared-closure",
     packageSuffix: "scenario--blocked-shared-closure",
@@ -280,8 +312,10 @@ export const scenarios = {
 export const scenarioIds = Object.keys(scenarios);
 
 export const scenarioMatrix = scenarioIds.flatMap((scenarioId) =>
-  scenarios[scenarioId].supportedExecutors.map((executor) => ({
-    scenario: scenarioId,
-    executor
-  }))
+  scenarios[scenarioId].includeInMatrix === false
+    ? []
+    : scenarios[scenarioId].supportedExecutors.map((executor) => ({
+        scenario: scenarioId,
+        executor
+      }))
 );
