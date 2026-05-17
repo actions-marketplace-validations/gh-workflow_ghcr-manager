@@ -1,5 +1,4 @@
 import type Database from "better-sqlite3";
-import { buildInClausePlaceholders } from "./_sql-placeholders.js";
 
 interface _ScanRow {
   scan_id: number;
@@ -7,12 +6,6 @@ interface _ScanRow {
   package_name: string;
   scan_completed_at: string;
   is_public: number;
-}
-
-interface _VersionRow {
-  version_id: number;
-  digest: string;
-  created_at: string;
 }
 
 interface _PackageVersionPayloadRow {
@@ -77,86 +70,6 @@ export class SnapshotRepository {
       .get(owner, packageName) as { has_non_public: 1 } | undefined;
 
     return row !== undefined;
-  }
-
-  getTaggedDigests(scanId: number): Set<string> {
-    return _getDigestSet(
-      this.#database
-        .prepare(
-          `
-            SELECT DISTINCT m.digest
-            FROM tags t
-            JOIN manifests m
-              ON m.scan_id = t.scan_id
-             AND m.version_id = t.version_id
-            WHERE t.scan_id = ?
-          `
-        )
-        .all(scanId) as Array<{ digest: string }>,
-      "digest"
-    );
-  }
-
-  getDigestsForTags(scanId: number, tags: string[]): Set<string> {
-    if (tags.length === 0) {
-      return new Set();
-    }
-
-    const placeholders = buildInClausePlaceholders(tags.length);
-    const rows = this.#database
-      .prepare(
-        `
-          SELECT DISTINCT m.digest
-          FROM tags t
-          JOIN manifests m
-            ON m.scan_id = t.scan_id
-           AND m.version_id = t.version_id
-          WHERE t.scan_id = ? AND t.tag IN (${placeholders})
-        `
-      )
-      .all(scanId, ...tags) as Array<{ digest: string }>;
-    return _getDigestSet(rows, "digest");
-  }
-
-  getChildDigests(scanId: number, parentDigests: Iterable<string>): string[] {
-    const digestList = [...parentDigests];
-    if (digestList.length === 0) {
-      return [];
-    }
-
-    const placeholders = buildInClausePlaceholders(digestList.length);
-    const rows = this.#database
-      .prepare(`SELECT child_digest FROM manifest_edges WHERE scan_id = ? AND parent_digest IN (${placeholders})`)
-      .all(scanId, ...digestList) as Array<{ child_digest: string }>;
-    return rows.map((row) => row.child_digest);
-  }
-
-  getVersionsCreatedBefore(scanId: number, cutoffTimestamp: string): Array<{ versionId: number; digest: string }> {
-    const rows = this.#database
-      .prepare(
-        `
-          SELECT pv.version_id, m.digest
-          FROM package_versions pv
-          JOIN manifests m
-            ON m.scan_id = pv.scan_id
-           AND m.version_id = pv.version_id
-          WHERE pv.scan_id = ? AND pv.created_at < ?
-          ORDER BY version_id
-        `
-      )
-      .all(scanId, cutoffTimestamp) as _VersionRow[];
-
-    return rows.map((row) => ({
-      versionId: row.version_id,
-      digest: row.digest
-    }));
-  }
-
-  getTaggedVersionIds(scanId: number): number[] {
-    const rows = this.#database
-      .prepare("SELECT DISTINCT version_id FROM tags WHERE scan_id = ? ORDER BY version_id")
-      .all(scanId) as Array<{ version_id: number }>;
-    return rows.map((row) => row.version_id);
   }
 
   countPackageVersions(scanId: number): number {
@@ -226,10 +139,6 @@ export class SnapshotRepository {
       digest: _parsePackageVersionDigest(row.version_id, row.raw_json)
     }));
   }
-}
-
-function _getDigestSet(rows: Array<Record<string, string>>, key: string): Set<string> {
-  return new Set(rows.map((row) => row[key] as string));
 }
 
 function _count(database: Database.Database, sql: string, field: string, ...params: unknown[]): number {
