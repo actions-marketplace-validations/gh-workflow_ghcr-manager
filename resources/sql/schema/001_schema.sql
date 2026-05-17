@@ -145,7 +145,6 @@ CREATE TABLE IF NOT EXISTS cleanup_protected_roots (
   cleanup_run_id INTEGER NOT NULL,
   scan_id INTEGER NOT NULL,
   digest TEXT NOT NULL,
-  reason TEXT NOT NULL,
   PRIMARY KEY(cleanup_run_id, digest),
   FOREIGN KEY(cleanup_run_id, scan_id) REFERENCES cleanup_runs(cleanup_run_id, scan_id),
   FOREIGN KEY(scan_id, digest) REFERENCES manifests(scan_id, digest)

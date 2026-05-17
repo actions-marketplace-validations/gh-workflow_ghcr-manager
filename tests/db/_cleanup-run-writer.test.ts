@@ -89,7 +89,6 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
       {
         versionId: 102,
         digest: "sha256:keep-root",
-        reason: "retained root still requires shared manifest members",
         blocks: [
           {
             blockedVersionId: 101,
@@ -155,7 +154,7 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
   const protectedRoot = database
     .prepare(
       `
-        SELECT digest, reason
+        SELECT digest
         FROM cleanup_protected_roots
         WHERE cleanup_run_id = ?
           AND digest = 'sha256:keep-root'
@@ -163,10 +162,8 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
     )
     .get(cleanupRunId) as {
     digest: string;
-    reason: string;
   };
   assert.equal(protectedRoot.digest, "sha256:keep-root");
-  assert.equal(protectedRoot.reason, "retained root still requires shared manifest members");
 
   const protectedRootBlocks = database
     .prepare(

@@ -56,7 +56,7 @@ try {
   const protectedRootRows = database
     .prepare(
       `
-        SELECT manifest.version_id, protected.digest, protected.reason
+        SELECT manifest.version_id, protected.digest
         FROM cleanup_protected_roots protected
         JOIN manifests manifest
           ON manifest.scan_id = protected.scan_id
@@ -92,7 +92,6 @@ try {
   const protectedRoots = protectedRootRows.map((row) => ({
     versionId: row.version_id,
     digest: row.digest,
-    reason: row.reason,
     blocks: protectedRootBlocks
       .filter((block) => block.protected_digest === row.digest)
       .map((block) => ({

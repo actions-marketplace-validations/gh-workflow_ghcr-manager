@@ -693,7 +693,6 @@ test("planner repository blocks delete-untagged roots whose closure overlaps ret
     {
       versionId: 1,
       digest: "sha256:tagged-root",
-      reason: "retained because selected delete-root closures still need shared manifest members from this root",
       blocks: [
         {
           blockedVersionId: 2,

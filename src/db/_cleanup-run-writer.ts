@@ -49,13 +49,12 @@ export class CleanupRunWriter {
               INSERT INTO cleanup_protected_roots(
                 cleanup_run_id,
                 scan_id,
-                digest,
-                reason
+                digest
               )
-              VALUES(?, ?, ?, ?)
+              VALUES(?, ?, ?)
             `
           )
-          .run(cleanupRunId, scanId, protectedRoot.digest, protectedRoot.reason);
+          .run(cleanupRunId, scanId, protectedRoot.digest);
 
         for (const block of protectedRoot.blocks) {
           this.#database

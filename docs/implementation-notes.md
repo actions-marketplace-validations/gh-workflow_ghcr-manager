@@ -178,7 +178,8 @@ This section is the canonical place for session-to-session continuity.
   - the first persisted slice stores planner inputs plus summary counts in `cleanup_runs`
   - root-level planner decisions are stored in `cleanup_root_decisions` as digest-based rows scoped by explicit
     `scan_id`, with digest foreign keys back to `manifests(scan_id, digest)` instead of hidden `package_versions` joins
-  - protected-root explanations are stored in `cleanup_protected_roots` with the same digest-plus-scan identity
+  - `cleanup_protected_roots` now stores only the protected digest identity; per-row explanation lives in the normalized
+    `cleanup_protected_root_blocks` rows rather than a constant reason string
   - protected-root blocking relations are normalized into `cleanup_protected_root_blocks` as
     `protected_digest`/`blocked_digest`/`overlap_digest` rows, again scoped by explicit `scan_id`
   - `tools/report-cleanup-run.mjs` can now render one persisted cleanup run back into planner-shaped JSON, either by

@@ -91,7 +91,6 @@ export interface DeletePlanRootDecision {
 export interface DeletePlanProtectedRoot {
   versionId: number;
   digest: string;
-  reason: string;
   blocks: Array<{
     blockedVersionId: number;
     blockedDigest: string;
@@ -431,7 +430,6 @@ export class PlannerRepository {
       const current = protectedRoots.get(key) ?? {
         versionId: blockedRoot.blockingVersionId,
         digest: blockedRoot.blockingDigest,
-        reason: "retained because selected delete-root closures still need shared manifest members from this root",
         blocks: []
       };
       current.blocks.push({
