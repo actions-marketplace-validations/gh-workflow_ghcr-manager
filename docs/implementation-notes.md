@@ -104,6 +104,8 @@ This section is the canonical place for session-to-session continuity.
 - ☑ Persist cleanup planner runs in SQLite for both `cleanup --dry-run` and live `cleanup`, starting with the run
   header, root decisions, and protected roots.
 - ☑ Add a first repo-local read/query surface for persisted cleanup planner runs.
+- ☑ Add narrow scenario-level cleanup audit assertions for one blocked and one fully deletable live executor case so
+  action-owned DB artifacts prove cleanup-run persistence end to end.
 - ☐ Decide whether the next cleanup-audit slice should add stable reason codes or persisted closure members.
 - ☑ Add package scopes to the DB schema so one SQLite database can store multiple owner/package scans.
 - ☑ Add a real GitHub Packages and GHCR ingest adapter beside the fixture loader.
@@ -260,6 +262,8 @@ This section is the canonical place for session-to-session continuity.
   - validation scenarios can now derive plan args from the scanned DB before running the planner
   - the scan and executor workflows now also run repo-local DB assertions for scenarios that declare them, so media-type
     and root-kind expectations can be checked after a live scan instead of relying on workflow success alone
+  - the executor workflow now also runs repo-local cleanup-audit assertions for selected `ghcr-manager` scenarios, so
+    action-owned DB artifacts prove persisted cleanup rows end to end without depending on ad hoc SQL
   - the reusable executor workflow now passes the caller's DB-artifact upload settings through to the `ghcr-manager`
     cleanup action as well as the upstream post-cleanup scan path, so both executor legs emit one action-owned final DB
     artifact when upload is enabled

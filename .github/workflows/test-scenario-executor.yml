@@ -286,3 +286,10 @@ jobs:
         run: |
           set -euo pipefail
           node tools/assert-test-scenario-scan.mjs "${{ inputs.scenario }}" "${{ steps.scenario.outputs.db_path }}"
+
+      - name: Assert cleanup audit persistence
+        if: ${{ inputs.executor == 'ghcr-manager' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/assert-test-scenario-cleanup-audit.mjs "${{ inputs.scenario }}" "${{ steps.scenario.outputs.db_path }}"

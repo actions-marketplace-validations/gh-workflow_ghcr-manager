@@ -20,6 +20,22 @@ export const scenarios = {
     },
     tagNames: {
       deleteTag: "delete-me"
+    },
+    cleanupAuditAssertions: {
+      validationSummary: {
+        directTargetRootCount: 1,
+        fullyDeletableRootCount: 1,
+        blockedDeleteRootCount: 0,
+        protectedRootCount: 0
+      },
+      rootDecisions: [
+        {
+          tagNameKey: "deleteTag",
+          validationStatus: "fully-deletable"
+        }
+      ],
+      protectedTagNameKeys: [],
+      protectedRootBlocks: []
     }
   },
   "untag-only-single-shared-root": {
@@ -84,6 +100,28 @@ export const scenarios = {
     tagNames: {
       deleteTag: "delete-me",
       keepTag: "keep-me"
+    },
+    cleanupAuditAssertions: {
+      validationSummary: {
+        directTargetRootCount: 1,
+        fullyDeletableRootCount: 0,
+        blockedDeleteRootCount: 1,
+        protectedRootCount: 1
+      },
+      rootDecisions: [
+        {
+          tagNameKey: "deleteTag",
+          validationStatus: "blocked",
+          blockingTagNameKey: "keepTag"
+        }
+      ],
+      protectedTagNameKeys: ["keepTag"],
+      protectedRootBlocks: [
+        {
+          protectedTagNameKey: "keepTag",
+          blockedTagNameKey: "deleteTag"
+        }
+      ]
     }
   },
   "delete-untagged-real": {
