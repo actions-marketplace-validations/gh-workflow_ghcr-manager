@@ -1,0 +1,53 @@
+name: "Test: User Owner Scan"
+run-name: Test User Owner Scan
+
+"on":
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Resolve variables
+        shell: bash
+        env:
+          GHCR_TEST_PAT_USERNAME: ${{ vars.GHCR_TEST_PAT_USERNAME }}
+        run: |
+          set -euo pipefail
+          PACKAGE_NAME="${{ github.event.repository.name }}-user-owner-scan--${{ github.run_id }}"
+          PACKAGE_NAME="${PACKAGE_NAME,,}"
+          IMAGE_REF="ghcr.io/${GHCR_TEST_PAT_USERNAME,,}/${PACKAGE_NAME}"
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> "$GITHUB_ENV"
+          echo "IMAGE_REF=$IMAGE_REF" >> "$GITHUB_ENV"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ vars.GHCR_TEST_PAT_USERNAME }}
+          password: ${{ secrets.GHCR_TEST_PAT }}
+
+      - name: Push repro image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull --platform linux/amd64 alpine:3.22
+          docker tag alpine:3.22 "${IMAGE_REF}:latest"
+          docker push "${IMAGE_REF}:latest"
+
+      - name: Scan user-owned package
+        uses: ./
+        with:
+          command: scan
+          github-token: ${{ secrets.GHCR_TEST_PAT }}
+          owner: ${{ vars.GHCR_TEST_PAT_USERNAME }}
+          package: ${{ env.PACKAGE_NAME }}
+          upload-db-artifact: "false"
