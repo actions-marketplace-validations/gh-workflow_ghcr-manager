@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { PlannerRepository, ScanWriter, openDatabase } from "../../src/db/index.js";
-import { importFileScan } from "../helpers/index.js";
+import { PlannerRepository, ScanWriter, openDatabase } from "../../../src/db/index.js";
+import { importFileScan } from "../../helpers/index.js";
 
 test("planner repository returns a delete-untagged plan for top-level untagged roots only", async () => {
   const database = openDatabase(":memory:");

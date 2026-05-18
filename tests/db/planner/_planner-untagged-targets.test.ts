@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { PlannerRepository, ScanWriter, openDatabase } from "../../src/db/index.js";
+import { PlannerRepository, ScanWriter, openDatabase } from "../../../src/db/index.js";
 
-test("planner repository handles wildcard and regex tag selectors", () => {
+test("planner repository resolves untagged direct targets and overflow roots", () => {
   const database = openDatabase(":memory:");
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
@@ -15,11 +15,10 @@ test("planner repository handles wildcard and regex tag selectors", () => {
   });
   writer.insertManifest({
     versionId: 1,
-    digest: "sha256:release-root",
+    digest: "sha256:newer",
     manifestKind: "image_manifest",
     mediaType: "application/vnd.oci.image.manifest.v1+json"
   });
-  writer.insertTag({ tag: "release-1", versionId: 1 });
   writer.insertPackageVersion({
     versionId: 2,
     createdAt: "2026-05-02T10:00:00.000Z",
@@ -27,20 +26,23 @@ test("planner repository handles wildcard and regex tag selectors", () => {
   });
   writer.insertManifest({
     versionId: 2,
-    digest: "sha256:regex-root",
+    digest: "sha256:older",
     manifestKind: "image_manifest",
     mediaType: "application/vnd.oci.image.manifest.v1+json"
   });
-  writer.insertTag({ tag: "v12", versionId: 2 });
   writer.markScanCompleted("2026-05-14T10:00:00.000Z");
 
-  const wildcardPlan = repository.getDeleteTagsPlan("acme", "pkg", ["release-*"], []);
-  const regexPlan = repository.getDeleteTagsPlanWithCutoff("acme", "pkg", ["^v[0-9]+$"], [], {
-    useRegex: true
-  });
+  const deletePlan = repository.getDeleteUntaggedPlan("acme", "pkg");
+  const keepPlan = repository.getKeepNUntaggedPlan("acme", "pkg", 1);
 
-  assert.deepEqual(wildcardPlan.directTargetTags, ["release-1"]);
-  assert.deepEqual(regexPlan.directTargetTags, ["v12"]);
+  assert.deepEqual(
+    deletePlan.directTargetRoots.map((root) => root.digest),
+    ["sha256:newer", "sha256:older"]
+  );
+  assert.deepEqual(
+    keepPlan.directTargetRoots.map((root) => root.digest),
+    ["sha256:older"]
+  );
 
   database.close();
 });

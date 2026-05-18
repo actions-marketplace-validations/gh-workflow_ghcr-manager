@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { PlannerRepository, ScanWriter, openDatabase } from "../../src/db/index.js";
+import { PlannerRepository, ScanWriter, openDatabase } from "../../../src/db/index.js";
 
 test("planner repository derives closure members and retained-root blocks", () => {
   const database = openDatabase(":memory:");

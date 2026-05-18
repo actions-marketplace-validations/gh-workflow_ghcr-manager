@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { PlannerRepository, ScanWriter, openDatabase } from "../../src/db/index.js";
+import { PlannerRepository, ScanWriter, openDatabase } from "../../../src/db/index.js";
 
-test("planner repository resolves tagged root targets through the dedicated tagged-root helper", () => {
+test("planner repository resolves tagged direct targets and keep overflow roots", () => {
   const database = openDatabase(":memory:");
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
@@ -15,7 +15,7 @@ test("planner repository resolves tagged root targets through the dedicated tagg
   });
   writer.insertManifest({
     versionId: 1,
-    digest: "sha256:newer-root",
+    digest: "sha256:latest-root",
     manifestKind: "image_manifest",
     mediaType: "application/vnd.oci.image.manifest.v1+json"
   });
@@ -27,24 +27,22 @@ test("planner repository resolves tagged root targets through the dedicated tagg
   });
   writer.insertManifest({
     versionId: 2,
-    digest: "sha256:older-root",
+    digest: "sha256:release-root",
     manifestKind: "image_manifest",
     mediaType: "application/vnd.oci.image.manifest.v1+json"
   });
-  writer.insertTag({ tag: "old", versionId: 2 });
+  writer.insertTag({ tag: "release-1", versionId: 2 });
+  writer.insertTag({ tag: "stable", versionId: 2 });
   writer.markScanCompleted("2026-05-14T10:00:00.000Z");
 
-  const plan = repository.getKeepNTaggedPlan("acme", "pkg", 1);
+  const deletePlan = repository.getDeleteTagsPlan("acme", "pkg", ["release-*"], []);
+  const keepPlan = repository.getKeepNTaggedPlan("acme", "pkg", 1);
 
-  assert.deepEqual(plan.directTargetRoots, [
-    {
-      versionId: 2,
-      digest: "sha256:older-root",
-      manifestKind: "image_manifest",
-      reason: "keep-n-tagged-overflow",
-      selectionMode: "delete-root"
-    }
-  ]);
+  assert.equal(deletePlan.directTargetRoots[0]?.selectionMode, "untag-only");
+  assert.deepEqual(
+    keepPlan.directTargetRoots.map((root) => root.digest),
+    ["sha256:release-root"]
+  );
 
   database.close();
 });

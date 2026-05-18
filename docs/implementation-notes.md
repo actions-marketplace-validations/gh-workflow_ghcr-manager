@@ -10,6 +10,7 @@ This section is the canonical place for session-to-session continuity.
 
 ### Completed Checkpoints
 
+- ☑ `ef2e25c` Split planner repository internals.
 - ☑ `bf29cfd` Refine cleanup selector planning.
 - ☑ `01116c1` Add delete-ghost-images planner and scenarios.
 - ☑ `57b252a` Keep orphan scenarios from deleting last package tag.
@@ -210,13 +211,15 @@ This section is the canonical place for session-to-session continuity.
     explicit `--cleanup-run-id` or by latest run for `--owner` plus `--package`
   - this first slice intentionally does not persist `closureManifests` or per-manifest execution effects yet
 - Planner repository structure:
-  - `src/db/_planner-repository.ts` now coordinates smaller internal helpers instead of owning all SQL and mapping code
+  - `src/db/planner/_planner-repository.ts` now coordinates smaller internal helpers instead of owning all SQL and
+    mapping code
   - row-shape mapping, selector handling, direct-target selection, and closure/blocking analysis each live in their own
-    internal planner modules under `src/db/`
-  - tagged planner internals are now split again: `_planner-direct-target-tags.ts` handles direct tag enumeration, and
-    `_planner-tagged-root-targets.ts` handles tagged root selection / keep-overflow logic
-  - the public `src/db/index.ts` surface is unchanged; mirror tests for the new files stay public-API based to respect
-    the repo's cross-folder import rule
+    internal planner modules under `src/db/planner/`
+  - tagged planner internals are now split again: `src/db/planner/_planner-direct-target-tags.ts` handles direct tag
+    enumeration, and `src/db/planner/_planner-tagged-root-targets.ts` handles tagged root selection / keep-overflow
+    logic
+  - the public `src/db/index.ts` surface is still the entrypoint; it now re-exports planner API from
+    `src/db/planner/index.ts`, and mirror tests live under `tests/db/planner/`
 - Current CLI shape:
   - `scan` imports live GitHub Packages + GHCR state into SQLite
   - `cleanup --dry-run ...` emits the dry-run delete plan for the latest completed scan of one owner/package

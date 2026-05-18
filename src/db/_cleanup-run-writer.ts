@@ -1,5 +1,5 @@
 import type Database from "better-sqlite3";
-import type { DeletePlan } from "./_planner-repository.js";
+import type { DeletePlan } from "./planner/index.js";
 
 export class CleanupRunWriter {
   readonly #database: Database.Database;
