@@ -302,6 +302,9 @@ This section is the canonical place for session-to-session continuity.
     `merge-run-artifacts/action.yml`, which downloads matching current-run DB artifacts, decrypts them when needed,
     merges them into one SQLite file, lets the nested `db-merge` sub-action enforce optional encryption plus final
     artifact upload, and deletes the intermediate per-scenario DB artifacts from the run
+  - `.github/workflows/test_upstream-cross-org-bug.yml` is a deliberately minimal upstream-action repro that pushes one
+    unique tagged image into the test org and then runs `dataaxiom/ghcr-cleanup-action` against it without a
+    `repository` input, so the current cross-orgsitory lookup bug can be reproduced without the larger scenario harness
   - the `merge-run-artifacts` sub-action uses `tools/download-run-artifacts.sh`, `tools/decrypt-db-artifacts.sh`, and
     `tools/delete-run-artifacts.sh` internally; the helpers rediscover matching current-run artifacts by the same
     name-pattern filter instead of passing artifact ID lists through temporary files
