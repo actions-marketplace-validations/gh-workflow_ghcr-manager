@@ -286,9 +286,10 @@ This section is the canonical place for session-to-session continuity.
     decrypts them when needed, merges them into one SQLite file via the dedicated `db-merge` sub-action, lets that
     sub-action enforce optional encryption plus final artifact upload, and deletes the intermediate per-scenario DB
     artifacts from the run
-  - the matrix workflow's artifact download/decrypt logic now lives in `tools/download-run-db-artifacts.sh`, driven by
-    the same GitHub Actions environment variables as the previous inline bash step so other workflows can reuse it
-    without copying shell bodies
+  - the matrix workflow now calls `tools/download-run-artifacts.sh`, `tools/decrypt-db-artifacts.sh`, and
+    `tools/delete-run-artifacts.sh` in separate steps; the helpers rediscover matching current-run artifacts by the same
+    name-pattern filter instead of passing artifact ID lists through temporary files, and the download/decrypt helpers
+    emit only the next folder path on stdout
   - the matrix DB bundle job now runs under `always()` so successful scenario DB artifacts are still collected when one
     or more matrix legs fail
   - `manual-run-test.yml` now switches to `GHCR_TEST_PAT` automatically when the requested owner matches
