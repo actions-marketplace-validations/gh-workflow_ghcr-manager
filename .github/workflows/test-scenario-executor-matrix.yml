@@ -65,11 +65,13 @@ jobs:
       actions: write
       contents: read
     steps:
-      - name: Bundle scenario DB artifacts
-        id: bundle
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Download scenario DB artifacts
+        id: download
         shell: bash
         env:
-          ARTIFACT_RETENTION_DAYS: ${{ inputs.artifact_retention_days }}
           DB_ARTIFACT_ENCRYPTION_PASSPHRASE: ${{ inputs.db_artifact_encryption_passphrase }}
           GH_TOKEN: ${{ github.token }}
           GITHUB_API_VERSION: "2022-11-28"
@@ -79,10 +81,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          work_dir="$RUNNER_TEMP/ghcr-manager/scenario-matrix-db-bundle"
+          work_dir="$RUNNER_TEMP/ghcr-manager/scenario-matrix-db-merge"
           download_dir="$work_dir/downloaded"
-          bundle_dir="$work_dir/bundle"
-          mkdir -p "$download_dir" "$bundle_dir"
+          source_db_dir="$work_dir/source-dbs"
+          merged_db_path="$work_dir/scenario-matrix.sqlite"
+          mkdir -p "$download_dir" "$source_db_dir"
 
           artifact_list_path="$work_dir/artifacts.tsv"
           gh api \
@@ -126,36 +129,55 @@ jobs:
               output_name="${artifact_name%.enc}"
               openssl enc -d -aes-256-cbc -pbkdf2 \
                 -in "$downloaded_file" \
-                -out "$bundle_dir/$output_name" \
+                -out "$source_db_dir/$output_name" \
                 -pass env:DB_ARTIFACT_ENCRYPTION_PASSPHRASE
             else
-              cp "$downloaded_file" "$bundle_dir/$artifact_name"
+              cp "$downloaded_file" "$source_db_dir/$artifact_name"
             fi
           done < "$artifact_list_path"
 
-          bundle_tar_path="$work_dir/scenario-matrix-dbs.tar"
-          tar -C "$bundle_dir" -cf "$bundle_tar_path" .
+          echo "artifact_list_path=$artifact_list_path" >> "$GITHUB_OUTPUT"
+          echo "merged_db_path=$merged_db_path" >> "$GITHUB_OUTPUT"
+          {
+            echo "source_db_paths<<'EOF'"
+            find "$source_db_dir" -maxdepth 1 -type f -name '*.sqlite' | sort
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
-          final_bundle_path="$bundle_tar_path"
-          final_bundle_name="$(basename "$bundle_tar_path")"
+      - name: Merge scenario DB artifacts
+        id: merge
+        uses: ./db-merge
+        with:
+          db-path: ${{ steps.download.outputs.merged_db_path }}
+          source-db-paths: ${{ steps.download.outputs.source_db_paths }}
+
+      - name: Prepare merged scenario DB artifact
+        id: prepare-upload
+        shell: bash
+        env:
+          DB_ARTIFACT_ENCRYPTION_PASSPHRASE: ${{ inputs.db_artifact_encryption_passphrase }}
+        run: |
+          set -euo pipefail
+
+          final_bundle_path="${{ steps.merge.outputs.db-path }}"
+          final_bundle_name="$(basename "$final_bundle_path")"
           if [[ -n "$DB_ARTIFACT_ENCRYPTION_PASSPHRASE" ]]; then
-            final_bundle_path="${bundle_tar_path}.enc"
+            final_bundle_path="${{ steps.merge.outputs.db-path }}.enc"
             final_bundle_name="$(basename "$final_bundle_path")"
             openssl enc -aes-256-cbc -pbkdf2 -salt \
-              -in "$bundle_tar_path" \
+              -in "${{ steps.merge.outputs.db-path }}" \
               -out "$final_bundle_path" \
               -pass env:DB_ARTIFACT_ENCRYPTION_PASSPHRASE
           fi
 
-          echo "artifact_list_path=$artifact_list_path" >> "$GITHUB_OUTPUT"
           echo "bundle_path=$final_bundle_path" >> "$GITHUB_OUTPUT"
           echo "bundle_name=$final_bundle_name" >> "$GITHUB_OUTPUT"
 
-      - name: Upload bundled scenario DB artifact
+      - name: Upload merged scenario DB artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ${{ steps.bundle.outputs.bundle_name }}
-          path: ${{ steps.bundle.outputs.bundle_path }}
+          name: ${{ steps.prepare-upload.outputs.bundle_name }}
+          path: ${{ steps.prepare-upload.outputs.bundle_path }}
           retention-days:
             ${{ inputs.artifact_retention_days != '' && inputs.artifact_retention_days || github.retention_days }}
 
@@ -165,7 +187,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GITHUB_API_VERSION: "2022-11-28"
           GITHUB_REPOSITORY: ${{ github.repository }}
-          ARTIFACT_LIST_PATH: ${{ steps.bundle.outputs.artifact_list_path }}
+          ARTIFACT_LIST_PATH: ${{ steps.download.outputs.artifact_list_path }}
         run: |
           set -euo pipefail
           while IFS=$'\t' read -r artifact_id artifact_name _artifact_url; do
