@@ -226,6 +226,8 @@ This section is the canonical place for session-to-session continuity.
     catch-all scenario file for the whole planner subsystem
   - the mirrored planner tests currently give the most value when they each own one planner behavior slice, even when
     they still exercise that slice through the public `PlannerRepository` API
+  - `tests/db/planner/_planner-plan-artifacts.test.ts` now uses the mirrored-test import exception directly by importing
+    `src/db/planner/_planner-plan-artifacts.ts`, while still relying on `src/db/index.ts` for shared DB test setup
 - Current CLI shape:
   - `scan` imports live GitHub Packages + GHCR state into SQLite
   - `cleanup --dry-run ...` emits the dry-run delete plan for the latest completed scan of one owner/package
