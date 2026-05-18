@@ -10,6 +10,7 @@ This section is the canonical place for session-to-session continuity.
 
 ### Completed Checkpoints
 
+- ☑ `bf29cfd` Refine cleanup selector planning.
 - ☑ `01116c1` Add delete-ghost-images planner and scenarios.
 - ☑ `57b252a` Keep orphan scenarios from deleting last package tag.
 - ☑ `cdb7121` Add test registry validation workflow.
@@ -823,6 +824,7 @@ src/
 
 ### 2026-05-18 (planner-side tag selector matching)
 
+- [x] Checkpoint commit: `bf29cfd`
 - [x] Stopped expanding user-provided `--delete-tag` and `--exclude-tag` wildcard/regex selectors into JS arrays before
       planning.
 - [x] Kept DB-derived selector families (`delete-ghost-images`, `delete-partial-images`, `delete-orphaned-images`) as
