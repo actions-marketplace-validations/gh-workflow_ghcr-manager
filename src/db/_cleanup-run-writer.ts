@@ -1,5 +1,6 @@
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
+import { resolveGitHubActionsRunUrl } from "./_github-actions-run-url.js";
 import type { DeletePlan } from "./planner/index.js";
 
 export class CleanupRunWriter {
@@ -84,6 +85,7 @@ export class CleanupRunWriter {
             scan_id,
             cleanup_uuid,
             cleanup_started_at,
+            github_actions_run_url,
             dry_run,
             planner_inputs_json,
             direct_target_tag_count,
@@ -94,13 +96,14 @@ export class CleanupRunWriter {
             blocked_delete_root_count,
             protected_root_count
           )
-          VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `
       )
       .run(
         scanId,
         randomUUID(),
         options.cleanupStartedAt,
+        resolveGitHubActionsRunUrl(),
         options.dryRun ? 1 : 0,
         JSON.stringify(plan.plannerInputs),
         plan.validationSummary.directTargetTagCount,

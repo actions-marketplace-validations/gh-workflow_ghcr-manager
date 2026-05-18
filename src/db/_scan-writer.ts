@@ -7,6 +7,7 @@ import type {
   PackageVersionRecord,
   TagRecord
 } from "../core/index.js";
+import { resolveGitHubActionsRunUrl } from "./_github-actions-run-url.js";
 import { rebuildManifestReachability } from "./_manifest-reachability.js";
 
 export class ScanWriter {
@@ -17,15 +18,38 @@ export class ScanWriter {
     this.#database = database;
   }
 
-  resetScan(owner: string, packageName: string, scanStartedAt: string): void {
+  startScan(
+    owner: string,
+    packageName: string,
+    scanStartedAt: string,
+    packageMetadata: { isPublic: boolean; rawJson: string }
+  ): void {
     const result = this.#database
       .prepare(
         `
-        INSERT INTO package_scans(scan_uuid, owner, package_name, scan_started_at, scan_completed_at, status)
-        VALUES(?, ?, ?, ?, NULL, 'running')
+        INSERT INTO package_scans(
+          scan_uuid,
+          owner,
+          package_name,
+          is_public,
+          package_metadata_json,
+          github_actions_run_url,
+          scan_started_at,
+          scan_completed_at,
+          status
+        )
+        VALUES(?, ?, ?, ?, ?, ?, ?, NULL, 'running')
       `
       )
-      .run(randomUUID(), owner, packageName, scanStartedAt);
+      .run(
+        randomUUID(),
+        owner,
+        packageName,
+        packageMetadata.isPublic ? 1 : 0,
+        packageMetadata.rawJson,
+        resolveGitHubActionsRunUrl(),
+        scanStartedAt
+      );
 
     this.#activeScanId = Number(result.lastInsertRowid);
   }
@@ -52,18 +76,6 @@ export class ScanWriter {
       `
       )
       .run(scanCompletedAt, this.#requireScanId());
-  }
-
-  setPackageIsPublic(isPublic: boolean): void {
-    this.#database
-      .prepare(
-        `
-        UPDATE package_scans
-        SET is_public = ?
-        WHERE scan_id = ?
-      `
-      )
-      .run(isPublic ? 1 : 0, this.#requireScanId());
   }
 
   insertPackageVersion(version: PackageVersionRecord): void {
@@ -230,7 +242,9 @@ export class ScanWriter {
 
   #requireScanId(): number {
     if (this.#activeScanId === null) {
-      throw new Error("package not initialized; call resetScan(owner, packageName, scanStartedAt) first");
+      throw new Error(
+        "package not initialized; call startScan(owner, packageName, scanStartedAt, packageMetadata) first"
+      );
     }
 
     return this.#activeScanId;

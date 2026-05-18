@@ -7,7 +7,10 @@ test("planner repository resolves delete-tag root targets through the dedicated 
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
 
-  writer.resetScan("acme", "pkg", "2026-05-14T10:00:00.000Z");
+  writer.startScan("acme", "pkg", "2026-05-14T10:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 1,
     createdAt: "2026-05-03T10:00:00.000Z",
@@ -43,7 +46,10 @@ test("planner repository selects a fully matched tagged root for deletion", () =
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
 
-  writer.resetScan("acme", "delete-tags", "2026-05-14T10:00:00.000Z");
+  writer.startScan("acme", "delete-tags", "2026-05-14T10:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 1,
     createdAt: "2026-05-01T10:00:00.000Z",
@@ -79,7 +85,10 @@ test("planner repository applies keep-n-tagged within the matched delete-tag sub
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
 
-  writer.resetScan("acme", "tagged-combined", "2026-05-14T10:00:00.000Z");
+  writer.startScan("acme", "tagged-combined", "2026-05-14T10:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 1,
     createdAt: "2026-05-03T10:00:00.000Z",
@@ -142,7 +151,10 @@ test("planner repository keeps non-matched tags on shared matched roots as untag
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
 
-  writer.resetScan("acme", "tagged-combined-partial", "2026-05-14T10:00:00.000Z");
+  writer.startScan("acme", "tagged-combined-partial", "2026-05-14T10:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 1,
     createdAt: "2026-05-03T10:00:00.000Z",
@@ -195,7 +207,10 @@ test("planner repository applies older-than to exact tag matches", () => {
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
 
-  writer.resetScan("acme", "older-tags", "2026-05-14T10:00:00.000Z");
+  writer.startScan("acme", "older-tags", "2026-05-14T10:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 1,
     createdAt: "2026-05-01T10:00:00.000Z",
@@ -246,7 +261,10 @@ test("planner repository keeps older-than partial tag matches as untag-only", ()
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
 
-  writer.resetScan("acme", "older-partial", "2026-05-14T10:00:00.000Z");
+  writer.startScan("acme", "older-partial", "2026-05-14T10:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 1,
     createdAt: "2026-01-01T10:00:00.000Z",

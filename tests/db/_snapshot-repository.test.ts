@@ -41,21 +41,27 @@ test("snapshot repository detects whether any package scan was non-public", asyn
     const repository = new SnapshotRepository(database);
     await importFileScan("tests/fixtures/sample-package.json", writer);
 
-    writer.resetScan("acme", "example", "2026-05-17T00:00:00.000Z");
-    writer.setPackageIsPublic(true);
+    writer.startScan("acme", "example", "2026-05-17T00:00:00.000Z", {
+      isPublic: true,
+      rawJson: JSON.stringify({ visibility: "public" })
+    });
     writer.markScanCompleted("2026-05-17T00:00:00.000Z");
 
     assert.equal(repository.hasAnyNonPublicPackageScan("acme", "example"), true);
     assert.equal(repository.hasAnyNonPublicPackageScan("acme", "missing"), false);
 
-    writer.resetScan("acme", "public-only", "2026-05-17T00:00:01.000Z");
-    writer.setPackageIsPublic(true);
+    writer.startScan("acme", "public-only", "2026-05-17T00:00:01.000Z", {
+      isPublic: true,
+      rawJson: JSON.stringify({ visibility: "public" })
+    });
     writer.markScanCompleted("2026-05-17T00:00:01.000Z");
 
     assert.equal(repository.hasAnyNonPublicPackageScan("acme", "public-only"), false);
 
-    writer.resetScan("acme", "running-private", "2026-05-17T00:00:02.000Z");
-    writer.setPackageIsPublic(false);
+    writer.startScan("acme", "running-private", "2026-05-17T00:00:02.000Z", {
+      isPublic: false,
+      rawJson: JSON.stringify({ visibility: "private" })
+    });
 
     assert.equal(repository.hasAnyNonPublicPackageScan("acme", "running-private"), true);
 

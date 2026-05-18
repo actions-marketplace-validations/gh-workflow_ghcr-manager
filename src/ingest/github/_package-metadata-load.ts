@@ -8,6 +8,7 @@ import {
 
 export interface GitHubPackageMetadata {
   isPublic: boolean;
+  rawJson: string;
 }
 
 export async function loadPackageMetadata(
@@ -57,7 +58,7 @@ export async function loadPackageMetadata(
     throw new Error(`GitHub package metadata response did not include a supported visibility value`);
   }
 
-  return { isPublic: visibility === "public" };
+  return { isPublic: visibility === "public", rawJson: JSON.stringify(payload) };
 }
 
 function _shouldRetryStatus(status: number): boolean {

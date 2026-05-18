@@ -17,7 +17,10 @@ export async function importFileScan(snapshotPath: string, writer: ScanWriter): 
   const document = JSON.parse(rawSnapshot) as _FixtureScanDocument;
   const scanCompletedAt = document.scanCompletedAt;
 
-  writer.resetScan(document.owner, document.packageName, scanCompletedAt);
+  writer.startScan(document.owner, document.packageName, scanCompletedAt, {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   try {
     for (const version of document.packageVersions) {
       writer.insertPackageVersion(version);

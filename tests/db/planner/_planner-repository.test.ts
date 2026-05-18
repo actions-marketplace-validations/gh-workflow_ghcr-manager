@@ -73,7 +73,10 @@ test("planner repository carries delete-ghost-images planner metadata through ta
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
 
-  writer.resetScan("acme", "ghost-images", "2026-05-15T00:00:00.000Z");
+  writer.startScan("acme", "ghost-images", "2026-05-15T00:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 201,
     createdAt: "2026-05-10T00:00:00.000Z",
@@ -130,7 +133,10 @@ test("planner repository carries delete-partial-images planner metadata through 
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
 
-  writer.resetScan("acme", "partial-images", "2026-05-15T00:00:00.000Z");
+  writer.startScan("acme", "partial-images", "2026-05-15T00:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 201,
     createdAt: "2026-05-10T00:00:00.000Z",

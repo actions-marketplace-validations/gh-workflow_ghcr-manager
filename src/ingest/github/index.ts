@@ -25,15 +25,14 @@ export async function importGitHubScan(
   const fetchImpl = runtime?.fetchImpl ?? defaultFetch;
   const scanStartedAt = new Date().toISOString();
   const fullPackageName = `${options.owner}/${options.packageName}`;
+  const packageMetadata =
+    runtime?.packageMetadata ?? (await loadPackageMetadata(fetchImpl, _GITHUB_API_BASE_URL, options));
 
-  writer.resetScan(options.owner, options.packageName, scanStartedAt);
+  writer.startScan(options.owner, options.packageName, scanStartedAt, packageMetadata);
   const scanId = writer.getActiveScanId();
   options.logger.info(`Starting GitHub package scan for ${fullPackageName}`);
   try {
     options.logger.info(`Starting remote data pull for ${fullPackageName}`);
-    const packageMetadata =
-      runtime?.packageMetadata ?? (await loadPackageMetadata(fetchImpl, _GITHUB_API_BASE_URL, options));
-    writer.setPackageIsPublic(packageMetadata.isPublic);
     options.logger.info(
       `Detected GitHub package visibility ${packageMetadata.isPublic ? "public" : "non-public"} for ${fullPackageName}`
     );

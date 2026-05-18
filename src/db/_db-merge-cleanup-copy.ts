@@ -21,6 +21,7 @@ export class DbMergeCleanupCopy {
             cleanup_run_id,
             cleanup_uuid,
             cleanup_started_at,
+            github_actions_run_url,
             dry_run,
             planner_inputs_json,
             direct_target_tag_count,
@@ -52,6 +53,7 @@ export class DbMergeCleanupCopy {
                 scan_id,
                 cleanup_uuid,
                 cleanup_started_at,
+                github_actions_run_url,
                 dry_run,
                 planner_inputs_json,
                 direct_target_tag_count,
@@ -62,13 +64,14 @@ export class DbMergeCleanupCopy {
                 blocked_delete_root_count,
                 protected_root_count
               )
-              VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `
           )
           .run(
             targetScanId,
             row.cleanup_uuid,
             row.cleanup_started_at,
+            row.github_actions_run_url,
             row.dry_run,
             row.planner_inputs_json,
             row.direct_target_tag_count,

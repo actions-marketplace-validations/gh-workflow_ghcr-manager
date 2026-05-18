@@ -4,6 +4,8 @@ export interface SourceScanRow {
   owner: string;
   package_name: string;
   is_public: number;
+  package_metadata_json: string | null;
+  github_actions_run_url: string | null;
   scan_started_at: string;
   scan_completed_at: string | null;
   status: string;
@@ -15,6 +17,8 @@ export interface TargetScanRow {
   owner: string;
   package_name: string;
   is_public: number;
+  package_metadata_json: string | null;
+  github_actions_run_url: string | null;
   scan_started_at: string;
   scan_completed_at: string | null;
   status: string;
@@ -24,6 +28,7 @@ export interface CleanupRunRow {
   cleanup_run_id: number;
   cleanup_uuid: string;
   cleanup_started_at: string;
+  github_actions_run_url: string | null;
   dry_run: number;
   planner_inputs_json: string;
   direct_target_tag_count: number;

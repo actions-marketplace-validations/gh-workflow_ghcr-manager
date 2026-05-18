@@ -126,6 +126,17 @@ runs:
             ;;
         esac
 
+    - name: Resolve DB artifact upload intent
+      id: resolve-upload
+      shell: bash
+      run: |
+        set -euo pipefail
+        upload_db_artifact="${{ inputs.upload-db-artifact }}"
+        if [[ "${{ inputs.command }}" == "scan" ]]; then
+          upload_db_artifact="true"
+        fi
+        echo "upload_db_artifact=$upload_db_artifact" >> "$GITHUB_OUTPUT"
+
     - name: Prepare scan DB path
       id: prepare-db
       shell: bash
@@ -148,12 +159,27 @@ runs:
         echo "db_file=$db_file" >> "$GITHUB_OUTPUT"
         echo "db_path=$db_path" >> "$GITHUB_OUTPUT"
 
+    - name: Validate plaintext DB artifact upload policy
+      if:
+        ${{ steps.resolve-upload.outputs.upload_db_artifact == 'true' && inputs.db-artifact-encryption-passphrase == ''
+        }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        package_metadata_json="$(node tools/read-package-metadata.mjs "${{ inputs.owner }}" "${{ inputs.package }}" "${{ inputs.github-token }}")"
+        has_non_public_scan="$(node tools/db-has-non-public-scans.mjs "${{ steps.prepare-db.outputs.db_path }}")"
+
+        if [[ "$package_metadata_json" != *'"visibility":"public"'* ]] || [[ "$has_non_public_scan" == "true" ]]; then
+          echo "Refusing to upload DB artifact for a non-public registry without encryption." >&2
+          echo "Provide db-artifact-encryption-passphrase to encrypt the uploaded artifact." >&2
+          exit 1
+        fi
+
     - name: Scan before command
       id: scan-before
       if: ${{ inputs.command == 'scan' || inputs.command == 'cleanup' }}
       shell: bash
-      env:
-        GHCR_MANAGER_DB_ARTIFACT_ENCRYPTION_PASSPHRASE: ${{ inputs.db-artifact-encryption-passphrase }}
       run: |
         set -euo pipefail
         scan_args=(
@@ -164,9 +190,6 @@ runs:
           --token "${{ inputs.github-token }}"
           --github-output "$GITHUB_OUTPUT"
         )
-        if [[ "${{ inputs.command }}" == "scan" || "${{ inputs.upload-db-artifact }}" == "true" ]]; then
-          scan_args+=(--db-artifact-upload-intended)
-        fi
         npm run ghcr-manager:dist -- scan \
           "${scan_args[@]}"
 
@@ -264,24 +287,25 @@ runs:
           --github-output "$GITHUB_OUTPUT"
 
     - name: Prepare DB artifact upload
-      if: ${{ inputs.command == 'scan' || inputs.upload-db-artifact == 'true' }}
+      if: ${{ steps.resolve-upload.outputs.upload_db_artifact == 'true' }}
       id: prepare-upload
       shell: bash
       env:
+        DB_PATH: ${{ steps.prepare-db.outputs.db_path }}
         DB_ARTIFACT_ENCRYPTION_PASSPHRASE: ${{ inputs.db-artifact-encryption-passphrase }}
-        IS_PUBLIC:
-          ${{ steps.scan-after.outputs.is_public != '' && steps.scan-after.outputs.is_public ||
-          steps.scan-before.outputs.is_public }}
       run: |
         set -euo pipefail
-        artifact_path="${{ steps.prepare-db.outputs.db_path }}"
-        artifact_file="${{ steps.prepare-db.outputs.db_file }}"
 
-        if [[ "$IS_PUBLIC" != "true" && -z "$DB_ARTIFACT_ENCRYPTION_PASSPHRASE" ]]; then
-          echo "Refusing to upload DB artifact for a non-public registry without encryption." >&2
+        has_non_public_scan="$(node tools/db-has-non-public-scans.mjs "$DB_PATH")"
+
+        if [[ "$has_non_public_scan" == "true" && -z "$DB_ARTIFACT_ENCRYPTION_PASSPHRASE" ]]; then
+          echo "Refusing to upload DB artifact with scans of non-public registries without encryption." >&2
           echo "Provide db-artifact-encryption-passphrase to encrypt the uploaded artifact." >&2
           exit 1
         fi
+
+        artifact_path="${{ steps.prepare-db.outputs.db_path }}"
+        artifact_file="${{ steps.prepare-db.outputs.db_file }}"
 
         if [[ -n "$DB_ARTIFACT_ENCRYPTION_PASSPHRASE" ]]; then
           if ! command -v openssl >/dev/null 2>&1; then
@@ -301,7 +325,7 @@ runs:
         echo "artifact_file=$artifact_file" >> "$GITHUB_OUTPUT"
 
     - name: Upload DB artifact
-      if: ${{ inputs.command == 'scan' || inputs.upload-db-artifact == 'true' }}
+      if: ${{ steps.resolve-upload.outputs.upload_db_artifact == 'true' }}
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ steps.prepare-upload.outputs.artifact_file }}

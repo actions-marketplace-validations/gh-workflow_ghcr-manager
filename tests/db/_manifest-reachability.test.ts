@@ -7,7 +7,10 @@ test("rebuildManifestReachability builds reachability bottom-up from direct mani
   const database = openDatabase(":memory:");
   const writer = new ScanWriter(database);
 
-  writer.resetScan("acme", "example", "2026-04-20T12:00:00.000Z");
+  writer.startScan("acme", "example", "2026-04-20T12:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 1,
     createdAt: "2026-04-20T10:00:00.000Z",
@@ -144,7 +147,10 @@ test("rebuildManifestReachability rejects cycles in manifest edges", () => {
   const database = openDatabase(":memory:");
   const writer = new ScanWriter(database);
 
-  writer.resetScan("acme", "example", "2026-04-20T12:00:00.000Z");
+  writer.startScan("acme", "example", "2026-04-20T12:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 1,
     createdAt: "2026-04-20T10:00:00.000Z",

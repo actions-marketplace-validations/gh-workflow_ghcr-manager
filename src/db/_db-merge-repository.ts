@@ -46,6 +46,8 @@ export class DbMergeRepository {
             owner,
             package_name,
             is_public,
+            package_metadata_json,
+            github_actions_run_url,
             scan_started_at,
             scan_completed_at,
             status
@@ -72,6 +74,8 @@ export class DbMergeRepository {
               owner,
               package_name,
               is_public,
+              package_metadata_json,
+              github_actions_run_url,
               scan_started_at,
               scan_completed_at,
               status

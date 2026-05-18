@@ -7,7 +7,10 @@ test("planner repository enumerates direct target tags through the dedicated dir
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
 
-  writer.resetScan("acme", "pkg", "2026-05-14T10:00:00.000Z");
+  writer.startScan("acme", "pkg", "2026-05-14T10:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 1,
     createdAt: "2026-05-03T10:00:00.000Z",
@@ -36,7 +39,10 @@ test("planner repository matches regex delete and exclude selectors in SQL", () 
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
 
-  writer.resetScan("acme", "regex-tags", "2026-05-14T10:00:00.000Z");
+  writer.startScan("acme", "regex-tags", "2026-05-14T10:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 1,
     createdAt: "2026-05-01T10:00:00.000Z",
@@ -67,7 +73,10 @@ test("planner repository lets exclude-tags protect a matched root", () => {
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
 
-  writer.resetScan("acme", "exclude-tags", "2026-05-14T10:00:00.000Z");
+  writer.startScan("acme", "exclude-tags", "2026-05-14T10:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 1,
     createdAt: "2026-05-01T10:00:00.000Z",

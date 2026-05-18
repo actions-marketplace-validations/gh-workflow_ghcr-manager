@@ -36,7 +36,10 @@ test("package metadata loader returns whether the package is public", async () =
     }
   );
 
-  assert.deepEqual(metadata, { isPublic: false });
+  assert.deepEqual(metadata, {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "internal" })
+  });
 });
 
 test("package metadata loader rejects unsupported visibility values", async () => {
@@ -86,7 +89,10 @@ test("package metadata loader returns true for public packages", async () => {
     }
   );
 
-  assert.deepEqual(metadata, { isPublic: true });
+  assert.deepEqual(metadata, {
+    isPublic: true,
+    rawJson: JSON.stringify({ visibility: "public" })
+  });
 });
 
 test("package metadata loader surfaces non-retryable HTTP failures", async () => {
@@ -168,7 +174,10 @@ test("package metadata loader retries retryable statuses", async () => {
       }
     );
 
-    assert.deepEqual(metadata, { isPublic: false });
+    assert.deepEqual(metadata, {
+      isPublic: false,
+      rawJson: JSON.stringify({ visibility: "private" })
+    });
     assert.equal(attempts, 2);
     assert.match(warnings[0] ?? "", /GitHub package metadata request failed on attempt 1\/4; retrying in 1000ms/);
   } finally {

@@ -7,8 +7,17 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
   const database = openDatabase(":memory:");
   const scanWriter = new ScanWriter(database);
   const cleanupRunWriter = new CleanupRunWriter(database);
+  const previousServerUrl = process.env.GITHUB_SERVER_URL;
+  const previousRepository = process.env.GITHUB_REPOSITORY;
+  const previousRunId = process.env.GITHUB_RUN_ID;
+  process.env.GITHUB_SERVER_URL = "https://github.com";
+  process.env.GITHUB_REPOSITORY = "acme/example-repo";
+  process.env.GITHUB_RUN_ID = "987654";
 
-  scanWriter.resetScan("acme", "example", "2026-05-17T09:00:00.000Z");
+  scanWriter.startScan("acme", "example", "2026-05-17T09:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   scanWriter.insertPackageVersion({
     versionId: 101,
     createdAt: "2026-05-17T08:00:00.000Z",
@@ -46,10 +55,19 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
     .prepare(
       `
         INSERT INTO manifest_reachability(scan_id, ancestor_digest, descendant_digest, min_distance)
-        VALUES(?, ?, ?, ?)
+        VALUES(?, ?, ?, ?), (?, ?, ?, ?)
       `
     )
-    .run(scanWriter.getActiveScanId(), "sha256:delete-root", "sha256:shared", 1);
+    .run(
+      scanWriter.getActiveScanId(),
+      "sha256:delete-root",
+      "sha256:shared",
+      1,
+      scanWriter.getActiveScanId(),
+      "sha256:keep-root",
+      "sha256:shared",
+      1
+    );
   scanWriter.markScanCompleted("2026-05-17T09:00:00.000Z");
   const scanId = scanWriter.getActiveScanId();
 
@@ -122,7 +140,14 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
   const cleanupRun = database
     .prepare(
       `
-        SELECT scan_id, cleanup_uuid, cleanup_started_at, dry_run, planner_inputs_json, protected_root_count
+        SELECT
+          scan_id,
+          cleanup_uuid,
+          cleanup_started_at,
+          github_actions_run_url,
+          dry_run,
+          planner_inputs_json,
+          protected_root_count
         FROM cleanup_runs
         WHERE cleanup_run_id = ?
       `
@@ -131,6 +156,7 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
     scan_id: number;
     cleanup_uuid: string;
     cleanup_started_at: string;
+    github_actions_run_url: string | null;
     dry_run: number;
     planner_inputs_json: string;
     protected_root_count: number;
@@ -139,6 +165,7 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
   assert.equal(cleanupRun.scan_id, scanId);
   assert.match(cleanupRun.cleanup_uuid, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   assert.equal(cleanupRun.cleanup_started_at, "2026-05-17T09:01:00.000Z");
+  assert.equal(cleanupRun.github_actions_run_url, "https://github.com/acme/example-repo/actions/runs/987654");
   assert.equal(cleanupRun.dry_run, 1);
   assert.deepEqual(JSON.parse(cleanupRun.planner_inputs_json), plan.plannerInputs);
   assert.equal(cleanupRun.protected_root_count, 1);
@@ -265,6 +292,9 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
     }
   ]);
 
+  _restoreEnv("GITHUB_SERVER_URL", previousServerUrl);
+  _restoreEnv("GITHUB_REPOSITORY", previousRepository);
+  _restoreEnv("GITHUB_RUN_ID", previousRunId);
   database.close();
 });
 
@@ -272,7 +302,10 @@ test("cleanup audit rows must use the same scan as their cleanup run", () => {
   const database = openDatabase(":memory:");
   const scanWriter = new ScanWriter(database);
 
-  scanWriter.resetScan("acme", "example", "2026-05-17T09:00:00.000Z");
+  scanWriter.startScan("acme", "example", "2026-05-17T09:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   scanWriter.insertPackageVersion({
     versionId: 101,
     createdAt: "2026-05-17T08:00:00.000Z",
@@ -286,7 +319,10 @@ test("cleanup audit rows must use the same scan as their cleanup run", () => {
   scanWriter.markScanCompleted("2026-05-17T09:00:00.000Z");
   const firstScanId = scanWriter.getActiveScanId();
 
-  scanWriter.resetScan("acme", "example", "2026-05-17T10:00:00.000Z");
+  scanWriter.startScan("acme", "example", "2026-05-17T10:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   scanWriter.insertPackageVersion({
     versionId: 201,
     createdAt: "2026-05-17T09:30:00.000Z",
@@ -308,6 +344,7 @@ test("cleanup audit rows must use the same scan as their cleanup run", () => {
             scan_id,
             cleanup_uuid,
             cleanup_started_at,
+            github_actions_run_url,
             dry_run,
             planner_inputs_json,
             direct_target_tag_count,
@@ -318,13 +355,14 @@ test("cleanup audit rows must use the same scan as their cleanup run", () => {
             blocked_delete_root_count,
             protected_root_count
           )
-          VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `
       )
       .run(
         firstScanId,
         "0196db62-c240-7000-8000-000000000001",
         "2026-05-17T10:01:00.000Z",
+        null,
         1,
         "{}",
         0,
@@ -370,3 +408,12 @@ test("cleanup audit rows must use the same scan as their cleanup run", () => {
 
   database.close();
 });
+
+function _restoreEnv(name: string, value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env[name];
+    return;
+  }
+
+  process.env[name] = value;
+}

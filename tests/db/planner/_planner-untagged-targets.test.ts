@@ -7,7 +7,10 @@ test("planner repository resolves untagged direct targets and overflow roots", (
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
 
-  writer.resetScan("acme", "pkg", "2026-05-14T10:00:00.000Z");
+  writer.startScan("acme", "pkg", "2026-05-14T10:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 1,
     createdAt: "2026-05-03T10:00:00.000Z",
@@ -52,7 +55,10 @@ test("planner repository applies older-than before keep-n-untagged recency selec
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
 
-  writer.resetScan("acme", "keep-untagged-age", "2026-05-14T10:00:00.000Z");
+  writer.startScan("acme", "keep-untagged-age", "2026-05-14T10:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 1,
     createdAt: "2026-05-10T10:00:00.000Z",
@@ -114,7 +120,10 @@ test("planner repository applies older-than to delete-untagged root selection", 
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
 
-  writer.resetScan("acme", "older-untagged", "2026-05-14T10:00:00.000Z");
+  writer.startScan("acme", "older-untagged", "2026-05-14T10:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 1,
     createdAt: "2026-05-01T10:00:00.000Z",

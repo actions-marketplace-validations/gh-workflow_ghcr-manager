@@ -13,11 +13,23 @@ test("db merge cleanup copy lists cleanup UUIDs in local cleanup-run order", () 
           owner,
           package_name,
           is_public,
+          package_metadata_json,
+          github_actions_run_url,
           scan_started_at,
           scan_completed_at,
           status
         )
-        VALUES('scan-uuid', 'acme', 'example', 1, '2026-05-17T09:00:00.000Z', '2026-05-17T09:00:00.000Z', 'completed')
+        VALUES(
+          'scan-uuid',
+          'acme',
+          'example',
+          1,
+          '{"visibility":"public"}',
+          NULL,
+          '2026-05-17T09:00:00.000Z',
+          '2026-05-17T09:00:00.000Z',
+          'completed'
+        )
       `
     )
     .run();
@@ -28,6 +40,7 @@ test("db merge cleanup copy lists cleanup UUIDs in local cleanup-run order", () 
           scan_id,
           cleanup_uuid,
           cleanup_started_at,
+          github_actions_run_url,
           dry_run,
           planner_inputs_json,
           direct_target_tag_count,
@@ -38,8 +51,8 @@ test("db merge cleanup copy lists cleanup UUIDs in local cleanup-run order", () 
           blocked_delete_root_count,
           protected_root_count
         )
-        VALUES(1, ?, '2026-05-17T09:02:00.000Z', 1, '{}', 0, 0, 0, 0, 0, 0, 0),
-              (1, ?, '2026-05-17T09:01:00.000Z', 1, '{}', 0, 0, 0, 0, 0, 0, 0)
+        VALUES(1, ?, '2026-05-17T09:02:00.000Z', NULL, 1, '{}', 0, 0, 0, 0, 0, 0, 0),
+              (1, ?, '2026-05-17T09:01:00.000Z', NULL, 1, '{}', 0, 0, 0, 0, 0, 0, 0)
       `
     )
     .run("cleanup-b", "cleanup-a");

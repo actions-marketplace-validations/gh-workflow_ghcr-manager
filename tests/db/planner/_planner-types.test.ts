@@ -7,7 +7,10 @@ test("planner repository returns normalized typed planner rows", () => {
   const writer = new ScanWriter(database);
   const repository = new PlannerRepository(database);
 
-  writer.resetScan("acme", "pkg", "2026-05-14T10:00:00.000Z");
+  writer.startScan("acme", "pkg", "2026-05-14T10:00:00.000Z", {
+    isPublic: false,
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
   writer.insertPackageVersion({
     versionId: 1,
     createdAt: "2026-05-03T10:00:00.000Z",

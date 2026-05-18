@@ -108,7 +108,10 @@ test("resolveTagSelectors keeps wildcard delete-tag selectors for planner-side S
 
 test("resolveTagSelectors treats sql wildcard characters literally in wildcard mode", () => {
   _withTempDatabase(({ database, databasePath, writer }) => {
-    writer.resetScan("acme", "example", "2026-05-15T00:00:00.000Z");
+    writer.startScan("acme", "example", "2026-05-15T00:00:00.000Z", {
+      isPublic: false,
+      rawJson: JSON.stringify({ visibility: "private" })
+    });
     _insertVersionWithManifest(writer, 201, "sha256:literal-percent", "2026-05-10T00:00:00.000Z", {
       mediaType: "application/vnd.oci.image.manifest.v1+json",
       manifestKind: "image_manifest",
@@ -174,7 +177,10 @@ test("resolveTagSelectors resolves orphaned sha256 tags with missing parent dige
     const orphanParentDigest = `sha256:${"a".repeat(64)}`;
     const existingParentDigest = `sha256:${"b".repeat(64)}`;
 
-    writer.resetScan("acme", "example", "2026-05-15T00:00:00.000Z");
+    writer.startScan("acme", "example", "2026-05-15T00:00:00.000Z", {
+      isPublic: false,
+      rawJson: JSON.stringify({ visibility: "private" })
+    });
     _insertVersionWithManifest(writer, 201, "sha256:orphaned-signature", "2026-05-10T00:00:00.000Z", {
       mediaType: "application/vnd.oci.image.manifest.v1+json",
       manifestKind: "signature_manifest",
@@ -207,7 +213,10 @@ test("resolveTagSelectors resolves orphaned sha256 tags with missing parent dige
 
 test("resolveTagSelectors resolves ghost image tags when all image index children are missing", () => {
   _withTempDatabase(({ database, databasePath, writer }) => {
-    writer.resetScan("acme", "example", "2026-05-15T00:00:00.000Z");
+    writer.startScan("acme", "example", "2026-05-15T00:00:00.000Z", {
+      isPublic: false,
+      rawJson: JSON.stringify({ visibility: "private" })
+    });
     _insertVersionWithManifest(writer, 201, "sha256:ghost-index", "2026-05-10T00:00:00.000Z", {
       mediaType: "application/vnd.oci.image.index.v1+json",
       manifestKind: "image_index",
@@ -266,7 +275,10 @@ test("resolveTagSelectors resolves ghost image tags when all image index childre
 
 test("resolveTagSelectors resolves partial image tags when some image index children are missing", () => {
   _withTempDatabase(({ database, databasePath, writer }) => {
-    writer.resetScan("acme", "example", "2026-05-15T00:00:00.000Z");
+    writer.startScan("acme", "example", "2026-05-15T00:00:00.000Z", {
+      isPublic: false,
+      rawJson: JSON.stringify({ visibility: "private" })
+    });
     _insertVersionWithManifest(writer, 201, "sha256:partial-index", "2026-05-10T00:00:00.000Z", {
       mediaType: "application/vnd.oci.image.index.v1+json",
       manifestKind: "image_index",

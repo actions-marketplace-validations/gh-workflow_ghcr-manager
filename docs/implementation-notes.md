@@ -200,6 +200,9 @@ This section is the canonical place for session-to-session continuity.
   - live `cleanup` only runs the second post-mutation scan when the caller opts into `scan-after-cleanup`
   - DB merge now lives in a separate sub-action at `db-merge/action.yml`, so the root action keeps strict required
     inputs for `scan` / `cleanup`
+  - for `scan` / uploaded `cleanup` DBs, the root action now owns the non-public artifact policy entirely: it does an
+    early plaintext-only refusal check from current package metadata plus existing DB contents, then uses the same final
+    DB-content check as `db-merge` immediately before upload
   - the `db-merge` sub-action now also supports optional DB artifact upload with the same retention-day override and the
     same encryption rule as `scan`: if the merged DB contains any non-public scan, plaintext upload is refused
   - current-run artifact collection plus merge now also lives in `merge-run-artifacts/action.yml`, which wraps the
@@ -208,6 +211,10 @@ This section is the canonical place for session-to-session continuity.
 - Current cleanup audit persistence:
   - every CLI `cleanup` invocation now stores one `cleanup_runs` row linked to the exact latest completed scan used by
     the planner
+  - `package_scans` now also stores `package_metadata_json` and a nullable `github_actions_run_url`; `cleanup_runs` also
+    stores the same nullable run URL so scans and cleanups can point back to the originating GitHub Actions run
+  - `package_scans.package_metadata_json` is now required at scan-row creation time; the writer starts scans with
+    explicit package metadata up front rather than creating half-populated scan rows and patching visibility later
   - each persisted cleanup run now also stores a stable `cleanup_uuid`, which is used only as cleanup-run identity for
     DB merge history comparisons
   - the first persisted slice stores planner inputs plus summary counts in `cleanup_runs`
@@ -384,10 +391,14 @@ This section is the canonical place for session-to-session continuity.
   - delete the temporary package version that GHCR creates for the retargeted tag
 - Scan hardening:
   - live GitHub scans now fetch package metadata up front and store `is_public` on `package_scans`
+  - scans now also store raw `package_metadata_json`, and both scans and cleanup runs store nullable
+    `github_actions_run_url` values when running inside GitHub Actions
   - `scan` JSON output now includes `isPublic`
   - `scan --github-output <path>` can also write scalar scan summary fields directly to a GitHub Actions output file
   - the composite action can encrypt uploaded DB artifacts via `db-artifact-encryption-passphrase`
-  - `upload-db-artifact: true` now requires `db-artifact-encryption-passphrase` for non-public package scans
+  - plaintext DB artifact upload is refused when the current package is non-public or the DB already contains any
+    non-public scan; the action checks the current package metadata before scan work and the DB contents again before
+    upload
   - live GitHub package-version ingestion now reloads page 1 after pagination and aborts if the ordered version
     signature changed during the scan
 - Scan logging:
