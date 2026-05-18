@@ -137,7 +137,7 @@ Use three layers:
 
 ## Definition Of Done For The Cleanup Track
 
-The cleanup track is ready for real use when all of the following are true:
+The cleanup track is ready for real use when all the following are true:
 
 - dry-run planning is stable and explains retention/deletion decisions
 - edge-case coverage exists for multi-arch and referrer-heavy layouts

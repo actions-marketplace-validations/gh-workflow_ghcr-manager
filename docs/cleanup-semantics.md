@@ -29,7 +29,7 @@ In practice that means:
 
 ## Deletion Units
 
-There are two distinct units and they must stay distinct in the planner output.
+There are two distinct units, and they must stay distinct in the planner output.
 
 ### 1. Tag intent
 

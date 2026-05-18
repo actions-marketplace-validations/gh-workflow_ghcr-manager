@@ -41,4 +41,4 @@ manifest while our import algorithm has no way of detecting that.
 
 If you agree that this can be a problem: My solution idea is to read the first and maybe last page or single
 package-version again after reading last page and verifying that it did not change. If it changed then the registry was
-modified and we should either abort or restart the scan. Abort with error is probably easier for now.
+modified, and we should either abort or restart the scan. Abort with error is probably easier for now.
