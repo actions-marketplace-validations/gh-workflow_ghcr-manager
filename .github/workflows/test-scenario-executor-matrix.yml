@@ -89,7 +89,7 @@ jobs:
           echo "artifact_list_path=$ARTIFACT_LIST_PATH" >> "$GITHUB_OUTPUT"
           echo "merged_db_path=$MERGED_DB_PATH" >> "$GITHUB_OUTPUT"
           {
-            echo "source_db_paths<<'EOF'"
+            echo "source_db_paths<<EOF"
             find "$SOURCE_DB_DIR" -maxdepth 1 -type f -name '*.sqlite' | sort
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
@@ -99,37 +99,10 @@ jobs:
         uses: ./db-merge
         with:
           db-path: ${{ steps.download.outputs.merged_db_path }}
+          upload-db-artifact: "true"
+          db-artifact-encryption-passphrase: ${{ inputs.db_artifact_encryption_passphrase }}
+          db-artifact-retention-days: ${{ inputs.artifact_retention_days }}
           source-db-paths: ${{ steps.download.outputs.source_db_paths }}
-
-      - name: Prepare merged scenario DB artifact
-        id: prepare-upload
-        shell: bash
-        env:
-          DB_ARTIFACT_ENCRYPTION_PASSPHRASE: ${{ inputs.db_artifact_encryption_passphrase }}
-        run: |
-          set -euo pipefail
-
-          final_bundle_path="${{ steps.merge.outputs.db-path }}"
-          final_bundle_name="$(basename "$final_bundle_path")"
-          if [[ -n "$DB_ARTIFACT_ENCRYPTION_PASSPHRASE" ]]; then
-            final_bundle_path="${{ steps.merge.outputs.db-path }}.enc"
-            final_bundle_name="$(basename "$final_bundle_path")"
-            openssl enc -aes-256-cbc -pbkdf2 -salt \
-              -in "${{ steps.merge.outputs.db-path }}" \
-              -out "$final_bundle_path" \
-              -pass env:DB_ARTIFACT_ENCRYPTION_PASSPHRASE
-          fi
-
-          echo "bundle_path=$final_bundle_path" >> "$GITHUB_OUTPUT"
-          echo "bundle_name=$final_bundle_name" >> "$GITHUB_OUTPUT"
-
-      - name: Upload merged scenario DB artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: ${{ steps.prepare-upload.outputs.bundle_name }}
-          path: ${{ steps.prepare-upload.outputs.bundle_path }}
-          retention-days:
-            ${{ inputs.artifact_retention_days != '' && inputs.artifact_retention_days || github.retention_days }}
 
       - name: Delete per-scenario DB artifacts
         shell: bash

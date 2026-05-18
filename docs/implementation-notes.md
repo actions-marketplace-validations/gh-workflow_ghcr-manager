@@ -195,6 +195,8 @@ This section is the canonical place for session-to-session continuity.
   - live `cleanup` only runs the second post-mutation scan when the caller opts into `scan-after-cleanup`
   - DB merge now lives in a separate sub-action at `db-merge/action.yml`, so the root action keeps strict required
     inputs for `scan` / `cleanup`
+  - the `db-merge` sub-action now also supports optional DB artifact upload with the same retention-day override and the
+    same encryption rule as `scan`: if the merged DB contains any non-public scan, plaintext upload is refused
 - Current cleanup audit persistence:
   - every CLI `cleanup` invocation now stores one `cleanup_runs` row linked to the exact latest completed scan used by
     the planner
@@ -276,8 +278,8 @@ This section is the canonical place for session-to-session continuity.
   - `test-scenario-executor-matrix.yml` fans out the reusable scenario workflow in parallel with executor-isolated
     package-name suffixes, so same-scenario runs do not race on one GHCR package
   - after the matrix fan-out completes, the matrix workflow now downloads the per-scenario action-owned DB artifacts,
-    decrypts them when needed, merges them into one SQLite file via the dedicated `db-merge` sub-action, optionally
-    encrypts that merged DB, uploads the single merged-DB artifact, and deletes the intermediate per-scenario DB
+    decrypts them when needed, merges them into one SQLite file via the dedicated `db-merge` sub-action, lets that
+    sub-action enforce optional encryption plus final artifact upload, and deletes the intermediate per-scenario DB
     artifacts from the run
   - the matrix workflow's artifact download/decrypt logic now lives in `tools/download-run-db-artifacts.sh`, driven by
     the same GitHub Actions environment variables as the previous inline bash step so other workflows can reuse it

@@ -10,6 +10,19 @@ inputs:
     description: Optional local SQLite DB path to write the merged database into
     required: false
     default: ""
+  upload-db-artifact:
+    description: Whether to upload the merged database as a workflow run artifact
+    required: false
+    default: "true"
+  db-artifact-encryption-passphrase:
+    description:
+      Optional passphrase used to encrypt uploaded DB artifacts; required for any merged DB with non-public scans
+    required: false
+    default: ""
+  db-artifact-retention-days:
+    description: Optional retention days override for uploaded database artifacts
+    required: false
+    default: ""
   source-db-paths:
     description: Newline-separated local SQLite DB paths to merge into db-path
     required: true
@@ -86,3 +99,60 @@ runs:
         done <<< "$SOURCE_DB_PATHS"
 
         npm run ghcr-manager:dist -- db-merge "${merge_args[@]}"
+
+    - name: Prepare DB artifact upload
+      if: ${{ inputs.upload-db-artifact == 'true' }}
+      id: prepare-upload
+      shell: bash
+      env:
+        DB_PATH: ${{ steps.prepare-db.outputs.db_path }}
+        DB_ARTIFACT_ENCRYPTION_PASSPHRASE: ${{ inputs.db-artifact-encryption-passphrase }}
+      run: |
+        set -euo pipefail
+
+        has_non_public_scan="$(node --input-type=module <<'EOF'
+        import Database from "better-sqlite3";
+
+        const db = new Database(process.env.DB_PATH, { readonly: true });
+        const row = db
+          .prepare("SELECT EXISTS(SELECT 1 FROM package_scans WHERE is_public = 0) AS has_non_public_scan")
+          .get();
+        db.close();
+        process.stdout.write(row.has_non_public_scan === 1 ? "true" : "false");
+        EOF
+        )"
+
+        artifact_path="${{ steps.prepare-db.outputs.db_path }}"
+        artifact_file="${{ steps.prepare-db.outputs.db_file }}"
+
+        if [[ "$has_non_public_scan" == "true" && -z "$DB_ARTIFACT_ENCRYPTION_PASSPHRASE" ]]; then
+          echo "Refusing to upload merged DB artifact with non-public scans without encryption." >&2
+          echo "Provide db-artifact-encryption-passphrase to encrypt the uploaded artifact." >&2
+          exit 1
+        fi
+
+        if [[ -n "$DB_ARTIFACT_ENCRYPTION_PASSPHRASE" ]]; then
+          if ! command -v openssl >/dev/null 2>&1; then
+            echo "openssl is required to encrypt DB artifacts but was not found on PATH." >&2
+            exit 1
+          fi
+
+          artifact_path="${{ steps.prepare-db.outputs.db_path }}.enc"
+          artifact_file="${{ steps.prepare-db.outputs.db_file }}.enc"
+          openssl enc -aes-256-cbc -pbkdf2 -salt \
+            -in "${{ steps.prepare-db.outputs.db_path }}" \
+            -out "$artifact_path" \
+            -pass env:DB_ARTIFACT_ENCRYPTION_PASSPHRASE
+        fi
+
+        echo "artifact_path=$artifact_path" >> "$GITHUB_OUTPUT"
+        echo "artifact_file=$artifact_file" >> "$GITHUB_OUTPUT"
+
+    - name: Upload DB artifact
+      if: ${{ inputs.upload-db-artifact == 'true' }}
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ steps.prepare-upload.outputs.artifact_file }}
+        path: ${{ steps.prepare-upload.outputs.artifact_path }}
+        retention-days:
+          ${{ inputs.db-artifact-retention-days != '' && inputs.db-artifact-retention-days || github.retention_days }}
