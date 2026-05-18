@@ -31,6 +31,7 @@ This section is the canonical place for session-to-session continuity.
 - ☑ `1166d0c` Improve GitHub and GHCR error reporting.
 - ☑ `c61c531` Refine tag foreign keys and trim schema tests.
 - ☑ `0a5f620` Extract matrix DB artifact download script.
+- ☑ `0969bff` Add DB merge artifact upload support.
 
 ### Completed Plan
 
