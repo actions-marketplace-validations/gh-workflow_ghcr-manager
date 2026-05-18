@@ -286,49 +286,11 @@ runs:
           --token "${{ inputs.github-token }}" \
           --github-output "$GITHUB_OUTPUT"
 
-    - name: Prepare DB artifact upload
-      if: ${{ steps.resolve-upload.outputs.upload_db_artifact == 'true' }}
-      id: prepare-upload
-      shell: bash
-      env:
-        DB_PATH: ${{ steps.prepare-db.outputs.db_path }}
-        DB_ARTIFACT_ENCRYPTION_PASSPHRASE: ${{ inputs.db-artifact-encryption-passphrase }}
-      run: |
-        set -euo pipefail
-
-        has_non_public_scan="$(node tools/db-has-non-public-scans.mjs "$DB_PATH")"
-
-        if [[ "$has_non_public_scan" == "true" && -z "$DB_ARTIFACT_ENCRYPTION_PASSPHRASE" ]]; then
-          echo "Refusing to upload DB artifact with scans of non-public registries without encryption." >&2
-          echo "Provide db-artifact-encryption-passphrase to encrypt the uploaded artifact." >&2
-          exit 1
-        fi
-
-        artifact_path="${{ steps.prepare-db.outputs.db_path }}"
-        artifact_file="${{ steps.prepare-db.outputs.db_file }}"
-
-        if [[ -n "$DB_ARTIFACT_ENCRYPTION_PASSPHRASE" ]]; then
-          if ! command -v openssl >/dev/null 2>&1; then
-            echo "openssl is required to encrypt DB artifacts but was not found on PATH." >&2
-            exit 1
-          fi
-
-          artifact_path="${{ steps.prepare-db.outputs.db_path }}.enc"
-          artifact_file="${{ steps.prepare-db.outputs.db_file }}.enc"
-          openssl enc -aes-256-cbc -pbkdf2 -salt \
-            -in "${{ steps.prepare-db.outputs.db_path }}" \
-            -out "$artifact_path" \
-            -pass env:DB_ARTIFACT_ENCRYPTION_PASSPHRASE
-        fi
-
-        echo "artifact_path=$artifact_path" >> "$GITHUB_OUTPUT"
-        echo "artifact_file=$artifact_file" >> "$GITHUB_OUTPUT"
-
     - name: Upload DB artifact
       if: ${{ steps.resolve-upload.outputs.upload_db_artifact == 'true' }}
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      uses: ./.github/actions/upload-db-artifact
       with:
-        name: ${{ steps.prepare-upload.outputs.artifact_file }}
-        path: ${{ steps.prepare-upload.outputs.artifact_path }}
-        retention-days:
-          ${{ inputs.db-artifact-retention-days != '' && inputs.db-artifact-retention-days || github.retention_days }}
+        db-path: ${{ steps.prepare-db.outputs.db_path }}
+        db-file: ${{ steps.prepare-db.outputs.db_file }}
+        db-artifact-encryption-passphrase: ${{ inputs.db-artifact-encryption-passphrase }}
+        db-artifact-retention-days: ${{ inputs.db-artifact-retention-days }}

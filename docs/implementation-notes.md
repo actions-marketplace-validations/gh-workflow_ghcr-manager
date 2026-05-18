@@ -203,6 +203,9 @@ This section is the canonical place for session-to-session continuity.
   - for `scan` / uploaded `cleanup` DBs, the root action now owns the non-public artifact policy entirely: it does an
     early plaintext-only refusal check from current package metadata plus existing DB contents, then uses the same final
     DB-content check as `db-merge` immediately before upload
+  - the duplicated final DB-artifact upload tail is now shared through the internal composite action
+    `.github/actions/upload-db-artifact/action.yml`, which keeps the validate/resolve/encrypt/upload flow readable in
+    YAML while removing duplicate logic from `action.yml` and `db-merge/action.yml`
   - the `db-merge` sub-action now also supports optional DB artifact upload with the same retention-day override and the
     same encryption rule as `scan`: if the merged DB contains any non-public scan, plaintext upload is refused
   - current-run artifact collection plus merge now also lives in `merge-run-artifacts/action.yml`, which wraps the
