@@ -84,13 +84,19 @@ runs:
       run: |
         set -euo pipefail
 
+        mapfile -t source_db_paths < <(find "$SOURCE_DB_DIR" -maxdepth 2 -type f -name '*.sqlite' | sort)
+        if [[ "${#source_db_paths[@]}" -eq 0 ]]; then
+          echo "No SQLite source DBs found under $SOURCE_DB_DIR." >&2
+          exit 1
+        fi
+
         merge_args=(
           --db "${{ steps.prepare-db.outputs.db_path }}"
         )
 
-        while IFS= read -r source_db_path; do
+        for source_db_path in "${source_db_paths[@]}"; do
           merge_args+=(--source-db "$source_db_path")
-        done < <(find "$SOURCE_DB_DIR" -maxdepth 1 -type f -name '*.sqlite' | sort)
+        done
 
         npm run ghcr-manager:dist -- db-merge "${merge_args[@]}"
 
