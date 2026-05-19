@@ -88,6 +88,7 @@ jobs:
         uses: ./merge-run-artifacts
         with:
           upload-db-artifact: "true"
+          db-file: ghcr-manager-merged--scenario-matrix-cleanup.sqlite
           db-artifact-encryption-passphrase: ${{ inputs.db_artifact_encryption_passphrase }}
           db-artifact-retention-days: ${{ inputs.artifact_retention_days }}
           delete-source-artifacts: "true"
