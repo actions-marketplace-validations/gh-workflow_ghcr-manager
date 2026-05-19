@@ -93,6 +93,7 @@ jobs:
             echo "resolution_path=$resolution_path"
             echo "db_path=$db_path"
             echo "package_name=$package_name"
+            echo "seed_strategy=$(jq -r '.seedStrategy' \"$resolution_path\")"
             echo "image_ref=ghcr.io/${TEST_OWNER}/${package_name}"
             echo "delete_tags<<EOF"
             jq -r '.deleteTags[]?' "$resolution_path"
@@ -110,10 +111,10 @@ jobs:
           node tools/delete-ghcr-package.mjs "$OWNER" "$PACKAGE" "$GITHUB_TOKEN"
 
       - name: Seed untag scenario package
-        uses: ./.github/actions/test-untag-scenario-seed
+        uses: ./.github/actions/test-scenario-seed
         with:
           image_ref: ${{ steps.scenario.outputs.image_ref }}
-          scenario_id: ${{ inputs.scenario }}
+          seed_strategy: ${{ steps.scenario.outputs.seed_strategy }}
           registry_username: ${{ vars.GHCR_TEST_PAT_USERNAME }}
           registry_password: ${{ secrets.GHCR_TEST_PAT }}
 

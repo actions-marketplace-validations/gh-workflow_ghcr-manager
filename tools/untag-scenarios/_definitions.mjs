@@ -2,6 +2,7 @@ export const untagScenarios = {
   "untag-single-tag-single-root": {
     id: "untag-single-tag-single-root",
     packageSuffix: "untag--single-tag-single-root",
+    seedStrategy: "tagged-fully-deletable",
     tagNames: {
       deleteTag: "delete-me"
     }
@@ -9,6 +10,7 @@ export const untagScenarios = {
   "untag-one-of-two-tags-single-root": {
     id: "untag-one-of-two-tags-single-root",
     packageSuffix: "untag--one-of-two-tags-single-root",
+    seedStrategy: "untag-only-single-shared-root",
     tagNames: {
       deleteTag: "delete-me",
       keepTag: "keep-me"
@@ -17,6 +19,7 @@ export const untagScenarios = {
   "untag-one-of-two-tags-docker-manifest-list": {
     id: "untag-one-of-two-tags-docker-manifest-list",
     packageSuffix: "untag--one-of-two-tags-docker-manifest-list",
+    seedStrategy: "docker-manifest-list-untag-only-shared-root",
     tagNames: {
       deleteTag: "delete-me",
       keepTag: "keep-me"

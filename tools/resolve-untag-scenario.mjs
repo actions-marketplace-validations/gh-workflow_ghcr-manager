@@ -23,6 +23,7 @@ process.stdout.write(
   JSON.stringify({
     scenarioId: scenario.id,
     packageName: `${repositoryName}-${scenario.packageSuffix}`,
+    seedStrategy: scenario.seedStrategy,
     tagNames,
     deleteTags: tagNames.deleteTag ? [tagNames.deleteTag] : [],
     scanAssertions: scenario.scanAssertions ?? []
