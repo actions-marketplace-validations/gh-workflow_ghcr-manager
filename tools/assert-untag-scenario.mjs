@@ -3,25 +3,25 @@
 
 import assert from "node:assert/strict";
 import Database from "better-sqlite3";
-import { scenarios } from "./test-scenarios/_definitions.mjs";
+import { untagScenarios } from "./untag-scenarios/_definitions.mjs";
 
 const scenarioId = process.argv[2];
 const dbPath = process.argv[3];
 
 if (!scenarioId || !dbPath) {
-  throw new Error("usage: node tools/assert-test-scenario-untag.mjs <scenario> <db-path>");
+  throw new Error("usage: node tools/assert-untag-scenario.mjs <scenario> <db-path>");
 }
 
-const scenario = scenarios[scenarioId];
+const scenario = untagScenarios[scenarioId];
 if (!scenario) {
-  throw new Error(`unknown scenario: ${scenarioId}`);
+  throw new Error(`unknown untag scenario: ${scenarioId}`);
 }
 
 const tagNames = Object.fromEntries(
   Object.entries(scenario.tagNames ?? {}).map(([key, value]) => [key, `${scenario.id}--${value}`])
 );
 const deleteTag = tagNames.deleteTag;
-assert.ok(deleteTag, `scenario '${scenarioId}' is missing a deleteTag tag name`);
+assert.ok(deleteTag, `untag scenario '${scenarioId}' is missing a deleteTag tag name`);
 
 const database = new Database(dbPath, { readonly: true });
 const latestScan = database
