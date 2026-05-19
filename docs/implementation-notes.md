@@ -49,6 +49,10 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   action-facing helpers.
 - Older design-stage documents were archived from `docs/` into `docs/archive/`; active docs in `docs/` should describe
   the current product shape rather than early planning history.
+- Upstream parity audit against `dataaxiom/ghcr-cleanup-action` commit range `87fa4bae..34a2b6c` found:
+  - partial-image vs ghost-image split already matches upstream bugfix behavior
+  - OCI 1.1 `subject` / referrer preservation is already represented in scan ingest, reachability, and cleanup planning
+  - remaining hardening gap: `--use-regex` selectors are not pre-validated for pathological / ReDoS-prone patterns
 
 ## Current Action / DB Notes
 
@@ -95,6 +99,7 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
 ## Current Next Plan
 
 - [ ] Clean up remaining repo rough edges before first public release.
+- [ ] Port regex selector validation hardening for `--use-regex` cleanup selectors.
 - [ ] Update documentation for the first public release:
   - action usage
   - CLI usage

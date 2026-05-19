@@ -93,7 +93,7 @@ jobs:
             echo "resolution_path=$resolution_path"
             echo "db_path=$db_path"
             echo "package_name=$package_name"
-            echo "seed_strategy=$(jq -r '.seedStrategy' \"$resolution_path\")"
+            echo "seed_strategy=$(jq -r '.seedStrategy' "$resolution_path")"
             echo "image_ref=ghcr.io/${TEST_OWNER}/${package_name}"
             echo "delete_tags<<EOF"
             jq -r '.deleteTags[]?' "$resolution_path"
