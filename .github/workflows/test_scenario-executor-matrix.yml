@@ -91,3 +91,13 @@ jobs:
           db-artifact-encryption-passphrase: ${{ inputs.db_artifact_encryption_passphrase }}
           db-artifact-retention-days: ${{ inputs.artifact_retention_days }}
           delete-source-artifacts: "true"
+          artifact-name-pattern: '\.sqlite(\.enc)?$'
+
+      - name: Print merged artifact outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "db-path: ${{ steps.merge.outputs.db-path }}"
+          echo "artifact-id: ${{ steps.merge.outputs.artifact-id }}"
+          echo "artifact-url: ${{ steps.merge.outputs.artifact-url }}"
+          echo "artifact-digest: ${{ steps.merge.outputs.artifact-digest }}"

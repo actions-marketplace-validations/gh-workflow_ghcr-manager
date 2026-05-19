@@ -216,8 +216,12 @@ This section is the canonical place for session-to-session continuity.
   - the duplicated final DB-artifact upload tail is now shared through the internal composite action
     `.github/actions/upload-db-artifact/action.yml`, which keeps the validate/resolve/encrypt/upload flow readable in
     YAML while removing duplicate logic from `action.yml` and `db-merge/action.yml`
-  - the `db-merge` sub-action now also supports optional DB artifact upload with the same retention-day override and the
-    same encryption rule as `scan`: if the merged DB contains any non-public scan, plaintext upload is refused
+- the `db-merge` sub-action now also supports optional DB artifact upload with the same retention-day override and the
+  same encryption rule as `scan`: if the merged DB contains any non-public scan, plaintext upload is refused
+  - `merge-run-artifacts` now names its merged output `ghcr-manager-merged.sqlite` and excludes the just-uploaded merged
+    artifact from source-artifact cleanup by using the nested `db-merge` upload artifact ID
+  - `merge-run-artifacts` now exposes `db-file` as an input, defaulting to `ghcr-manager-merged.sqlite`, while
+    re-exporting the nested `db-merge` outputs directly
   - current-run artifact collection plus merge now also lives in `merge-run-artifacts/action.yml`, which wraps the
     helper scripts plus the nested `db-merge` sub-action into one user-facing "collect current-run DB artifacts and
     merge them" entrypoint and exposes the resulting merged DB path as output rather than requiring callers to pick one

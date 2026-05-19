@@ -12,6 +12,10 @@ inputs:
     description: Regular expression used to select current-run artifact names for download and optional deletion
     required: false
     default: \.sqlite(\.enc)?$
+  db-file:
+    description: Artifact filename and local filename for the merged database
+    required: false
+    default: ghcr-manager-merged.sqlite
   upload-db-artifact:
     description: Whether to upload the merged database as a workflow run artifact
     required: false
@@ -84,7 +88,7 @@ runs:
       uses: ./db-merge
       with:
         source-db-dir: ${{ steps.decrypt.outputs.source_db_dir }}
-        db-file: merged.sqlite
+        db-file: ${{ inputs.db-file }}
         upload-db-artifact: ${{ inputs.upload-db-artifact }}
         db-artifact-encryption-passphrase: ${{ inputs.db-artifact-encryption-passphrase }}
         db-artifact-retention-days: ${{ inputs.db-artifact-retention-days }}
@@ -95,6 +99,7 @@ runs:
       shell: bash
       env:
         ARTIFACT_NAME_PATTERN: ${{ inputs.artifact-name-pattern }}
+        EXCLUDE_ARTIFACT_ID: ${{ steps.merge.outputs.artifact-id }}
         GH_TOKEN: ${{ github.token }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         GITHUB_RUN_ID: ${{ github.run_id }}
