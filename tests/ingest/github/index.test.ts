@@ -14,6 +14,14 @@ test("GitHub ingest writes package and manifest data directly into SQLite", asyn
     }
   >([
     [
+      "https://api.github.com/users/acme",
+      {
+        body: {
+          type: "Organization"
+        }
+      }
+    ],
+    [
       "https://api.github.com/orgs/acme/packages/container/example",
       {
         body: {

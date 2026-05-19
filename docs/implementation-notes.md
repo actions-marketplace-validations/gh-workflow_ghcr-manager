@@ -574,8 +574,8 @@ src/
   common image-vs-artifact classification can be done without JSON-path expressions in every query.
 - GHCR pull tokens are now cached per scan and reused until shortly before expiry; when the token response omits
   explicit expiry fields, the client falls back to a 60-second lifetime per the registry token spec.
-- GHCR manifest fetches and GitHub package-version page fetches both use bounded parallelism; the tuning constants now
-  live together near the code root in `src/tuning/index.ts`.
+- GHCR manifest fetches and GitHub package-version page fetches both use bounded parallelism; the shared config
+  constants now live together near the code root in `src/config/index.ts`.
 - GitHub package pages, GHCR manifest fetches, and GHCR token fetches now retry a small bounded number of times for
 
 ### 2026-05-15

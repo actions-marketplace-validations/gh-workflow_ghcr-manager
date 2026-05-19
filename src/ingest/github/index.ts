@@ -1,4 +1,4 @@
-import { ghcrRegistryBaseUrl } from "../../core/index.js";
+import { ghcrRegistryBaseUrl } from "../../config/index.js";
 import { ScanWriter, SnapshotRepository } from "../../db/index.js";
 import { ingestManifests } from "./_manifest-ingest.js";
 import { loadPackageMetadata, type GitHubPackageMetadata } from "./_package-metadata-load.js";

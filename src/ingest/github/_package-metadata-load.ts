@@ -1,4 +1,5 @@
-import { getOwnerURIComponent, githubApiBaseUrl } from "../../core/index.js";
+import { githubApiBaseUrl, githubApiVersion } from "../../config/index.js";
+import { getOwnerURIComponent } from "../../core/index.js";
 import {
   buildFetchTransportErrorMessage,
   buildHttpErrorMessage,
@@ -31,7 +32,7 @@ export async function loadPackageMetadata(
             Accept: "application/vnd.github+json",
             Authorization: `Bearer ${options.token}`,
             "User-Agent": "ghcr-manager",
-            "X-GitHub-Api-Version": "2022-11-28"
+            "X-GitHub-Api-Version": githubApiVersion
           }
         });
         if (!packageResponse.ok && _shouldRetryStatus(packageResponse.status)) {

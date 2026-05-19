@@ -1,4 +1,4 @@
-import { ghcrRegistryBaseUrl } from "../core/index.js";
+import { ghcrRegistryBaseUrl } from "../config/index.js";
 import {
   buildHttpErrorMessage,
   buildTransportErrorMessage,

@@ -1,5 +1,5 @@
 import type { GitHubScanLogger } from "./_shared.js";
-import { packageVersionPageFetchConcurrency, paginatedIngestProgressIntervalPages } from "../../tuning/index.js";
+import { packageVersionPageFetchConcurrency, paginatedIngestProgressIntervalPages } from "../../config/index.js";
 
 const _DEFAULT_PAGE_SIZE = 100;
 const _PROGRESS_LABEL = "GitHub package-version pages";

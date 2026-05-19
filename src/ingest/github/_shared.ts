@@ -1,4 +1,4 @@
-import { ingestRequestRetryCount, ingestRequestRetryDelayMs } from "../../tuning/index.js";
+import { ingestRequestRetryCount, ingestRequestRetryDelayMs } from "../../config/index.js";
 export { buildHttpErrorMessage } from "../../core/index.js";
 
 export interface GitHubScanOptions {

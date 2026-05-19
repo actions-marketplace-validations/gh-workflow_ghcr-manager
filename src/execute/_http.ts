@@ -1,9 +1,8 @@
+import { executeRequestRetryCount, executeRequestRetryDelayMs } from "../config/index.js";
 import type { DeleteExecutionLogger, GitHubPackageFetch, GitHubPackageFetchResponse } from "./_types.js";
 export { buildHttpErrorMessage } from "../core/index.js";
 
 const _RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504]);
-const _RETRY_LIMIT = 3;
-const _RETRY_DELAY_MS = 1000;
 
 export async function runWithRetry<T>(label: string, logger: DeleteExecutionLogger, run: () => Promise<T>): Promise<T> {
   let attempt = 0;
@@ -12,15 +11,15 @@ export async function runWithRetry<T>(label: string, logger: DeleteExecutionLogg
       return await run();
     } catch (error) {
       attempt += 1;
-      if (attempt > _RETRY_LIMIT || !_shouldRetryError(error)) {
+      if (attempt > executeRequestRetryCount || !_shouldRetryError(error)) {
         throw error;
       }
 
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.warn(
-        `${label} failed on attempt ${attempt}/${_RETRY_LIMIT + 1}; retrying in ${_RETRY_DELAY_MS}ms - ${errorMessage}`
+        `${label} failed on attempt ${attempt}/${executeRequestRetryCount + 1}; retrying in ${executeRequestRetryDelayMs}ms - ${errorMessage}`
       );
-      await sleep(_RETRY_DELAY_MS);
+      await sleep(executeRequestRetryDelayMs);
     }
   }
 }

@@ -1,6 +1,10 @@
-import { ingestRequestRetryCount, ingestRequestRetryDelayMs } from "../tuning/index.js";
+import {
+  githubApiBaseUrl,
+  githubApiVersion,
+  ingestRequestRetryCount,
+  ingestRequestRetryDelayMs
+} from "../config/index.js";
 import { buildHttpErrorMessage } from "./_http-error.js";
-import { githubApiBaseUrl } from "./_service-urls.js";
 
 interface _FetchLikeResponse {
   ok: boolean;
@@ -34,7 +38,7 @@ export async function getOwnerURIComponent(
         Accept: "application/vnd.github+json",
         Authorization: `Bearer ${token}`,
         "User-Agent": "ghcr-manager",
-        "X-GitHub-Api-Version": "2022-11-28"
+        "X-GitHub-Api-Version": githubApiVersion
       }
     });
     if (response.ok) {

@@ -230,6 +230,17 @@ test("handleCleanup live mode applies untag-only roots and records cleanup audit
   globalThis.fetch = (async (input: string | URL, init?: RequestInit) => {
     const url = String(input);
 
+    if (url === "https://api.github.com/users/acme") {
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        async json() {
+          return { type: "Organization" };
+        }
+      } as Response;
+    }
+
     if (url.startsWith("https://ghcr.io/token")) {
       return {
         ok: true,

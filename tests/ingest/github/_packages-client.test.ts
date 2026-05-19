@@ -26,7 +26,19 @@ test("package client writes package versions and tags with bounded parallel page
     async (input) => {
       activeRequests += 1;
       maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
-      const page = Number(new URL(input).searchParams.get("page"));
+      const url = new URL(input);
+      if (url.pathname === "/users/acme") {
+        activeRequests -= 1;
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          async json() {
+            return { type: "Organization" };
+          }
+        };
+      }
+      const page = Number(url.searchParams.get("page"));
       await new Promise((resolve) => setTimeout(resolve, page === 1 ? 1 : 5));
       activeRequests -= 1;
 
@@ -59,7 +71,6 @@ test("package client writes package versions and tags with bounded parallel page
         }
       };
     },
-    "https://api.github.test",
     {
       owner: "acme",
       packageName: "example",
@@ -86,18 +97,30 @@ test("package client surfaces GitHub error details", async () => {
   await assert.rejects(
     () =>
       ingestPackageVersions(
-        async () => ({
-          ok: false,
-          status: 401,
-          headers: new Headers({ "content-type": "application/json" }),
-          async json() {
+        async (input) => {
+          const url = new URL(input);
+          if (url.pathname === "/users/acme") {
             return {
-              message: "Requires authentication",
-              documentation_url: "https://docs.github.com/rest/packages/packages"
+              ok: true,
+              status: 200,
+              headers: new Headers(),
+              async json() {
+                return { type: "Organization" };
+              }
             };
           }
-        }),
-        "https://api.github.test",
+          return {
+            ok: false,
+            status: 401,
+            headers: new Headers({ "content-type": "application/json" }),
+            async json() {
+              return {
+                message: "Requires authentication",
+                documentation_url: "https://docs.github.com/rest/packages/packages"
+              };
+            }
+          };
+        },
         {
           owner: "acme",
           packageName: "example",
@@ -123,7 +146,18 @@ test("package client aborts when page 1 changes during the scan", async () => {
     () =>
       ingestPackageVersions(
         async (input) => {
-          const page = Number(new URL(input).searchParams.get("page"));
+          const url = new URL(input);
+          if (url.pathname === "/users/acme") {
+            return {
+              ok: true,
+              status: 200,
+              headers: new Headers(),
+              async json() {
+                return { type: "Organization" };
+              }
+            };
+          }
+          const page = Number(url.searchParams.get("page"));
           return {
             ok: true,
             status: 200,
@@ -145,7 +179,6 @@ test("package client aborts when page 1 changes during the scan", async () => {
             }
           };
         },
-        "https://api.github.test",
         {
           owner: "acme",
           packageName: "example",
@@ -168,10 +201,20 @@ test("package client surfaces fetch transport failures with page context", async
   await assert.rejects(
     () =>
       ingestPackageVersions(
-        async () => {
+        async (input) => {
+          const url = new URL(input);
+          if (url.pathname === "/users/acme") {
+            return {
+              ok: true,
+              status: 200,
+              headers: new Headers(),
+              async json() {
+                return { type: "Organization" };
+              }
+            };
+          }
           throw new TypeError("fetch failed");
         },
-        "https://api.github.test",
         {
           owner: "acme",
           packageName: "example",

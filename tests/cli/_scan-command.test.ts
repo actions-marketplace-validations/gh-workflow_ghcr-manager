@@ -33,6 +33,14 @@ test("handleScan imports a live scan and writes GitHub output", async () => {
       }
     >([
       [
+        "https://api.github.com/users/acme",
+        {
+          body: {
+            type: "Organization"
+          }
+        }
+      ],
+      [
         "https://api.github.com/orgs/acme/packages/container/example",
         {
           body: {

@@ -1,5 +1,5 @@
 import type { ScanWriter, SnapshotRepository } from "../../db/index.js";
-import { manifestFetchConcurrency, manifestIngestProgressStepRatio } from "../../tuning/index.js";
+import { manifestFetchConcurrency, manifestIngestProgressStepRatio } from "../../config/index.js";
 import { buildManifestRelations, loadManifestGraph } from "./_manifest-client.js";
 import { loadRegistryPullToken, type RegistryPullToken } from "./_registry-token-client.js";
 import { type FetchLike, type GitHubScanOptions } from "./_shared.js";

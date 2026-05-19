@@ -1,4 +1,5 @@
-import { getOwnerURIComponent, githubApiBaseUrl, githubApiVersion } from "../core/index.js";
+import { githubApiBaseUrl, githubApiVersion } from "../config/index.js";
+import { getOwnerURIComponent } from "../core/index.js";
 import {
   buildHttpErrorMessage,
   buildTransportErrorMessage,

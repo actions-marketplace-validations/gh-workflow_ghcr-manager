@@ -63,7 +63,17 @@ test("main dispatches the cleanup command", async () => {
   const originalFetch = globalThis.fetch;
   const originalLog = console.log;
   const writes: string[] = [];
-  globalThis.fetch = async () => {
+  globalThis.fetch = async (input: string | URL) => {
+    if (String(input) === "https://api.github.com/users/acme") {
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        async json() {
+          return { type: "Organization" };
+        }
+      } as Response;
+    }
     return {
       ok: true,
       status: 204,
