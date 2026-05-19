@@ -12,7 +12,7 @@ if (!owner || !packageName || !token) {
   process.exit(1);
 }
 
-const metadata = await loadPackageMetadata(fetch, "https://api.github.com", {
+const metadata = await loadPackageMetadata(fetch, {
   owner,
   packageName,
   token,
