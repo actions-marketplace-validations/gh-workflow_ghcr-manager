@@ -17,6 +17,17 @@ inputs:
     required: false
     default: ""
 
+outputs:
+  artifact-id:
+    description: Artifact ID returned by actions/upload-artifact
+    value: ${{ steps.upload.outputs.artifact-id }}
+  artifact-url:
+    description: Artifact download URL returned by actions/upload-artifact
+    value: ${{ steps.upload.outputs.artifact-url }}
+  artifact-digest:
+    description: Artifact digest returned by actions/upload-artifact
+    value: ${{ steps.upload.outputs.artifact-digest }}
+
 runs:
   using: composite
   steps:
@@ -78,6 +89,7 @@ runs:
           -pass env:DB_ARTIFACT_ENCRYPTION_PASSPHRASE
 
     - name: Upload DB artifact
+      id: upload
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ steps.resolve-artifact.outputs.artifact_file }}
