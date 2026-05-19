@@ -1,9 +1,18 @@
 name: "Test: Scenario Executor Matrix"
-run-name: Test Scenario Executor Matrix
+run-name: "Test Scenario Executor Matrix (executors: ${{ inputs.executors }})"
 
 "on":
   workflow_dispatch:
     inputs:
+      executors:
+        description: Which executor matrix rows to include in this run.
+        required: true
+        default: ghcr-manager
+        type: choice
+        options:
+          - all
+          - ghcr-manager
+          - ghcr-cleanup-action
       upload_db_artifact:
         description: Upload the final rescan DB artifact from inside the action.
         required: false
@@ -37,10 +46,16 @@ jobs:
 
       - name: Render scenario matrix
         id: matrix
+        env:
+          EXECUTORS: ${{ inputs.executors }}
         shell: bash
         run: |
           set -euo pipefail
-          echo "matrix=$(node tools/render-test-scenario-matrix.mjs)" >> "$GITHUB_OUTPUT"
+          matrix_json="$(node tools/render-test-scenario-matrix.mjs)"
+          if [[ "$EXECUTORS" != "all" ]]; then
+            matrix_json="$(jq -c --arg executor "$EXECUTORS" '.include |= map(select(.executor == $executor))' <<< "$matrix_json")"
+          fi
+          echo "matrix=$matrix_json" >> "$GITHUB_OUTPUT"
 
   execute:
     needs: prepare
