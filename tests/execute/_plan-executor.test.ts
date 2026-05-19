@@ -141,6 +141,7 @@ test("executeDeletePlan applies untag-only roots before deleting fully deletable
 
   const fetchCalls: Array<{ url: string; method?: string }> = [];
   let detachedDigest = "sha256:detached";
+  let latestVisible = true;
   const summary = await executeDeletePlan(plan, {
     token: "token",
     logger: {
@@ -207,6 +208,16 @@ test("executeDeletePlan applies untag-only roots before deleting fully deletable
         };
       }
       if (url === "https://api.github.com/orgs/acme/packages/container/example/versions?per_page=100&page=1") {
+        if (!latestVisible) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ "content-type": "application/json" }),
+            async json() {
+              return [];
+            }
+          };
+        }
         return {
           ok: true,
           status: 200,
@@ -223,6 +234,17 @@ test("executeDeletePlan applies untag-only roots before deleting fully deletable
                 }
               }
             ];
+          }
+        };
+      }
+      if (url === "https://api.github.com/orgs/acme/packages/container/example/versions/303") {
+        latestVisible = false;
+        return {
+          ok: true,
+          status: 204,
+          headers: new Headers(),
+          async json() {
+            return {};
           }
         };
       }

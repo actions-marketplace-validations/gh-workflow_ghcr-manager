@@ -224,6 +224,7 @@ test("handleCleanup live mode applies untag-only roots and records cleanup audit
   const originalLog = console.log;
   const writes: string[] = [];
   let detachedDigest = "sha256:detached";
+  let latestVisible = true;
   console.log = (message?: unknown) => {
     writes.push(String(message));
   };
@@ -285,6 +286,16 @@ test("handleCleanup live mode applies untag-only roots and records cleanup audit
     }
 
     if (url === "https://api.github.com/orgs/acme/packages/container/example/versions?per_page=100&page=1") {
+      if (!latestVisible) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({ "content-type": "application/json" }),
+          async json() {
+            return [];
+          }
+        } as Response;
+      }
       return {
         ok: true,
         status: 200,
@@ -301,6 +312,21 @@ test("handleCleanup live mode applies untag-only roots and records cleanup audit
               }
             }
           ];
+        }
+      } as Response;
+    }
+
+    if (
+      url === "https://api.github.com/orgs/acme/packages/container/example/versions/303" &&
+      init?.method === "DELETE"
+    ) {
+      latestVisible = false;
+      return {
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+        async json() {
+          return {};
         }
       } as Response;
     }
