@@ -1,5 +1,5 @@
-name: "Test: User Owner Scan"
-run-name: Test User Owner Scan
+name: "Test: User Owner Cleanup"
+run-name: Test User Owner Cleanup
 
 "on":
   workflow_dispatch:
@@ -113,7 +113,7 @@ jobs:
           DB_PATH: ${{ env.DB_PATH }}
         run: |
           set -euo pipefail
-          delete_count="$(sqlite3 "$DB_PATH" "select count(*) from tags where tag = 'delete-me';")"
-          keep_count="$(sqlite3 "$DB_PATH" "select count(*) from tags where tag = 'keep-me';")"
+          delete_count="$(sqlite3 "$DB_PATH" "select count(*) from tags where scan_id = (select scan_id from v_latest_scan_per_package limit 1) and tag = 'delete-me';")"
+          keep_count="$(sqlite3 "$DB_PATH" "select count(*) from tags where scan_id = (select scan_id from v_latest_scan_per_package limit 1) and tag = 'keep-me';")"
           [[ "$delete_count" == "0" ]] || { echo "delete-me tag still present in DB" >&2; exit 1; }
           [[ "$keep_count" == "1" ]] || { echo "keep-me tag missing from DB" >&2; exit 1; }
