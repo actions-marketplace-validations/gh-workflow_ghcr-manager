@@ -132,15 +132,26 @@ runs:
       run: |
         set -euo pipefail
         echo "GHCR_MANAGER_SCENARIO_SEED_HANDLED=true" >> "$GITHUB_ENV"
-        context_dir="$(mktemp -d)"
-        cp "$GITHUB_ACTION_PATH/../../../tools/tests/fixtures/minimal-image/Dockerfile" "$context_dir/Dockerfile"
-        printf '%s\n' "$SCENARIO_ID" > "$context_dir/payload.txt"
+
+        keep_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../../tools/tests/fixtures/minimal-image/Dockerfile" "$keep_dir/Dockerfile"
+        printf '%s\n' "${SCENARIO_ID} keep" > "$keep_dir/payload.txt"
+        docker buildx build \
+          --platform linux/amd64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--keep-me" \
+          "$keep_dir"
+
+        delete_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../../tools/tests/fixtures/minimal-image/Dockerfile" "$delete_dir/Dockerfile"
+        printf '%s\n' "${SCENARIO_ID} delete" > "$delete_dir/payload.txt"
         docker buildx build \
           --platform linux/amd64 \
           --provenance=false \
           --push \
           --tag "$IMAGE_REF:${SCENARIO_ID}--delete-me" \
-          "$context_dir"
+          "$delete_dir"
 
     - name: Prepare blocked-shared-closure contexts
       if: ${{ inputs.seed_strategy == 'blocked-shared-closure' }}

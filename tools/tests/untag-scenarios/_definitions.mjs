@@ -4,7 +4,8 @@ export const untagScenarios = {
     packageSuffix: "untag--single-tag-single-root",
     seedStrategy: "untag-single-tag-single-root",
     tagNames: {
-      deleteTag: "delete-me"
+      deleteTag: "delete-me",
+      keepTag: "keep-me"
     }
   },
   "untag-one-of-two-tags-single-root": {
