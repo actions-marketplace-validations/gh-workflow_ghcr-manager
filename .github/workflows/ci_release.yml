@@ -24,22 +24,24 @@ jobs:
     with:
       executors: ghcr-manager
 
-  test-untag-matrix:
-    needs: [change-validation]
-    uses: ./.github/workflows/test_untag-matrix.yml
-    permissions:
-      contents: read
-      packages: write
-      actions: write
-      id-token: write
-    secrets: inherit
-
   test-user-owner-cleanup:
     needs: [change-validation]
     uses: ./.github/workflows/test_user-owner-cleanup.yml
     permissions:
       contents: read
       packages: write
+    secrets: inherit
+
+  test-untag-matrix:
+    needs:
+      - test-scenario-executor-matrix
+      - test-user-owner-cleanup
+    uses: ./.github/workflows/test_untag-matrix.yml
+    permissions:
+      contents: read
+      packages: write
+      actions: write
+      id-token: write
     secrets: inherit
 
   verify-release-refs:

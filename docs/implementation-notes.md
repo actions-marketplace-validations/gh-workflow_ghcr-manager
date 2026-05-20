@@ -162,8 +162,10 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - after a successful release, the workflow force-moves the major shorthand tag (for example `0`) onto the same commit
   - release now requires these workflow-backed live checks before npm publish and GitHub release:
     - `test_scenario-executor-matrix.yml` with `executors: ghcr-manager`
-    - `test_untag-matrix.yml`
     - `test_user-owner-cleanup.yml`
+    - `test_untag-matrix.yml`
+  - `test_scenario-executor-matrix.yml` and `test_user-owner-cleanup.yml` now run in parallel, then
+    `test_untag-matrix.yml` runs last so its SQLite artifact bundling sees both earlier runs
   - release validation now checks that the tag commit is on `main`
   - release validation checks `README.md` and `.github/workflows/manual-run_scan.yml` for exact action refs
   - `CHANGELOG.md` must already contain the concrete release heading before tagging
