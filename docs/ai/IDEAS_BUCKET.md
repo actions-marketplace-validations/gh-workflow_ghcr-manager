@@ -46,8 +46,7 @@ Then maybe something like see JSON on click or such.
 
 ## ~~Package info storing~~
 
-~~During scan and maybe cleanup - store general info about the package. Can be simple JSON payload - we might already
-read it anyway when we check if the package is non-public.~~
+~~During scan and maybe cleanup - store general info about the package. Can be simple JSON payload.~~
 
 ## ~~Discuss moving `scan` command to subfolder with `scan/action.yml`~~
 

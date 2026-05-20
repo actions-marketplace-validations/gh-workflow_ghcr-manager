@@ -48,4 +48,19 @@ Remove built-in encryption and decryption support across the product:
 ## Follow-up effect on other tasks
 
 - Task 03 can assume readable user-facing output and readable JSON run artifacts.
-- Task 02 can drop encryption guidance from first-release docs.
+- Task 04 can drop encryption guidance from first-release docs.
+
+## Completion
+
+Completed on the current release-prep branch.
+
+- Built-in DB artifact encryption and decryption support was removed from actions, workflows, and helper scripts.
+- Artifact merge flows now operate on plain DB artifacts.
+- The old non-public-scan visibility enforcement path was removed with the encryption model.
+- Tests and active docs were updated to the plain-artifact model.
+
+Checkpoint commits:
+
+- `8bd644e` Remove DB artifact encryption support
+- `5884e13` Remove scan visibility ballast
+- `59c5520` Compact persisted planner inputs

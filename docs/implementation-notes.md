@@ -99,6 +99,10 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
 
 ## Recent Checkpoints
 
+- ☑ `8bd644e` Remove DB artifact encryption support.
+- ☑ `5884e13` Remove scan visibility ballast.
+- ☑ `59c5520` Compact persisted planner inputs.
+- ☑ `17ca89b` Remove stale schema doc link.
 - ☑ `e548866` Split dedicated untag test scenarios.
 - ☑ `2a942a5` Reuse shared seed action for untag tests.
 - ☑ `5a1fd2e` Fix cleanup untag verification tests.
@@ -114,6 +118,7 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
 
 - [ ] Clean up remaining repo rough edges before first public release.
 - [x] Remove built-in DB artifact encryption and decryption support across actions, workflows, and docs.
+- [x] Remove active visibility ballast that only served the old encrypted-artifact model.
 - [x] Reframe the doc-refactor task brief around layered user docs, action-first entry, and task-oriented DB guidance.
 - [x] Add upstream attribution guidance to the doc-refactor brief for respectful reference without copy/replace/better
       framing.
@@ -121,6 +126,7 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
 - [x] Move untag scenario verification onto `v_latest_scan_per_package` and align the user-owner cleanup workflow with
       post-cleanup DB upload.
 - [ ] Port regex selector validation hardening for `--use-regex` cleanup selectors.
+- [ ] Implement user-facing run output for cleanup, especially dry-run review output in GitHub runs.
 - [ ] Update documentation for the first public release:
   - action usage
   - CLI usage
