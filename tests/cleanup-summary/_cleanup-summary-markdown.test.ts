@@ -49,7 +49,13 @@ test("renderCleanupSummaryMarkdown renders sections and truncates long lists", (
   );
 
   assert.match(markdown, /## Cleanup Summary/);
+  assert.match(markdown, /\| 📦 Package \| `acme\/example` \|/);
+  assert.match(markdown, /<summary>⚙️ Cleanup filter<\/summary>/);
+  assert.match(markdown, /<summary>🏷️ Matched tags<\/summary>/);
+  assert.match(markdown, /<summary>🗑️ Fully deletable roots<\/summary>/);
   assert.match(markdown, /Showing first 2 of 3 matched tags/);
   assert.match(markdown, /sha256:aaaaaaaa\.\.\.aaaaaaaa/);
   assert.match(markdown, /a, b, \+1 more/);
+  assert.doesNotMatch(markdown, /<summary>🔗 Untag-only roots<\/summary>/);
+  assert.doesNotMatch(markdown, /<summary>🛡️ Blocked roots<\/summary>/);
 });

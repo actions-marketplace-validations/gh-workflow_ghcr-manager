@@ -20,47 +20,55 @@ export function renderCleanupSummaryMarkdown(
     "",
     "| Field | Value |",
     "| --- | --- |",
-    `| Package | \`${_escapeInlineCode(`${summary.owner}/${summary.packageName}`)}\` |`,
-    `| Mode | ${summary.dryRun ? "Dry-run" : "Live cleanup"} |`,
-    `| Scan completed at | \`${_escapeInlineCode(summary.scanCompletedAt)}\` |`,
-    `| Directly matched tags | ${summary.validationSummary.directTargetTagCount} |`,
-    `| Fully deletable roots | ${summary.validationSummary.fullyDeletableRootCount} |`,
-    `| Untag-only roots | ${summary.validationSummary.untagOnlyRootCount} |`,
-    `| Blocked roots | ${summary.validationSummary.blockedDeleteRootCount} |`,
-    "",
-    "### Cleanup filter",
-    "",
-    "```json",
-    JSON.stringify(summary.plannerInputs, null, 2),
-    "```",
+    `| 📦 Package | \`${_escapeInlineCode(`${summary.owner}/${summary.packageName}`)}\` |`,
+    `| ⚙️ Mode | ${summary.dryRun ? "Cleanup dry-run" : "Cleanup"} |`,
+    `| 🏷️ Matched tags | ${summary.validationSummary.directTargetTagCount} |`,
+    `| 🗑️ Fully deletable roots | ${summary.validationSummary.fullyDeletableRootCount} |`,
+    `| 🔗 Untag-only roots | ${summary.validationSummary.untagOnlyRootCount} |`,
+    `| 🛡️ Blocked roots | ${summary.validationSummary.blockedDeleteRootCount} |`,
     ""
   ];
 
+  lines.push(..._renderJsonDetails("⚙️ Cleanup filter", summary.plannerInputs));
   lines.push(..._renderDirectTargetTags(summary.directTargetTags, maxDirectTargetTags));
   lines.push(
-    ..._renderRootSection("Fully deletable roots", summary.fullyDeletableRoots, maxRootsPerSection, maxTagsPerRoot)
+    ..._renderRootSection("🗑️ Fully deletable roots", summary.fullyDeletableRoots, maxRootsPerSection, maxTagsPerRoot)
   );
-  lines.push(..._renderRootSection("Untag-only roots", summary.untagOnlyRoots, maxRootsPerSection, maxTagsPerRoot));
-  lines.push(..._renderRootSection("Blocked roots", summary.blockedRoots, maxRootsPerSection, maxTagsPerRoot));
+  lines.push(..._renderRootSection("🔗 Untag-only roots", summary.untagOnlyRoots, maxRootsPerSection, maxTagsPerRoot));
+  lines.push(..._renderRootSection("🛡️ Blocked roots", summary.blockedRoots, maxRootsPerSection, maxTagsPerRoot));
 
-  if (!summary.dryRun) {
+  if (!summary.dryRun && (summary.deletedPackageVersions.length > 0 || summary.untaggedTags.length > 0)) {
     lines.push(..._renderLiveEffects(summary));
   }
 
   return `${lines.join("\n").trimEnd()}\n`;
 }
 
+function _renderJsonDetails(title: string, value: unknown): string[] {
+  return [
+    `<details>`,
+    `<summary>${title}</summary>`,
+    "",
+    "```json",
+    JSON.stringify(value, null, 2),
+    "```",
+    "",
+    "</details>",
+    ""
+  ];
+}
+
 function _renderDirectTargetTags(tags: string[], maxDirectTargetTags: number): string[] {
   if (tags.length === 0) {
-    return ["### Directly matched tags", "", "No direct tag matches.", ""];
+    return [];
   }
 
   const visibleTags = tags.slice(0, maxDirectTargetTags).map((tag) => `- \`${_escapeInlineCode(tag)}\``);
-  const lines = ["### Directly matched tags", "", ...visibleTags];
+  const lines = ["<details>", "<summary>🏷️ Matched tags</summary>", "", ...visibleTags];
   if (tags.length > maxDirectTargetTags) {
     lines.push("", `_Showing first ${maxDirectTargetTags} of ${tags.length} matched tags._`);
   }
-  lines.push("");
+  lines.push("", "</details>", "");
   return lines;
 }
 
@@ -70,12 +78,11 @@ function _renderRootSection(
   maxRootsPerSection: number,
   maxTagsPerRoot: number
 ): string[] {
-  const lines = [`### ${title}`, ""];
   if (roots.length === 0) {
-    lines.push("None.", "");
-    return lines;
+    return [];
   }
 
+  const lines = ["<details>", `<summary>${title}</summary>`, ""];
   lines.push("| Version | Digest | Tags | Reason |");
   lines.push("| --- | --- | --- | --- |");
   for (const root of roots.slice(0, maxRootsPerSection)) {
@@ -88,7 +95,7 @@ function _renderRootSection(
     lines.push("", `_Showing first ${maxRootsPerSection} of ${roots.length} ${title.toLowerCase()}._`);
   }
 
-  lines.push("");
+  lines.push("", "</details>", "");
   return lines;
 }
 
