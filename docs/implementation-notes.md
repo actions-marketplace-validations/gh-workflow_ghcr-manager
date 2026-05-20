@@ -164,6 +164,8 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
     - `test_scenario-executor-matrix.yml` with `executors: ghcr-manager`
     - `test_user-owner-cleanup.yml`
     - `test_untag-matrix.yml`
+  - release tag / version / changelog verification now runs before those live checks so obvious release-prep mistakes
+    fail fast
   - `test_scenario-executor-matrix.yml` and `test_user-owner-cleanup.yml` now run in parallel, then
     `test_untag-matrix.yml` runs last so its SQLite artifact bundling sees both earlier runs
   - release validation now checks that the tag commit is on `main`
