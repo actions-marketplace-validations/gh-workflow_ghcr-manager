@@ -89,9 +89,9 @@ outputs:
   db-path:
     description: Path to the SQLite database in the GitHub action runner
     value: ${{ steps.prepare-db.outputs.db_path }}
-  cleanup-summary-json:
-    description: Machine-readable cleanup summary JSON for cleanup runs
-    value: ${{ steps.run-cleanup.outputs.cleanup_summary_json }}
+  summary-json:
+    description: Machine-readable command summary JSON for commands that emit one
+    value: ${{ steps.publish-summary-output.outputs.summary_json }}
 
 runs:
   using: composite
@@ -290,38 +290,10 @@ runs:
         printf '%s\n' "$cleanup_summary_json" | jq . >&2
 
         {
-          echo "CLEANUP_SUMMARY_JSON<<EOF"
+          echo "COMMAND_SUMMARY_JSON<<EOF"
           printf '%s\n' "$cleanup_summary_json"
           echo "EOF"
         } >> "$GITHUB_ENV"
-
-    - name: Publish cleanup summary output
-      if: ${{ inputs.command == 'cleanup' }}
-      shell: bash
-      env:
-        CLEANUP_SUMMARY_JSON: ${{ env.CLEANUP_SUMMARY_JSON }}
-      run: |
-        set -euo pipefail
-        {
-          echo "cleanup_summary_json<<EOF"
-          printf '%s\n' "$CLEANUP_SUMMARY_JSON"
-          echo "EOF"
-        } >> "$GITHUB_OUTPUT"
-
-    - name: Write cleanup summary JSON file
-      id: write-cleanup-summary-json
-      if: ${{ inputs.command == 'cleanup' }}
-      shell: bash
-      env:
-        DB_PATH: ${{ steps.prepare-db.outputs.db_path }}
-        CLEANUP_SUMMARY_JSON: ${{ env.CLEANUP_SUMMARY_JSON }}
-      run: |
-        set -euo pipefail
-        summary_path="${DB_PATH}--cleanup-summary.json"
-        summary_file="$(basename "$summary_path")"
-        printf '%s\n' "$CLEANUP_SUMMARY_JSON" > "$summary_path"
-        echo "summary_file=$summary_file" >> "$GITHUB_OUTPUT"
-        echo "summary_path=$summary_path" >> "$GITHUB_OUTPUT"
 
     - name: Run untag
       if: ${{ inputs.command == 'untag' }}
@@ -350,7 +322,43 @@ runs:
           fi
         done <<< "$DELETE_TAGS"
 
-        npm run ghcr-manager:dist -- untag "${untag_args[@]}"
+        summary_json="$(npm run ghcr-manager:dist -- untag "${untag_args[@]}")"
+        printf '%s\n' "$summary_json" | jq . >&2
+
+        {
+          echo "COMMAND_SUMMARY_JSON<<EOF"
+          printf '%s\n' "$summary_json"
+          echo "EOF"
+        } >> "$GITHUB_ENV"
+
+    - name: Publish command summary output
+      id: publish-summary-output
+      if: ${{ inputs.command == 'cleanup' || inputs.command == 'untag' }}
+      shell: bash
+      env:
+        COMMAND_SUMMARY_JSON: ${{ env.COMMAND_SUMMARY_JSON }}
+      run: |
+        set -euo pipefail
+        {
+          echo "summary_json<<EOF"
+          printf '%s\n' "$COMMAND_SUMMARY_JSON"
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Write cleanup summary JSON file
+      id: write-cleanup-summary-json
+      if: ${{ inputs.command == 'cleanup' }}
+      shell: bash
+      env:
+        DB_PATH: ${{ steps.prepare-db.outputs.db_path }}
+        COMMAND_SUMMARY_JSON: ${{ env.COMMAND_SUMMARY_JSON }}
+      run: |
+        set -euo pipefail
+        summary_path="${DB_PATH}--cleanup-summary.json"
+        summary_file="$(basename "$summary_path")"
+        printf '%s\n' "$COMMAND_SUMMARY_JSON" > "$summary_path"
+        echo "summary_file=$summary_file" >> "$GITHUB_OUTPUT"
+        echo "summary_path=$summary_path" >> "$GITHUB_OUTPUT"
 
     - name: Scan after live cleanup
       id: scan-after
@@ -389,7 +397,7 @@ runs:
       if: ${{ inputs.command == 'cleanup' }}
       shell: bash
       env:
-        CLEANUP_SUMMARY_JSON: ${{ env.CLEANUP_SUMMARY_JSON }}
+        CLEANUP_SUMMARY_JSON: ${{ env.COMMAND_SUMMARY_JSON }}
       run: |
         set -euo pipefail
         node tools/write-cleanup-step-summary.mjs \
