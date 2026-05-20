@@ -193,6 +193,7 @@ jobs:
         shell: bash
         env:
           DB_PATH: ${{ steps.scenario.outputs.db_path }}
+          EXECUTOR: ${{ inputs.executor }}
           RESOLUTION_PATH: ${{ steps.scenario.outputs.resolution_path }}
         run: |
           set -euo pipefail
@@ -206,7 +207,7 @@ jobs:
           delete_orphaned_images="$(jq -r '.dataaxiomInputs["delete-orphaned-images"] // ""' "$RESOLUTION_PATH")"
           use_regex="$(jq -r '.dataaxiomInputs["use-regex"] // ""' "$RESOLUTION_PATH")"
           digest_selector_tag_name_key="$(jq -r '.digestSelectorTagNameKey // ""' "$RESOLUTION_PATH")"
-          if [[ -n "$digest_selector_tag_name_key" ]]; then
+          if [[ "$EXECUTOR" == "ghcr-cleanup-action" && -n "$digest_selector_tag_name_key" ]]; then
             delete_tags="$(node tools/tests/resolve-test-scenario-delete-digests.mjs "$RESOLUTION_PATH" "$DB_PATH")"
           fi
           echo "delete_untagged=$delete_untagged" >> "$GITHUB_OUTPUT"
