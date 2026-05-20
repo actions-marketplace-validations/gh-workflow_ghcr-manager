@@ -14,6 +14,16 @@ run-name: Test Untag Matrix
         required: false
         default: ""
         type: string
+  workflow_call:
+    inputs:
+      upload_db_artifact:
+        required: false
+        default: true
+        type: boolean
+      artifact_retention_days:
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read

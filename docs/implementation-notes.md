@@ -37,6 +37,10 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - GitHub API base URL
   - GHCR registry base URL
   - GitHub API version
+- Release packaging stays source-only in Git:
+  - do not commit `dist/` to `main`
+  - do not create workflow-managed release commits that add `dist/`
+  - keep the tag-push release model and let the action/npm paths build or install at runtime as they do today
 - `delete-tags` and `exclude-tags` on the root action are newline-separated.
 - `untag` is a real public command and action mode:
   - it does not use a scan DB
@@ -55,6 +59,10 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - remaining hardening gap: `--use-regex` selectors are not pre-validated for pathological / ReDoS-prone patterns
 - Scenario executor workflow note:
   - digest-selector scenarios require repo dependencies before pre-scan and digest resolution helper scripts run
+- Scenario workflow concurrency note:
+  - cleanup scenario execution is serialized per `scenario + executor`
+  - untag scenario execution is serialized per `scenario`
+  - user-owner cleanup now has its own dedicated concurrency group because it mutates one fixed package
 - Test maintenance workflow note:
   - manual workflow `test_delete-test-org-packages.yml` deletes container packages from `GHCR_TEST_OWNER`, optionally
     filtered by a literal substring on package name
@@ -136,8 +144,8 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
 - Task 03 changed the recommended first-run inspection flow:
   - `cleanup` dry-run understanding should start from the GitHub step summary or `summary-json`
   - DB inspection is still important, but no longer the primary first-run entry path
-- Do not maintain a checkpoint commit list here.
-  Squash/rebase workflows make that log noisy and force unnecessary follow-up commits.
+- Do not maintain a checkpoint commit list here. Squash/rebase workflows make that log noisy and force unnecessary
+  follow-up commits.
 - Active user-doc split:
   - `README.md` for action-first entry
   - `action-usage.md` for the root action
@@ -146,5 +154,16 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - `schema-description.md` for DB orientation
   - `queries/missing-manifests-queries.md` for a narrow advanced SQL recipe
 - Keep internal planner/semantics notes out of the user-facing doc path.
-- Task 04 is effectively complete for now.
-  DB/schema explanation remains intentionally deferred rather than blocking release docs.
+- Task 04 is effectively complete for now. DB/schema explanation remains intentionally deferred rather than blocking
+  release docs.
+- Release workflow note:
+  - release remains tag-driven
+  - the release workflow triggers only for full release tags like `0.9.0`, not shorthand major tags like `0`
+  - after a successful release, the workflow force-moves the major shorthand tag (for example `0`) onto the same commit
+  - release now requires these workflow-backed live checks before npm publish and GitHub release:
+    - `test_scenario-executor-matrix.yml` with `executors: ghcr-manager`
+    - `test_untag-matrix.yml`
+    - `test_user-owner-cleanup.yml`
+  - release validation now checks that the tag commit is on `main`
+  - release validation checks `README.md` and `.github/workflows/manual-run_scan.yml` for exact action refs
+  - `CHANGELOG.md` must already contain the concrete release heading before tagging

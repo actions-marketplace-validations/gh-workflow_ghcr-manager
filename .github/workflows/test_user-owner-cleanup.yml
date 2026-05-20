@@ -3,6 +3,18 @@ run-name: Test User Owner Cleanup
 
 "on":
   workflow_dispatch:
+    inputs:
+      upload_db_artifact:
+        description: Upload the final rescan DB artifact from inside the action.
+        required: false
+        default: true
+        type: boolean
+  workflow_call:
+    inputs:
+      upload_db_artifact:
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: read
@@ -11,6 +23,8 @@ permissions:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ghcr-manager__user-owner-cleanup
 
     steps:
       - name: Checkout
@@ -95,7 +109,7 @@ jobs:
           owner: ${{ vars.GHCR_TEST_PAT_USERNAME }}
           package: ${{ env.PACKAGE_NAME }}
           db-path: ${{ env.DB_PATH }}
-          upload-db-artifact: "true"
+          upload-db-artifact: ${{ inputs.upload_db_artifact }}
           scan-after-cleanup: "true"
           delete-tags: |
             delete-me

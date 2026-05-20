@@ -54,7 +54,7 @@ jobs:
 
       - name: Run ghcr-manager action
         id: ghcr-manager
-        uses: gh-workflow/ghcr-manager@0.0.6
+        uses: ./
         with:
           command: scan
           github-token: ${{ steps.token.outputs.token }}
