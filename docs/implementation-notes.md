@@ -115,6 +115,8 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
 ## Current Next Plan
 
 - [ ] Clean up remaining repo rough edges before first public release.
+- [x] Reframe the doc-refactor task brief around layered user docs, action-first entry, and task-oriented DB guidance.
+- [x] Add upstream attribution guidance to the doc-refactor brief for respectful reference without copy/replace/better framing.
 - [x] Remove regex-based package filtering from the manual test-org package cleanup workflow.
 - [x] Move untag scenario verification onto `v_latest_scan_per_package` and align the user-owner cleanup workflow with
       post-cleanup DB upload.
