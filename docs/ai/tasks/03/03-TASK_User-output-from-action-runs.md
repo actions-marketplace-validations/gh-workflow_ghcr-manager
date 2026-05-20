@@ -46,12 +46,23 @@ Tag-level visibility is intentional here. Users need to see tags in order to tru
 
 ## JSON output
 
-The JSON should become two things:
+The current JSON log output can stay for now.
 
-- action output from the GitHub run
-- an optional downloadable run artifact
+This task should additionally make that same summary JSON available as:
+
+- a machine-readable action output from the GitHub run
+- an optional downloadable run artifact alongside the DB artifact
+
+The same boolean upload setting should govern both DB and JSON artifact upload. If that setting needs a better name,
+rename it rather than adding a second toggle.
 
 This JSON should be a stable user-facing summary shape, not just a raw internal dump.
+
+The human-readable GitHub step summary should be rendered from that same summary data, so the action does not grow a
+separate parallel reporting model.
+
+Keep action and workflow YAML small. If capturing, reshaping, or rendering the summary becomes non-trivial, move that
+logic into small repo-local helper scripts instead of expanding inline shell logic.
 
 ## Visibility model
 
