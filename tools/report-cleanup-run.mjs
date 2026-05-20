@@ -106,42 +106,38 @@ try {
   }));
 
   process.stdout.write(
-    `${JSON.stringify(
-      {
-        cleanupRunId: cleanupRun.cleanup_run_id,
-        owner: cleanupRun.owner,
-        packageName: cleanupRun.package_name,
-        scanId: cleanupRun.scan_id,
-        scanCompletedAt: cleanupRun.scan_completed_at,
-        cleanupStartedAt: cleanupRun.cleanup_started_at,
-        dryRun: cleanupRun.dry_run === 1,
-        plannerInputs: JSON.parse(cleanupRun.planner_inputs_json),
-        validationSummary: {
-          directTargetTagCount: cleanupRun.direct_target_tag_count,
-          directTargetRootCount: cleanupRun.direct_target_root_count,
-          deleteRootCandidateCount: cleanupRun.delete_root_candidate_count,
-          untagOnlyRootCount: cleanupRun.untag_only_root_count,
-          fullyDeletableRootCount: cleanupRun.fully_deletable_root_count,
-          blockedDeleteRootCount: cleanupRun.blocked_delete_root_count,
-          protectedRootCount: cleanupRun.protected_root_count
-        },
-        rootDecisions: rootDecisions.map((row) => ({
-          versionId: row.version_id,
-          digest: row.digest,
-          selectionMode: row.selection_mode,
-          selectionReason: row.selection_reason,
-          validationStatus: row.validation_status,
-          validationReasonCode: row.validation_reason_code,
-          validationReason: row.validation_reason,
-          blockingVersionId: row.blocking_version_id ?? undefined,
-          blockingDigest: row.blocking_digest ?? undefined,
-          overlapDigest: row.overlap_digest ?? undefined
-        })),
-        protectedRoots
+    `${JSON.stringify({
+      cleanupRunId: cleanupRun.cleanup_run_id,
+      owner: cleanupRun.owner,
+      packageName: cleanupRun.package_name,
+      scanId: cleanupRun.scan_id,
+      scanCompletedAt: cleanupRun.scan_completed_at,
+      cleanupStartedAt: cleanupRun.cleanup_started_at,
+      dryRun: cleanupRun.dry_run === 1,
+      plannerInputs: JSON.parse(cleanupRun.planner_inputs_json),
+      validationSummary: {
+        directTargetTagCount: cleanupRun.direct_target_tag_count,
+        directTargetRootCount: cleanupRun.direct_target_root_count,
+        deleteRootCandidateCount: cleanupRun.delete_root_candidate_count,
+        untagOnlyRootCount: cleanupRun.untag_only_root_count,
+        fullyDeletableRootCount: cleanupRun.fully_deletable_root_count,
+        blockedDeleteRootCount: cleanupRun.blocked_delete_root_count,
+        protectedRootCount: cleanupRun.protected_root_count
       },
-      null,
-      2
-    )}\n`
+      rootDecisions: rootDecisions.map((row) => ({
+        versionId: row.version_id,
+        digest: row.digest,
+        selectionMode: row.selection_mode,
+        selectionReason: row.selection_reason,
+        validationStatus: row.validation_status,
+        validationReasonCode: row.validation_reason_code,
+        validationReason: row.validation_reason,
+        blockingVersionId: row.blocking_version_id ?? undefined,
+        blockingDigest: row.blocking_digest ?? undefined,
+        overlapDigest: row.overlap_digest ?? undefined
+      })),
+      protectedRoots
+    })}\n`
   );
 } finally {
   database.close();

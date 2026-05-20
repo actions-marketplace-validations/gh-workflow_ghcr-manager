@@ -56,7 +56,7 @@ export async function handleUntag(args: string[]): Promise<number> {
     roots,
     untaggedTags
   };
-  console.log(JSON.stringify(summary, null, 2));
+  console.log(JSON.stringify(summary));
   return 0;
 }
 

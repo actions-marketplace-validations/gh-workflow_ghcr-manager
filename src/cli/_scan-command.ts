@@ -38,7 +38,7 @@ export async function handleScan(args: string[]): Promise<number> {
   if (githubOutputPath) {
     writeGitHubScanOutputs(githubOutputPath, summary);
   }
-  console.log(JSON.stringify(summary, null, 2));
+  console.log(JSON.stringify(summary));
 
   database.close();
   return 0;

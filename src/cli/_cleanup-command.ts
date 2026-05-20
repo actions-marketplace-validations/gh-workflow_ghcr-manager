@@ -1,3 +1,4 @@
+import { buildCleanupSummary } from "../cleanup-summary/index.js";
 import { CleanupRunWriter, openDatabase, PlannerRepository } from "../db/index.js";
 import { executeDeletePlan } from "../execute/index.js";
 import { hasFlag, resolveGitHubToken, resolveLogLevel } from "./_args.js";
@@ -21,18 +22,27 @@ export async function handleCleanup(args: string[]): Promise<number> {
       cleanupStartedAt: new Date().toISOString()
     });
     if (dryRun) {
+      const summary = buildCleanupSummary(plan, {
+        dryRun: true,
+        listRootTags: (versionId) => _listRootTags(database, inputs.owner, inputs.packageName, versionId)
+      });
       logger.debug(`Completed dry-run cleanup for ${inputs.owner}/${inputs.packageName}`);
-      console.log(JSON.stringify(plan, null, 2));
+      console.log(JSON.stringify(summary));
       return 0;
     }
 
-    const summary = await executeDeletePlan(plan, {
+    const executionSummary = await executeDeletePlan(plan, {
       token: token as string,
       logger,
       listRootTags: (root) => _listRootTags(database, root.owner, root.packageName, root.versionId)
     });
+    const summary = buildCleanupSummary(plan, {
+      dryRun: false,
+      listRootTags: (versionId) => _listRootTags(database, inputs.owner, inputs.packageName, versionId),
+      executionSummary
+    });
     logger.debug(`Completed cleanup for ${inputs.owner}/${inputs.packageName}`);
-    console.log(JSON.stringify(summary, null, 2));
+    console.log(JSON.stringify(summary));
     return 0;
   } finally {
     database.close();

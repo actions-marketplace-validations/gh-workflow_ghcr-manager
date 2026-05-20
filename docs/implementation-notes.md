@@ -75,6 +75,11 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
 - `scan` always uploads a DB artifact.
 - `cleanup` always performs a pre-scan and may upload the resulting DB.
 - `cleanup` only performs the post-mutation rescan when `scan-after-cleanup` is enabled.
+- `cleanup` now emits one stable summary JSON shape for both dry-run and live execution:
+  - it still prints JSON to stdout
+  - the root action captures that JSON as an action output
+  - the same JSON can be uploaded as a run artifact alongside the DB
+  - the GitHub step summary is rendered from that same JSON
 - `untag` does not support DB artifact upload.
 - `db-merge`:
   - takes `source-db-dir` plus required `db-file`
@@ -126,7 +131,10 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
 - [x] Move untag scenario verification onto `v_latest_scan_per_package` and align the user-owner cleanup workflow with
       post-cleanup DB upload.
 - [ ] Port regex selector validation hardening for `--use-regex` cleanup selectors.
-- [ ] Implement user-facing run output for cleanup, especially dry-run review output in GitHub runs.
+- [ ] Review and refine the new cleanup-summary action output path:
+  - stable cleanup summary JSON from the CLI
+  - action output plus optional JSON artifact upload
+  - GitHub step summary rendering from that same JSON
 - [ ] Update documentation for the first public release:
   - action usage
   - CLI usage

@@ -39,8 +39,12 @@ test("handleCleanup dry-run does not require a token", async () => {
     console.log = originalLog;
   }
 
-  const plan = JSON.parse(writes[0] as string) as { plannerInputs: { deleteUntagged: boolean } };
-  assert.equal(plan.plannerInputs.deleteUntagged, true);
+  const summary = JSON.parse(writes[0] as string) as {
+    dryRun: boolean;
+    plannerInputs: { deleteUntagged: boolean };
+  };
+  assert.equal(summary.dryRun, true);
+  assert.equal(summary.plannerInputs.deleteUntagged, true);
 
   const persistedDatabase = openDatabase(databasePath);
   const cleanupRun = persistedDatabase
@@ -160,12 +164,12 @@ test("handleCleanup dry-run persists tagged fully-deletable cleanup decisions", 
     console.log = originalLog;
   }
 
-  const plan = JSON.parse(writes[0] as string) as {
-    rootDecisions: Array<{ validationStatus: string; selectionMode: string }>;
+  const summary = JSON.parse(writes[0] as string) as {
+    fullyDeletableRoots: Array<{ validationStatus: string; selectionMode: string }>;
   };
-  assert.equal(plan.rootDecisions.length, 1);
-  assert.equal(plan.rootDecisions[0]?.validationStatus, "fully-deletable");
-  assert.equal(plan.rootDecisions[0]?.selectionMode, "delete-root");
+  assert.equal(summary.fullyDeletableRoots.length, 1);
+  assert.equal(summary.fullyDeletableRoots[0]?.validationStatus, "fully-deletable");
+  assert.equal(summary.fullyDeletableRoots[0]?.selectionMode, "delete-root");
 
   const persistedDatabase = openDatabase(databasePath);
   const cleanupRun = persistedDatabase

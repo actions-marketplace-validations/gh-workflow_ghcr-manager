@@ -89,6 +89,9 @@ outputs:
   db-path:
     description: Path to the SQLite database in the GitHub action runner
     value: ${{ steps.prepare-db.outputs.db_path }}
+  cleanup-summary-json:
+    description: Machine-readable cleanup summary JSON for cleanup runs
+    value: ${{ steps.run-cleanup.outputs.cleanup_summary_json }}
 
 runs:
   using: composite
@@ -207,6 +210,7 @@ runs:
           "${scan_args[@]}"
 
     - name: Run cleanup
+      id: run-cleanup
       if: ${{ inputs.command == 'cleanup' }}
       shell: bash
       env:
@@ -282,7 +286,42 @@ runs:
         append_line_args --delete-tag "$DELETE_TAGS"
         append_line_args --exclude-tag "$EXCLUDE_TAGS"
 
-        npm run ghcr-manager:dist -- cleanup "${cleanup_args[@]}"
+        cleanup_summary_json="$(npm run ghcr-manager:dist -- cleanup "${cleanup_args[@]}")"
+        printf '%s\n' "$cleanup_summary_json" | jq . >&2
+
+        {
+          echo "CLEANUP_SUMMARY_JSON<<EOF"
+          printf '%s\n' "$cleanup_summary_json"
+          echo "EOF"
+        } >> "$GITHUB_ENV"
+
+    - name: Publish cleanup summary output
+      if: ${{ inputs.command == 'cleanup' }}
+      shell: bash
+      env:
+        CLEANUP_SUMMARY_JSON: ${{ env.CLEANUP_SUMMARY_JSON }}
+      run: |
+        set -euo pipefail
+        {
+          echo "cleanup_summary_json<<EOF"
+          printf '%s\n' "$CLEANUP_SUMMARY_JSON"
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Write cleanup summary JSON file
+      id: write-cleanup-summary-json
+      if: ${{ inputs.command == 'cleanup' }}
+      shell: bash
+      env:
+        DB_PATH: ${{ steps.prepare-db.outputs.db_path }}
+        CLEANUP_SUMMARY_JSON: ${{ env.CLEANUP_SUMMARY_JSON }}
+      run: |
+        set -euo pipefail
+        summary_path="${DB_PATH}--cleanup-summary.json"
+        summary_file="$(basename "$summary_path")"
+        printf '%s\n' "$CLEANUP_SUMMARY_JSON" > "$summary_path"
+        echo "summary_file=$summary_file" >> "$GITHUB_OUTPUT"
+        echo "summary_path=$summary_path" >> "$GITHUB_OUTPUT"
 
     - name: Run untag
       if: ${{ inputs.command == 'untag' }}
@@ -336,3 +375,22 @@ runs:
         db-path: ${{ steps.prepare-db.outputs.db_path }}
         db-file: ${{ steps.prepare-db.outputs.db_file }}
         db-artifact-retention-days: ${{ inputs.db-artifact-retention-days }}
+
+    - name: Upload cleanup summary artifact
+      if: ${{ inputs.command == 'cleanup' && steps.resolve-upload.outputs.upload_db_artifact == 'true' }}
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ steps.write-cleanup-summary-json.outputs.summary_file }}
+        path: ${{ steps.write-cleanup-summary-json.outputs.summary_path }}
+        retention-days:
+          ${{ inputs.db-artifact-retention-days != '' && inputs.db-artifact-retention-days || github.retention_days }}
+
+    - name: Write cleanup step summary
+      if: ${{ inputs.command == 'cleanup' }}
+      shell: bash
+      env:
+        CLEANUP_SUMMARY_JSON: ${{ env.CLEANUP_SUMMARY_JSON }}
+      run: |
+        set -euo pipefail
+        node tools/write-cleanup-step-summary.mjs \
+          --step-summary-path "$GITHUB_STEP_SUMMARY"
