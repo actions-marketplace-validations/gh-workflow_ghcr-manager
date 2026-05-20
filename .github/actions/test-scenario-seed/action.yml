@@ -540,6 +540,66 @@ runs:
           --tag "$IMAGE_REF:${SCENARIO_ID}--delete-me" \
           "$delete_dir"
 
+    - name: Seed digest-fully-deletable
+      if: ${{ inputs.seed_strategy == 'digest-fully-deletable' }}
+      shell: bash
+      env:
+        IMAGE_REF: ${{ inputs.image_ref }}
+        SCENARIO_ID: digest-fully-deletable
+      run: |
+        set -euo pipefail
+        echo "GHCR_MANAGER_SCENARIO_SEED_HANDLED=true" >> "$GITHUB_ENV"
+
+        keep_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../../tools/tests/fixtures/minimal-image/Dockerfile" "$keep_dir/Dockerfile"
+        printf '%s\n' "keep-tagged" > "$keep_dir/payload.txt"
+        docker buildx build \
+          --platform linux/amd64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--keep" \
+          "$keep_dir"
+
+        delete_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../../tools/tests/fixtures/minimal-image/Dockerfile" "$delete_dir/Dockerfile"
+        printf '%s\n' "delete-me-tagged" > "$delete_dir/payload.txt"
+        docker buildx build \
+          --platform linux/amd64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--delete-me" \
+          "$delete_dir"
+
+    - name: Seed wildcard-tagged-fully-deletable
+      if: ${{ inputs.seed_strategy == 'wildcard-tagged-fully-deletable' }}
+      shell: bash
+      env:
+        IMAGE_REF: ${{ inputs.image_ref }}
+        SCENARIO_ID: wildcard-tagged-fully-deletable
+      run: |
+        set -euo pipefail
+        echo "GHCR_MANAGER_SCENARIO_SEED_HANDLED=true" >> "$GITHUB_ENV"
+
+        keep_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../../tools/tests/fixtures/minimal-image/Dockerfile" "$keep_dir/Dockerfile"
+        printf '%s\n' "keep-tagged" > "$keep_dir/payload.txt"
+        docker buildx build \
+          --platform linux/amd64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--keep" \
+          "$keep_dir"
+
+        delete_dir="$(mktemp -d)"
+        cp "$GITHUB_ACTION_PATH/../../../tools/tests/fixtures/minimal-image/Dockerfile" "$delete_dir/Dockerfile"
+        printf '%s\n' "delete-me-tagged" > "$delete_dir/payload.txt"
+        docker buildx build \
+          --platform linux/amd64 \
+          --provenance=false \
+          --push \
+          --tag "$IMAGE_REF:${SCENARIO_ID}--delete-me" \
+          "$delete_dir"
+
     - name: Seed exclude-tag-protected-root
       if: ${{ inputs.seed_strategy == 'exclude-tag-protected-root' }}
       shell: bash

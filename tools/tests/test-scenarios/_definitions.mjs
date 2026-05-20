@@ -41,7 +41,7 @@ export const scenarios = {
   "digest-fully-deletable": {
     id: "digest-fully-deletable",
     packageSuffix: "scenario--digest-fully-deletable",
-    seedStrategy: "tagged-fully-deletable",
+    seedStrategy: "digest-fully-deletable",
     supportedExecutors: ["ghcr-manager"],
     ghcrManagerArgs: ["--delete-tag", "{deleteTag}"],
     dataaxiomInputs: {},
@@ -349,7 +349,7 @@ export const scenarios = {
   "wildcard-tagged-fully-deletable": {
     id: "wildcard-tagged-fully-deletable",
     packageSuffix: "scenario--wildcard-tagged-fully-deletable",
-    seedStrategy: "tagged-fully-deletable",
+    seedStrategy: "wildcard-tagged-fully-deletable",
     supportedExecutors: ["ghcr-manager", "ghcr-cleanup-action"],
     ghcrManagerArgs: ["--delete-tag", "*delete-me"],
     dataaxiomInputs: {

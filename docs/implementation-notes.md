@@ -63,6 +63,9 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
     asserts the post-cleanup DB keeps only `keep-me`
 - Untag seed note:
   - direct untag scenarios now use dedicated seed strategy IDs instead of borrowing cleanup scenario IDs for tag names
+- Tagged cleanup seed note:
+  - digest and wildcard tagged-delete scenarios now use dedicated seed strategy IDs instead of borrowing
+    `tagged-fully-deletable`
 
 ## Current Action / DB Notes
 
