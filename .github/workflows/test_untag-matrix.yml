@@ -4,7 +4,7 @@ run-name: Test Untag Matrix
 "on":
   workflow_dispatch:
     inputs:
-      upload_db_artifact:
+      upload_artifacts:
         description: Upload the final rescan DB artifact from inside the action.
         required: false
         default: true
@@ -16,7 +16,7 @@ run-name: Test Untag Matrix
         type: string
   workflow_call:
     inputs:
-      upload_db_artifact:
+      upload_artifacts:
         required: false
         default: true
         type: boolean
@@ -56,11 +56,11 @@ jobs:
     secrets: inherit
     with:
       scenario: ${{ matrix.scenario }}
-      upload_db_artifact: ${{ inputs.upload_db_artifact }}
+      upload_artifacts: ${{ inputs.upload_artifacts }}
       artifact_retention_days: ${{ inputs.artifact_retention_days }}
 
   bundle-db-artifacts:
-    if: ${{ always() && inputs.upload_db_artifact }}
+    if: ${{ always() && inputs.upload_artifacts }}
     needs: execute
     runs-on: ubuntu-latest
     permissions:
@@ -74,7 +74,7 @@ jobs:
         id: merge
         uses: ./merge-run-artifacts
         with:
-          upload-db-artifact: "true"
+          upload-artifacts: "true"
           db-file: ghcr-manager-merged--scenario-matrix-untag.sqlite
           db-artifact-retention-days: ${{ inputs.artifact_retention_days }}
           delete-source-artifacts: "true"

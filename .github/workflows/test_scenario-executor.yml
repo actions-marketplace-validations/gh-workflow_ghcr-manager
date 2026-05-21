@@ -40,7 +40,7 @@ run-name: Test Scenario Executor (${{ inputs.scenario }} / ${{ inputs.executor }
         options:
           - ghcr-manager
           - ghcr-cleanup-action
-      upload_db_artifact:
+      upload_artifacts:
         description: Upload the final rescan DB artifact from inside the action.
         required: false
         default: true
@@ -63,7 +63,7 @@ run-name: Test Scenario Executor (${{ inputs.scenario }} / ${{ inputs.executor }
       executor:
         required: true
         type: string
-      upload_db_artifact:
+      upload_artifacts:
         required: false
         default: true
         type: boolean
@@ -229,7 +229,7 @@ jobs:
           owner: ${{ vars.GHCR_TEST_OWNER }}
           package: ${{ steps.scenario.outputs.package_name }}
           db-path: ${{ steps.scenario.outputs.db_path }}
-          upload-db-artifact: ${{ inputs.upload_db_artifact }}
+          upload-artifacts: ${{ inputs.upload_artifacts }}
           scan-after-cleanup: "true"
           db-artifact-retention-days: ${{ inputs.artifact_retention_days }}
           delete-untagged: ${{ steps.cleanup-inputs.outputs.delete_untagged }}
@@ -287,7 +287,7 @@ jobs:
           owner: ${{ vars.GHCR_TEST_OWNER }}
           package: ${{ steps.scenario.outputs.package_name }}
           db-path: ${{ steps.scenario.outputs.db_path }}
-          upload-db-artifact: ${{ inputs.upload_db_artifact }}
+          upload-artifacts: ${{ inputs.upload_artifacts }}
           db-artifact-retention-days: ${{ inputs.artifact_retention_days }}
 
       - name: Assert scenario scan

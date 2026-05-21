@@ -44,13 +44,13 @@ jobs:
           db-path: ${{ steps.first-package.outputs.db-path }}
           dry-run: true
           delete-untagged: true
-          upload-db-artifact: true
+          upload-artifacts: true
 ```
 
 The key points are:
 
 - reuse the first step's `db-path` output in the later steps
-- set `upload-db-artifact: true` in the final step
+- set `upload-artifacts: true` in the final step
 - let the final step upload the combined DB
 
 ## Parallel Jobs
@@ -78,7 +78,7 @@ jobs:
           package: package-a
           dry-run: true
           delete-untagged: true
-          upload-db-artifact: true
+          upload-artifacts: true
 
   cleanup-b:
     runs-on: ubuntu-latest
@@ -96,7 +96,7 @@ jobs:
           package: package-b
           dry-run: true
           delete-untagged: true
-          upload-db-artifact: true
+          upload-artifacts: true
 
   merge:
     needs: [cleanup-a, cleanup-b]

@@ -12,7 +12,7 @@ inputs:
   db-file:
     description: Artifact filename and local filename for the merged database
     required: true
-  upload-db-artifact:
+  upload-artifacts:
     description: Whether to upload the merged database as a workflow run artifact
     required: false
     default: "true"
@@ -97,7 +97,7 @@ runs:
 
     - name: Upload DB artifact
       id: upload
-      if: ${{ inputs.upload-db-artifact == 'true' }}
+      if: ${{ inputs.upload-artifacts == 'true' }}
       uses: ./.github/actions/upload-db-artifact
       with:
         db-path: ${{ steps.prepare-db.outputs.db_path }}

@@ -13,7 +13,7 @@ run-name: "Test Scenario Executor Matrix (executors: ${{ inputs.executors }})"
           - all
           - ghcr-manager
           - ghcr-cleanup-action
-      upload_db_artifact:
+      upload_artifacts:
         description: Upload the final rescan DB artifact from inside the action.
         required: false
         default: true
@@ -29,7 +29,7 @@ run-name: "Test Scenario Executor Matrix (executors: ${{ inputs.executors }})"
         required: false
         default: ghcr-manager
         type: string
-      upload_db_artifact:
+      upload_artifacts:
         required: false
         default: true
         type: boolean
@@ -76,12 +76,12 @@ jobs:
     with:
       scenario: ${{ matrix.scenario }}
       executor: ${{ matrix.executor }}
-      upload_db_artifact: ${{ inputs.upload_db_artifact }}
+      upload_artifacts: ${{ inputs.upload_artifacts }}
       artifact_retention_days: ${{ inputs.artifact_retention_days }}
       package_name_suffix: ${{ matrix.executor }}
 
   bundle-db-artifacts:
-    if: ${{ always() && inputs.upload_db_artifact }}
+    if: ${{ always() && inputs.upload_artifacts }}
     needs: execute
     runs-on: ubuntu-latest
     permissions:
@@ -95,7 +95,7 @@ jobs:
         id: merge
         uses: ./merge-run-artifacts
         with:
-          upload-db-artifact: "true"
+          upload-artifacts: "true"
           db-file: ghcr-manager-merged--scenario-matrix-cleanup.sqlite
           db-artifact-retention-days: ${{ inputs.artifact_retention_days }}
           delete-source-artifacts: "true"

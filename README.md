@@ -44,7 +44,7 @@ jobs:
           keep-n-tagged: "10"
           exclude-tags: |
             latest
-          upload-db-artifact: true
+          upload-artifacts: true
 ```
 
 After the run:
@@ -87,7 +87,7 @@ The action supports three commands:
     exclude-tags: |
       latest
       stable
-    upload-db-artifact: true
+    upload-artifacts: true
 ```
 
 ### Apply cleanup
@@ -101,7 +101,7 @@ The action supports three commands:
     package: PACKAGE
     delete-untagged: true
     keep-n-tagged: "10"
-    upload-db-artifact: true
+    upload-artifacts: true
     scan-after-cleanup: true
 ```
 
@@ -149,7 +149,7 @@ Note: the second scan only runs if cleanup actually makes changes.
 | `owner`                      | Package owner                       | all  | Yes         |                                |
 | `package`                    | Package name                        | all  | Yes         |                                |
 | `db-path`                    | Local SQLite DB path                | s,c  | No          |                                |
-| `upload-db-artifact`         | Upload DB and summary artifact      | s,c  | No          | `false`                        |
+| `upload-artifacts`           | Upload DB and summary artifacts     | s,c  | No          | `false`                        |
 | `scan-after-cleanup`         | Run a second scan after cleanup     | c    | No          | `false`                        |
 | `db-artifact-retention-days` | Override artifact retention days    | s,c  | No          | `${{ github.retention_days }}` |
 | `delete-tags`                | Newline-separated tags to delete    | c,u  | for `untag` |                                |

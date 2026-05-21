@@ -92,6 +92,10 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - this avoids GitHub template-memory and argument-length failures on large cleanup summaries
   - the root action now exposes `summary-json-path`, not the full summary JSON payload, to avoid GitHub output-size
     limits on large cleanup runs
+- Artifact-upload naming note:
+  - the root action and helper actions now use `upload-artifacts`
+  - that flag governs artifact upload broadly, not only DB uploads, because `cleanup` may upload both the scan DB and
+    the cleanup summary JSON artifact
 
 ## Current Action / DB Notes
 
@@ -100,8 +104,8 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
 - `cleanup` only performs the post-mutation rescan when `scan-after-cleanup` is enabled.
 - `cleanup` now emits one stable summary JSON shape for both dry-run and live execution:
   - it still prints JSON to stdout
-  - the root action captures that JSON as an action output
-  - the same JSON can be uploaded as a run artifact alongside the DB
+  - the root action exposes the file path to that JSON via `summary-json-path`
+  - the same JSON can be uploaded as a run artifact alongside the DB when `upload-artifacts` is enabled
   - the GitHub step summary is rendered from that same JSON
 - `untag` does not support DB artifact upload.
 - `db-merge`:

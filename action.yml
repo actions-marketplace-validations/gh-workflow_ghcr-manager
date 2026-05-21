@@ -23,8 +23,8 @@ inputs:
     description: Optional local SQLite DB path to use instead of creating a fresh runner-temp DB file
     required: false
     default: ""
-  upload-db-artifact:
-    description: Whether to upload the database as a workflow run artifact; unsupported by `untag`
+  upload-artifacts:
+    description: Whether to upload action-produced artifacts; unsupported by `untag`
     required: false
     default: "false"
   scan-after-cleanup:
@@ -144,13 +144,13 @@ runs:
         KEEP_N_UNTAGGED: ${{ inputs.keep-n-untagged }}
         OLDER_THAN: ${{ inputs.older-than }}
         SCAN_AFTER_CLEANUP: ${{ inputs.scan-after-cleanup }}
-        UPLOAD_DB_ARTIFACT: ${{ inputs.upload-db-artifact }}
+        UPLOAD_ARTIFACTS: ${{ inputs.upload-artifacts }}
         USE_REGEX: ${{ inputs.use-regex }}
       run: |
         set -euo pipefail
         [[ -n "$DELETE_TAGS" ]] || { echo "command 'untag' requires delete-tags." >&2; exit 1; }
         [[ -z "$DB_PATH" ]] || { echo "command 'untag' does not support db-path." >&2; exit 1; }
-        [[ "$UPLOAD_DB_ARTIFACT" == "false" ]] || { echo "command 'untag' does not support upload-db-artifact." >&2; exit 1; }
+        [[ "$UPLOAD_ARTIFACTS" == "false" ]] || { echo "command 'untag' does not support upload-artifacts." >&2; exit 1; }
         [[ "$SCAN_AFTER_CLEANUP" == "false" ]] || { echo "command 'untag' does not support scan-after-cleanup." >&2; exit 1; }
         [[ -z "$EXCLUDE_TAGS" ]] || { echo "command 'untag' does not support exclude-tags." >&2; exit 1; }
         [[ -z "$KEEP_N_TAGGED" ]] || { echo "command 'untag' does not support keep-n-tagged." >&2; exit 1; }
@@ -162,16 +162,16 @@ runs:
         [[ "$DELETE_ORPHANED_IMAGES" == "false" ]] || { echo "command 'untag' does not support delete-orphaned-images." >&2; exit 1; }
         [[ "$USE_REGEX" == "false" ]] || { echo "command 'untag' does not support use-regex." >&2; exit 1; }
 
-    - name: Resolve DB artifact upload intent
+    - name: Resolve artifact upload intent
       id: resolve-upload
       shell: bash
       run: |
         set -euo pipefail
-        upload_db_artifact="${{ inputs.upload-db-artifact }}"
+        upload_artifacts="${{ inputs.upload-artifacts }}"
         if [[ "${{ inputs.command }}" == "scan" ]]; then
-          upload_db_artifact="true"
+          upload_artifacts="true"
         fi
-        echo "upload_db_artifact=$upload_db_artifact" >> "$GITHUB_OUTPUT"
+        echo "upload_artifacts=$upload_artifacts" >> "$GITHUB_OUTPUT"
 
     - name: Prepare scan DB path
       id: prepare-db
@@ -355,7 +355,7 @@ runs:
 
     - name: Upload DB artifact
       if:
-        ${{ (inputs.command == 'scan' || inputs.command == 'cleanup') && steps.resolve-upload.outputs.upload_db_artifact
+        ${{ (inputs.command == 'scan' || inputs.command == 'cleanup') && steps.resolve-upload.outputs.upload_artifacts
         == 'true' }}
       uses: ./.github/actions/upload-db-artifact
       with:
@@ -364,7 +364,7 @@ runs:
         db-artifact-retention-days: ${{ inputs.db-artifact-retention-days }}
 
     - name: Upload cleanup summary artifact
-      if: ${{ inputs.command == 'cleanup' && steps.resolve-upload.outputs.upload_db_artifact == 'true' }}
+      if: ${{ inputs.command == 'cleanup' && steps.resolve-upload.outputs.upload_artifacts == 'true' }}
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ steps.run-cleanup.outputs.summary_file }}

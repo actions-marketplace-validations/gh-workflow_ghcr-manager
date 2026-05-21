@@ -13,7 +13,7 @@ run-name: Test Untag Executor (${{ inputs.scenario }})
           - untag-single-tag-single-root
           - untag-one-of-two-tags-single-root
           - untag-one-of-two-tags-docker-manifest-list
-      upload_db_artifact:
+      upload_artifacts:
         description: Upload the final rescan DB artifact from inside the action.
         required: false
         default: true
@@ -28,7 +28,7 @@ run-name: Test Untag Executor (${{ inputs.scenario }})
       scenario:
         required: true
         type: string
-      upload_db_artifact:
+      upload_artifacts:
         required: false
         default: true
         type: boolean
@@ -149,7 +149,7 @@ jobs:
           owner: ${{ vars.GHCR_TEST_OWNER }}
           package: ${{ steps.scenario.outputs.package_name }}
           db-path: ${{ steps.scenario.outputs.db_path }}
-          upload-db-artifact: ${{ inputs.upload_db_artifact }}
+          upload-artifacts: ${{ inputs.upload_artifacts }}
           db-artifact-retention-days: ${{ inputs.artifact_retention_days }}
 
       - name: Assert direct untag results

@@ -16,7 +16,7 @@ inputs:
     description: Artifact filename and local filename for the merged database
     required: false
     default: ghcr-manager-merged.sqlite
-  upload-db-artifact:
+  upload-artifacts:
     description: Whether to upload the merged database as a workflow run artifact
     required: false
     default: "true"
@@ -71,7 +71,7 @@ runs:
       with:
         source-db-dir: ${{ steps.download.outputs.extract_dir }}
         db-file: ${{ inputs.db-file }}
-        upload-db-artifact: ${{ inputs.upload-db-artifact }}
+        upload-artifacts: ${{ inputs.upload-artifacts }}
         db-artifact-retention-days: ${{ inputs.db-artifact-retention-days }}
         log-level: ${{ inputs.log-level }}
 

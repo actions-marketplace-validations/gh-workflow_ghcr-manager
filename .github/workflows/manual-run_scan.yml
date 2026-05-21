@@ -12,7 +12,7 @@ run-name: Manual Run for ${{ inputs.owner }}/${{ inputs.package }}
         description: GHCR package name.
         required: true
         type: string
-      upload_db_artifact:
+      upload_artifacts:
         description: Upload scan DB artifact from inside the action.
         required: false
         default: true
@@ -60,7 +60,7 @@ jobs:
           token: ${{ steps.token.outputs.token }}
           owner: ${{ inputs.owner }}
           package: ${{ inputs.package }}
-          upload-db-artifact: ${{ inputs.upload_db_artifact }}
+          upload-artifacts: ${{ inputs.upload_artifacts }}
           db-artifact-retention-days: ${{ inputs.db_artifact_retention_days }}
 
       - name: Print DB path
