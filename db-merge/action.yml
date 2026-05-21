@@ -50,12 +50,14 @@ runs:
 
     - name: Install dependencies
       shell: bash
+      working-directory: ${{ github.action_path }}
       run: |
         set -euo pipefail
         npm ci
 
     - name: Build ghcr-manager
       shell: bash
+      working-directory: ${{ github.action_path }}
       run: |
         set -euo pipefail
         npm run build
@@ -74,6 +76,7 @@ runs:
 
     - name: Run DB merge
       shell: bash
+      working-directory: ${{ github.action_path }}
       env:
         SOURCE_DB_DIR: ${{ inputs.source-db-dir }}
       run: |
@@ -98,8 +101,9 @@ runs:
     - name: Upload DB artifact
       id: upload
       if: ${{ inputs.upload-artifacts == 'true' }}
-      uses: ./.github/actions/upload-db-artifact
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
-        db-path: ${{ steps.prepare-db.outputs.db_path }}
-        db-file: ${{ inputs.db-file }}
-        db-artifact-retention-days: ${{ inputs.db-artifact-retention-days }}
+        name: ${{ inputs.db-file }}
+        path: ${{ steps.prepare-db.outputs.db_path }}
+        retention-days:
+          ${{ inputs.db-artifact-retention-days != '' && inputs.db-artifact-retention-days || github.retention_days }}

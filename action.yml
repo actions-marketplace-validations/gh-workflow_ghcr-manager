@@ -354,14 +354,16 @@ runs:
           --github-output "$GITHUB_OUTPUT"
 
     - name: Upload DB artifact
+      id: upload
       if:
         ${{ (inputs.command == 'scan' || inputs.command == 'cleanup') && steps.resolve-upload.outputs.upload_artifacts
         == 'true' }}
-      uses: ./.github/actions/upload-db-artifact
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
-        db-path: ${{ steps.prepare-db.outputs.db_path }}
-        db-file: ${{ steps.prepare-db.outputs.db_file }}
-        db-artifact-retention-days: ${{ inputs.db-artifact-retention-days }}
+        name: ${{ steps.prepare-db.outputs.db_file }}
+        path: ${{ steps.prepare-db.outputs.db_path }}
+        retention-days:
+          ${{ inputs.db-artifact-retention-days != '' && inputs.db-artifact-retention-days || github.retention_days }}
 
     - name: Upload cleanup summary artifact
       if: ${{ inputs.command == 'cleanup' && steps.resolve-upload.outputs.upload_artifacts == 'true' }}

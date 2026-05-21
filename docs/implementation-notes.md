@@ -96,6 +96,12 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - the root action and helper actions now use `upload-artifacts`
   - that flag governs artifact upload broadly, not only DB uploads, because `cleanup` may upload both the scan DB and
     the cleanup summary JSON artifact
+- Composite-action nesting note:
+  - the root action, `db-merge`, and `merge-run-artifacts` now avoid nested repo-local action paths for live upload and
+    merge steps
+  - `merge-run-artifacts` also invokes repo scripts through `$GITHUB_ACTION_PATH`
+  - that avoids remote-consumer failures where nested local action paths or repo script paths are resolved against the
+    caller repository
 
 ## Current Action / DB Notes
 
