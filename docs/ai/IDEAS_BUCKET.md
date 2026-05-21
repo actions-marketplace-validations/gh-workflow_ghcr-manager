@@ -1,14 +1,5 @@
 # Ideas
 
-## ~~DB merge~~
-
-~~A feature, which imports data from another ghcr-manager DB into the current one. Useful to merge scan and cleanup from
-several packages and also historic ones from one package.~~
-
-~~Tricky: Having to import when scan-id (and maybe other internal IDs) are already used in the current DB.~~
-
-~~=> Done~~
-
 ## GHCR visualizer
 
 To my knowledge no tool exists, which nicely shows the graphs in a GitHub image registry package (GHCR).
@@ -35,33 +26,3 @@ pretty - but functional at first.
 
 Should show at least graphs of manifests with tags and some (untrusted `manifest_kind) label what it probably is.  
 Then maybe something like see JSON on click or such.
-
-## ~~Scan and Cleanup environment info storing~~
-
-~~Store info about the environment to get a reference to the run on GH (maybe even job and step).~~
-
-~~Can be simple, read ENV vars, use null if missing.~~
-
-~~=> Done~~
-
-## ~~Package info storing~~
-
-~~During scan and maybe cleanup - store general info about the package. Can be simple JSON payload.~~
-
-## ~~Discuss moving `scan` command to subfolder with `scan/action.yml`~~
-
-~~Same arguments as with `db-merge/action.yml`: keep interface for main action functionality clean. Not same case as
-`db-merge` in root action made key args (token, owner/package) optional.~~
-
-~~=> Result: no, at least for now~~
-
-## ~~Expose "untag" as command~~
-
-~~ghcr-workflow implements a nice hack for the missing untag functionality in GH and GCHR API: untag~~
-
-~~The trick is to assign the tag to a dummy pkg-version/manifest then delete that. Afaik ghcr-manager even makes near
-clones for most manifests instead of dummies.~~
-
-## Test selection by digest
-
-`Digest literals are accepted when they resolve to root digests.` we have to test this in scenario(s).
