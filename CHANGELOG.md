@@ -7,6 +7,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Cleanup audit now persists concrete selected tags in `cleanup_selected_tags`.
+- Cleanup schema docs now include a readable cleanup-decision view plus example SQL queries for audit inspection.
+
+### Changed
+
+- Cleanup summary JSON and Markdown now expose derived affected-manifest counts and digests for fully deletable roots.
+- Cleanup decision audit fields are now constrained more tightly in SQLite and TypeScript, including `selection_mode`,
+  `selection_reason`, and related block reason codes.
+- Schema docs now include a table of contents and collapsible example query blocks for easier GitHub browsing.
+
+### Fixed
+
+- Fixed remote action path handling for artifact upload and merge helper actions.
+
 ## [0.9.5] - 2026-05-21
 
 ### Changed
