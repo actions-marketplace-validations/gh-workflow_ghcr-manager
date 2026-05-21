@@ -137,6 +137,14 @@ CREATE TABLE IF NOT EXISTS cleanup_root_decisions (
   blocking_digest TEXT,
   overlap_digest TEXT,
   PRIMARY KEY(cleanup_run_id, digest),
+  CHECK(selection_mode IN ('delete-root', 'untag-only')),
+  CHECK(selection_reason IN (
+    'delete-tags-all-tags-selected',
+    'delete-tags-partial-tag-match',
+    'delete-untagged',
+    'keep-n-tagged-overflow',
+    'keep-n-untagged-overflow'
+  )),
   CHECK(validation_status IN ('fully-deletable', 'blocked', 'untag-only')),
   CHECK(validation_reason_code IN (
     'untag-only-partial-tag-match',

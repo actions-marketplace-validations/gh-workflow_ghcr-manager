@@ -9,11 +9,14 @@ import type { DeletePlan, PlannerLogger } from "./_planner-types.js";
 
 export type {
   DeletePlan,
+  DeletePlanBlockReasonCode,
   DeletePlanBlockedRoot,
   DeletePlanClosureManifest,
   DeletePlanProtectedRoot,
   DeletePlanRoot,
-  DeletePlanRootDecision
+  DeletePlanRootDecision,
+  DeletePlanSelectionMode,
+  DeletePlanSelectionReason
 } from "./_planner-types.js";
 
 export class PlannerRepository {

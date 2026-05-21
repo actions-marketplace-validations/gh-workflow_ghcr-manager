@@ -94,7 +94,7 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
       {
         versionId: 101,
         digest: "sha256:delete-root",
-        reason: "delete-tags-exact-tag-match",
+        reason: "delete-tags-all-tags-selected",
         selectionMode: "delete-root"
       }
     ],
@@ -103,7 +103,7 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
         versionId: 101,
         digest: "sha256:delete-root",
         selectionMode: "delete-root",
-        selectionReason: "delete-tags-exact-tag-match",
+        selectionReason: "delete-tags-all-tags-selected",
         validationStatus: "blocked",
         validationReasonCode: "blocked-overlap-with-retained-root",
         validationReason: "blocked because retained root sha256:keep-root still requires shared manifest sha256:shared",
@@ -411,7 +411,7 @@ test("cleanup audit rows must use the same scan as their cleanup run", () => {
           secondScanId,
           "sha256:second",
           "delete-root",
-          "test",
+          "delete-untagged",
           "fully-deletable",
           "fully-deletable-no-retained-overlap",
           "test"

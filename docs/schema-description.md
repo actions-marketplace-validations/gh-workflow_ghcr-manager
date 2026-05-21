@@ -369,6 +369,19 @@ What this means:
   - blocked
   - untag-only
 - it is digest-first for query convenience and does not try to persist selector-clause provenance
+- `selection_mode` is constrained to:
+  - `delete-root`
+  - `untag-only`
+- `selection_reason` is constrained to:
+  - `delete-tags-all-tags-selected`
+  - `delete-tags-partial-tag-match`
+  - `delete-untagged`
+  - `keep-n-tagged-overflow`
+  - `keep-n-untagged-overflow`
+- `validation_reason_code` is constrained to:
+  - `fully-deletable-no-retained-overlap`
+  - `untag-only-partial-tag-match`
+  - `blocked-overlap-with-retained-root`
 
 ### `cleanup_selected_tags`
 

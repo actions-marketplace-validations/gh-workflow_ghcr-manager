@@ -2,8 +2,8 @@ interface _PlanRootRow {
   version_id: number;
   root_digest: string;
   root_manifest_kind: string | null;
-  direct_target_reason: string;
-  selection_mode: string;
+  direct_target_reason: DeletePlanSelectionReason;
+  selection_mode: DeletePlanSelectionMode;
 }
 
 interface _PlanTagRow {
@@ -27,7 +27,7 @@ interface _BlockedRootRow {
   blocking_digest: string;
   overlap_digest: string;
   overlap_manifest_kind: string | null;
-  block_reason: string;
+  block_reason: DeletePlanBlockReasonCode;
 }
 
 export interface PlannerLogger {
@@ -43,12 +43,23 @@ export interface ScanRow {
   scan_completed_at: string;
 }
 
+export type DeletePlanSelectionMode = "delete-root" | "untag-only";
+
+export type DeletePlanSelectionReason =
+  | "delete-tags-all-tags-selected"
+  | "delete-tags-partial-tag-match"
+  | "delete-untagged"
+  | "keep-n-tagged-overflow"
+  | "keep-n-untagged-overflow";
+
+export type DeletePlanBlockReasonCode = "overlap-with-retained-root";
+
 export interface DeletePlanRoot {
   versionId: number;
   digest: string;
   manifestKind?: string;
-  reason: string;
-  selectionMode: string;
+  reason: DeletePlanSelectionReason;
+  selectionMode: DeletePlanSelectionMode;
 }
 
 export interface DeletePlanClosureManifest {
@@ -68,15 +79,15 @@ export interface DeletePlanBlockedRoot {
   blockingDigest: string;
   overlapDigest: string;
   overlapManifestKind?: string;
-  reason: string;
+  reason: DeletePlanBlockReasonCode;
 }
 
 export interface DeletePlanRootDecision {
   versionId: number;
   digest: string;
   manifestKind?: string;
-  selectionMode: string;
-  selectionReason: string;
+  selectionMode: DeletePlanSelectionMode;
+  selectionReason: DeletePlanSelectionReason;
   validationStatus: "fully-deletable" | "blocked" | "untag-only";
   validationReasonCode:
     | "untag-only-partial-tag-match"
@@ -95,7 +106,7 @@ export interface DeletePlanProtectedRoot {
   blocks: Array<{
     blockedVersionId: number;
     blockedDigest: string;
-    blockReasonCode: string;
+    blockReasonCode: DeletePlanBlockReasonCode;
     overlapDigest: string;
     overlapManifestKind?: string;
   }>;

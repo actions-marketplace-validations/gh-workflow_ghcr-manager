@@ -1,4 +1,4 @@
-import type { DeletePlan } from "../db/index.js";
+import type { DeletePlan, DeletePlanSelectionMode, DeletePlanSelectionReason } from "../db/index.js";
 import type { DeleteExecutionSummary } from "../execute/index.js";
 
 export interface CleanupSummaryRoot {
@@ -7,8 +7,8 @@ export interface CleanupSummaryRoot {
   manifestKind?: string;
   rootTags: string[];
   matchedTags: string[];
-  selectionMode: string;
-  selectionReason: string;
+  selectionMode: DeletePlanSelectionMode;
+  selectionReason: DeletePlanSelectionReason;
   validationStatus: "fully-deletable" | "blocked" | "untag-only";
   validationReasonCode:
     | "untag-only-partial-tag-match"

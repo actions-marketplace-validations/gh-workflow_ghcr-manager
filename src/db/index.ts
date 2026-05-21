@@ -6,7 +6,12 @@ export { CleanupRunWriter } from "./_cleanup-run-writer.js";
 export { DbMergeRepository } from "./_db-merge-repository.js";
 export { PlannerRepository } from "./planner/index.js";
 export { SnapshotRepository } from "./_snapshot-repository.js";
-export type { DeletePlan } from "./planner/index.js";
+export type {
+  DeletePlan,
+  DeletePlanBlockReasonCode,
+  DeletePlanSelectionMode,
+  DeletePlanSelectionReason
+} from "./planner/index.js";
 export type { DbMergeSourceSummary } from "./_db-merge-repository.js";
 
 export function openDatabase(databasePath: string): Database.Database {
