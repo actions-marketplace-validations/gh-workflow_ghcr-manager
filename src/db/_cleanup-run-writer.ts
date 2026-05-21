@@ -13,6 +13,21 @@ export class CleanupRunWriter {
   persistCleanupRun(scanId: number, plan: DeletePlan, options: { dryRun: boolean; cleanupStartedAt: string }): number {
     return this.#database.transaction(() => {
       const cleanupRunId = this.#insertCleanupRun(scanId, plan, options);
+      for (const tag of plan.directTargetTags) {
+        this.#database
+          .prepare(
+            `
+              INSERT INTO cleanup_selected_tags(
+                cleanup_run_id,
+                scan_id,
+                tag
+              )
+              VALUES(?, ?, ?)
+            `
+          )
+          .run(cleanupRunId, scanId, tag);
+      }
+
       for (const rootDecision of plan.rootDecisions) {
         this.#database
           .prepare(

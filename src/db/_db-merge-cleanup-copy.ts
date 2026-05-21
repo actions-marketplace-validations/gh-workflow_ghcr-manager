@@ -119,6 +119,24 @@ export class DbMergeCleanupCopy {
       this.#database
         .prepare(
           `
+            INSERT INTO cleanup_selected_tags(
+              cleanup_run_id,
+              scan_id,
+              tag
+            )
+            SELECT
+              ?,
+              ?,
+              tag
+            FROM ${attachName}.cleanup_selected_tags
+            WHERE cleanup_run_id = ?
+              AND scan_id = ?
+          `
+        )
+        .run(cleanupRunId, targetScanId, row.cleanup_run_id, sourceScanId);
+      this.#database
+        .prepare(
+          `
             INSERT INTO cleanup_protected_root_blocks(
               cleanup_run_id,
               scan_id,

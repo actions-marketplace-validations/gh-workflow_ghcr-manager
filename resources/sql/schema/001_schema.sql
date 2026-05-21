@@ -149,6 +149,15 @@ CREATE TABLE IF NOT EXISTS cleanup_root_decisions (
   FOREIGN KEY(scan_id, overlap_digest) REFERENCES manifests(scan_id, digest)
 );
 
+CREATE TABLE IF NOT EXISTS cleanup_selected_tags (
+  cleanup_run_id INTEGER NOT NULL,
+  scan_id INTEGER NOT NULL,
+  tag TEXT NOT NULL,
+  PRIMARY KEY(cleanup_run_id, tag),
+  FOREIGN KEY(cleanup_run_id, scan_id) REFERENCES cleanup_runs(cleanup_run_id, scan_id),
+  FOREIGN KEY(scan_id, tag) REFERENCES tags(scan_id, tag)
+);
+
 CREATE TABLE IF NOT EXISTS cleanup_protected_root_blocks (
   cleanup_run_id INTEGER NOT NULL,
   scan_id INTEGER NOT NULL,

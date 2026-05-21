@@ -368,6 +368,22 @@ What this means:
   - fully deletable
   - blocked
   - untag-only
+- it is digest-first for query convenience and does not try to persist selector-clause provenance
+
+### `cleanup_selected_tags`
+
+One row per concrete tag selected by a cleanup run.
+
+Important columns:
+
+- `tag`
+
+What this means:
+
+- this is the tag-side audit evidence for cleanup
+- it records concrete selected tags, not selector-clause provenance
+- version, digest, and root-outcome context are derived by joining through `tags`, `manifests`, and
+  `cleanup_root_decisions`
 
 ### `cleanup_protected_root_blocks`
 

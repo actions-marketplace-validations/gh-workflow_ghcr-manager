@@ -28,6 +28,7 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
     mediaType: "application/vnd.oci.image.manifest.v1+json",
     manifestKind: "image_manifest"
   });
+  scanWriter.insertTag({ versionId: 101, tag: "delete-me" });
   scanWriter.insertPackageVersion({
     versionId: 102,
     createdAt: "2026-05-17T08:05:00.000Z",
@@ -190,6 +191,21 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
   assert.equal(rootDecision.validation_reason_code, "blocked-overlap-with-retained-root");
   assert.equal(rootDecision.blocking_digest, "sha256:keep-root");
   assert.equal(rootDecision.overlap_digest, "sha256:shared");
+
+  const selectedTags = database
+    .prepare(
+      `
+        SELECT scan_id, tag
+        FROM cleanup_selected_tags
+        WHERE cleanup_run_id = ?
+        ORDER BY tag
+      `
+    )
+    .all(cleanupRunId) as Array<{
+    scan_id: number;
+    tag: string;
+  }>;
+  assert.deepEqual(selectedTags, [{ scan_id: scanId, tag: "delete-me" }]);
 
   const protectedRootBlocks = database
     .prepare(
@@ -400,6 +416,103 @@ test("cleanup audit rows must use the same scan as their cleanup run", () => {
           "fully-deletable-no-retained-overlap",
           "test"
         ),
+    /FOREIGN KEY constraint failed/
+  );
+
+  database.close();
+});
+
+test("cleanup selected tags must exist in the same scan as their cleanup run", () => {
+  const database = openDatabase(":memory:");
+  const scanWriter = new ScanWriter(database);
+
+  scanWriter.startScan("acme", "example", "2026-05-17T09:00:00.000Z", {
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
+  scanWriter.insertPackageVersion({
+    versionId: 101,
+    createdAt: "2026-05-17T08:00:00.000Z",
+    updatedAt: "2026-05-17T08:00:00.000Z"
+  });
+  scanWriter.insertManifest({
+    versionId: 101,
+    digest: "sha256:first",
+    mediaType: "application/vnd.oci.image.manifest.v1+json"
+  });
+  scanWriter.insertTag({ versionId: 101, tag: "first-tag" });
+  scanWriter.markScanCompleted("2026-05-17T09:00:00.000Z");
+  const firstScanId = scanWriter.getActiveScanId();
+
+  scanWriter.startScan("acme", "example", "2026-05-17T10:00:00.000Z", {
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
+  scanWriter.insertPackageVersion({
+    versionId: 201,
+    createdAt: "2026-05-17T09:30:00.000Z",
+    updatedAt: "2026-05-17T09:30:00.000Z"
+  });
+  scanWriter.insertManifest({
+    versionId: 201,
+    digest: "sha256:second",
+    mediaType: "application/vnd.oci.image.manifest.v1+json"
+  });
+  scanWriter.insertTag({ versionId: 201, tag: "second-tag" });
+  scanWriter.markScanCompleted("2026-05-17T10:00:00.000Z");
+  const secondScanId = scanWriter.getActiveScanId();
+
+  const cleanupRunId = Number(
+    database
+      .prepare(
+        `
+          INSERT INTO cleanup_runs(
+            scan_id,
+            cleanup_uuid,
+            cleanup_started_at,
+            github_actions_run_url,
+            dry_run,
+            planner_inputs_json,
+            direct_target_tag_count,
+            direct_target_root_count,
+            delete_root_candidate_count,
+            untag_only_root_count,
+            fully_deletable_root_count,
+            blocked_delete_root_count,
+            protected_root_count
+          )
+          VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `
+      )
+      .run(
+        firstScanId,
+        "0196db62-c240-7000-8000-000000000002",
+        "2026-05-17T10:01:00.000Z",
+        null,
+        1,
+        "{}",
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ).lastInsertRowid
+  );
+
+  assert.throws(
+    () =>
+      database
+        .prepare(
+          `
+            INSERT INTO cleanup_selected_tags(
+              cleanup_run_id,
+              scan_id,
+              tag
+            )
+            VALUES(?, ?, ?)
+          `
+        )
+        .run(cleanupRunId, secondScanId, "second-tag"),
     /FOREIGN KEY constraint failed/
   );
 
