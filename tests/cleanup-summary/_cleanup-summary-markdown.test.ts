@@ -11,15 +11,6 @@ test("renderCleanupSummaryMarkdown renders sections and truncates long lists", (
       scanCompletedAt: "2026-05-20T10:00:00.000Z",
       dryRun: true,
       plannerInputs: { deleteTags: ["a", "b"], useRegex: true },
-      validationSummary: {
-        directTargetTagCount: 3,
-        directTargetRootCount: 2,
-        deleteRootCandidateCount: 2,
-        untagOnlyRootCount: 1,
-        fullyDeletableRootCount: 1,
-        blockedDeleteRootCount: 0,
-        protectedRootCount: 0
-      },
       directTargetTags: ["a", "b", "c"],
       collateralTags: [],
       fullyDeletableRoots: [
@@ -37,7 +28,6 @@ test("renderCleanupSummaryMarkdown renders sections and truncates long lists", (
       ],
       untagOnlyRoots: [],
       blockedRoots: [],
-      affectedManifestCount: 3,
       affectedManifests: [{ digest: "sha256:a" }, { digest: "sha256:b" }, { digest: "sha256:c" }],
       deletedPackageVersions: [],
       untaggedTags: [],
@@ -72,15 +62,6 @@ test("renderCleanupSummaryMarkdown renders blocked, untag-only, and live-effect 
       scanCompletedAt: "2026-05-20T10:00:00.000Z",
       dryRun: false,
       plannerInputs: { deleteUntagged: true },
-      validationSummary: {
-        directTargetTagCount: 0,
-        directTargetRootCount: 2,
-        deleteRootCandidateCount: 2,
-        untagOnlyRootCount: 1,
-        fullyDeletableRootCount: 0,
-        blockedDeleteRootCount: 1,
-        protectedRootCount: 0
-      },
       directTargetTags: [],
       collateralTags: [],
       fullyDeletableRoots: [],
@@ -124,7 +105,6 @@ test("renderCleanupSummaryMarkdown renders blocked, untag-only, and live-effect 
           blockingDigest: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
         }
       ],
-      affectedManifestCount: 0,
       affectedManifests: [],
       deletedPackageVersions: [
         { versionId: 202, digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
@@ -178,15 +158,6 @@ test("renderCleanupSummaryMarkdown notes when a root section is truncated", () =
       scanCompletedAt: "2026-05-20T10:00:00.000Z",
       dryRun: true,
       plannerInputs: { deleteTags: ["a"] },
-      validationSummary: {
-        directTargetTagCount: 1,
-        directTargetRootCount: 2,
-        deleteRootCandidateCount: 2,
-        untagOnlyRootCount: 0,
-        fullyDeletableRootCount: 2,
-        blockedDeleteRootCount: 0,
-        protectedRootCount: 0
-      },
       directTargetTags: ["a"],
       collateralTags: [],
       fullyDeletableRoots: [
@@ -215,7 +186,6 @@ test("renderCleanupSummaryMarkdown notes when a root section is truncated", () =
       ],
       untagOnlyRoots: [],
       blockedRoots: [],
-      affectedManifestCount: 2,
       affectedManifests: [{ digest: "sha256:a" }, { digest: "sha256:b" }],
       deletedPackageVersions: [],
       untaggedTags: [],
@@ -229,4 +199,30 @@ test("renderCleanupSummaryMarkdown notes when a root section is truncated", () =
   );
 
   assert.match(markdown, /Showing first 1 of 2 🗑️ fully deletable roots\./i);
+});
+
+test("renderCleanupSummaryMarkdown does not show digest-tag helper tags in user-facing markdown", () => {
+  const markdown = renderCleanupSummaryMarkdown(
+    {
+      command: "cleanup",
+      owner: "acme",
+      packageName: "example",
+      scanCompletedAt: "2026-05-20T10:00:00.000Z",
+      dryRun: true,
+      plannerInputs: { deleteTags: [".*"], useRegex: true },
+      directTargetTags: ["release-1"],
+      collateralTags: [],
+      fullyDeletableRoots: [],
+      untagOnlyRoots: [],
+      blockedRoots: [],
+      affectedManifests: [],
+      deletedPackageVersions: [],
+      untaggedTags: [],
+      unsupportedUntagRoots: []
+    },
+    {}
+  );
+
+  assert.doesNotMatch(markdown, /Digest-tag helper tags/);
+  assert.doesNotMatch(markdown, /helper\/referrer artifacts, not ordinary user-facing image tags/);
 });

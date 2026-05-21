@@ -92,6 +92,7 @@ function _listRootTags(
         WHERE latest_scan.owner = ?
           AND latest_scan.package_name = ?
           AND tags.version_id = ?
+          AND tags.is_digest_tag = 0
         ORDER BY tags.tag
       `
     )

@@ -234,15 +234,6 @@ function _buildPlan(tag = "delete-me", digest = "sha256:delete-root", versionId 
       deleteTags: [tag],
       excludeTags: []
     },
-    validationSummary: {
-      directTargetTagCount: 1,
-      directTargetRootCount: 1,
-      deleteRootCandidateCount: 1,
-      untagOnlyRootCount: 0,
-      fullyDeletableRootCount: 1,
-      blockedDeleteRootCount: 0,
-      protectedRootCount: 0
-    },
     directTargetTags: [tag],
     directTargetRoots: [
       {

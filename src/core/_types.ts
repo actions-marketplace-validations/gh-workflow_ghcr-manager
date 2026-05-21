@@ -5,6 +5,8 @@ export type ManifestKind =
   | "attestation_manifest"
   | "signature_manifest";
 
+export type ManifestEdgeKind = "image-child" | "referrer" | "digest-tag-referrer";
+
 export interface PackageVersionRecord {
   versionId: number;
   createdAt: string;
@@ -48,7 +50,7 @@ export interface ManifestDescriptorRecord {
 export interface ManifestEdgeRecord {
   parentDigest: string;
   childDigest: string;
-  edgeKind: "image-child" | "referrer";
+  edgeKind: ManifestEdgeKind;
 }
 
 export interface PackageSnapshot {

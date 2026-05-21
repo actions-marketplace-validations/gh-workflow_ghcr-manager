@@ -97,4 +97,5 @@ SELECT
 FROM closure_members cm
 LEFT JOIN tags tag
   ON tag.scan_id = cm.scan_id
- AND tag.version_id = cm.member_version_id;
+ AND tag.version_id = cm.member_version_id
+ AND tag.is_digest_tag = 0;

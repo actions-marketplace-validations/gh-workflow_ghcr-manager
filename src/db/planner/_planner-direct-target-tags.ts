@@ -48,7 +48,12 @@ export class PlannerDirectTargetTags {
       JOIN package_versions pv
         ON pv.scan_id = t.scan_id
        AND pv.version_id = t.version_id
+      JOIN v_scan_root_manifests roots
+        ON roots.scan_id = t.scan_id
+       AND roots.root_version_id = t.version_id
       WHERE t.scan_id = ?
+        AND t.is_digest_tag = 0
+        AND roots.has_ancestor = 0
         AND (${selectedTagPredicate.sql})
         ${excludedRootSql}
         ${olderThanSql}

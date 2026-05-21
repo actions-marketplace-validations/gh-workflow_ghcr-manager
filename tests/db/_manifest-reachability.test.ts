@@ -186,3 +186,110 @@ test("rebuildManifestReachability rejects cycles in manifest edges", () => {
 
   database.close();
 });
+
+test("rebuildManifestReachability stitches digest-tag helper edges into recursive closure", () => {
+  const database = openDatabase(":memory:");
+  const writer = new ScanWriter(database);
+  const rootDigest = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const helperDigest = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+  const childDigest = "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+
+  writer.startScan("acme", "example", "2026-04-20T12:00:00.000Z", {
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
+  writer.insertPackageVersion({
+    versionId: 1,
+    createdAt: "2026-04-20T10:00:00.000Z",
+    updatedAt: "2026-04-20T10:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 1,
+    digest: rootDigest,
+    manifestKind: "image_index",
+    mediaType: "application/vnd.oci.image.index.v1+json"
+  });
+  writer.insertPackageVersion({
+    versionId: 2,
+    createdAt: "2026-04-20T10:00:00.000Z",
+    updatedAt: "2026-04-20T10:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 2,
+    digest: helperDigest,
+    manifestKind: "artifact_manifest",
+    mediaType: "application/vnd.oci.artifact.manifest.v1+json"
+  });
+  writer.insertTag({
+    tag: "sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.sig",
+    versionId: 2
+  });
+  writer.insertPackageVersion({
+    versionId: 3,
+    createdAt: "2026-04-20T10:00:00.000Z",
+    updatedAt: "2026-04-20T10:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 3,
+    digest: childDigest,
+    manifestKind: "image_manifest",
+    mediaType: "application/vnd.oci.image.manifest.v1+json"
+  });
+  writer.insertManifestEdge({
+    parentDigest: helperDigest,
+    childDigest,
+    edgeKind: "referrer"
+  });
+
+  rebuildManifestReachability(database, writer.getActiveScanId());
+
+  const digestTagEdgeRows = database
+    .prepare(
+      `
+        SELECT parent_digest, child_digest, edge_kind
+        FROM manifest_edges
+        WHERE edge_kind = 'digest-tag-referrer'
+      `
+    )
+    .all() as Array<{ parent_digest: string; child_digest: string; edge_kind: string }>;
+  const reachabilityRows = database
+    .prepare(
+      `
+        SELECT ancestor_digest, descendant_digest, min_distance
+        FROM manifest_reachability
+        WHERE ancestor_digest = ?
+        ORDER BY descendant_digest
+      `
+    )
+    .all(rootDigest) as Array<{
+    ancestor_digest: string;
+    descendant_digest: string;
+    min_distance: number;
+  }>;
+
+  assert.deepEqual(digestTagEdgeRows, [
+    {
+      parent_digest: rootDigest,
+      child_digest: helperDigest,
+      edge_kind: "digest-tag-referrer"
+    }
+  ]);
+  assert.deepEqual(reachabilityRows, [
+    {
+      ancestor_digest: rootDigest,
+      descendant_digest: rootDigest,
+      min_distance: 0
+    },
+    {
+      ancestor_digest: rootDigest,
+      descendant_digest: helperDigest,
+      min_distance: 1
+    },
+    {
+      ancestor_digest: rootDigest,
+      descendant_digest: childDigest,
+      min_distance: 2
+    }
+  ]);
+
+  database.close();
+});

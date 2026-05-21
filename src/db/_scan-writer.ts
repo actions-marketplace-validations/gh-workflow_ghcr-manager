@@ -1,5 +1,6 @@
 import type Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
+import { isDigestTag } from "../core/index.js";
 import type {
   ManifestDescriptorRecord,
   ManifestEdgeRecord,
@@ -58,8 +59,8 @@ export class ScanWriter {
       VALUES(?, ?, ?)
     `);
     this.#insertTagStatement = this.#database.prepare(`
-      INSERT OR REPLACE INTO tags(scan_id, tag, version_id)
-      VALUES(@scanId, @tag, @versionId)
+      INSERT OR REPLACE INTO tags(scan_id, tag, version_id, is_digest_tag)
+      VALUES(@scanId, @tag, @versionId, @isDigestTag)
     `);
     this.#insertManifestStatement = this.#database.prepare(`
       INSERT OR REPLACE INTO manifests(
@@ -160,7 +161,8 @@ export class ScanWriter {
   insertTag(tag: TagRecord): void {
     this.#insertTagStatement.run({
       scanId: this.#requireScanId(),
-      ...tag
+      ...tag,
+      isDigestTag: isDigestTag(tag.tag) ? 1 : 0
     });
   }
 

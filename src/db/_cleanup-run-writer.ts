@@ -106,6 +106,19 @@ export class CleanupRunWriter {
   }
 
   #insertCleanupRun(scanId: number, plan: DeletePlan, options: { dryRun: boolean; cleanupStartedAt: string }): number {
+    const directTargetTagCount = plan.directTargetTags.length;
+    const directTargetRootCount = plan.directTargetRoots.length;
+    const deleteRootCandidateCount = plan.directTargetRoots.filter(
+      (root) => root.selectionMode === "delete-root"
+    ).length;
+    const untagOnlyRootCount = plan.rootDecisions.filter(
+      (decision) => decision.validationStatus === "untag-only"
+    ).length;
+    const fullyDeletableRootCount = plan.fullyDeletableRoots.length;
+    const blockedDeleteRootCount = plan.rootDecisions.filter(
+      (decision) => decision.validationStatus === "blocked"
+    ).length;
+    const protectedRootCount = plan.protectedRoots.length;
     const result = this.#insertCleanupRunStatement.run(
       scanId,
       randomUUID(),
@@ -113,13 +126,13 @@ export class CleanupRunWriter {
       resolveGitHubActionsRunUrl(),
       options.dryRun ? 1 : 0,
       JSON.stringify(plan.plannerInputs),
-      plan.validationSummary.directTargetTagCount,
-      plan.validationSummary.directTargetRootCount,
-      plan.validationSummary.deleteRootCandidateCount,
-      plan.validationSummary.untagOnlyRootCount,
-      plan.validationSummary.fullyDeletableRootCount,
-      plan.validationSummary.blockedDeleteRootCount,
-      plan.validationSummary.protectedRootCount
+      directTargetTagCount,
+      directTargetRootCount,
+      deleteRootCandidateCount,
+      untagOnlyRootCount,
+      fullyDeletableRootCount,
+      blockedDeleteRootCount,
+      protectedRootCount
     );
 
     return Number(result.lastInsertRowid);

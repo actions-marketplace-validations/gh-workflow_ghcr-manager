@@ -9,15 +9,6 @@ test("buildCleanupSummary groups root decisions and carries live execution effec
       packageName: "example",
       scanCompletedAt: "2026-05-20T10:00:00.000Z",
       plannerInputs: { deleteTags: ["delete-me"], useRegex: true },
-      validationSummary: {
-        directTargetTagCount: 1,
-        directTargetRootCount: 3,
-        deleteRootCandidateCount: 2,
-        untagOnlyRootCount: 1,
-        fullyDeletableRootCount: 1,
-        blockedDeleteRootCount: 1,
-        protectedRootCount: 1
-      },
       directTargetTags: ["delete-me"],
       directTargetRoots: [],
       rootDecisions: [
@@ -99,14 +90,50 @@ test("buildCleanupSummary groups root decisions and carries live execution effec
 
   assert.equal(summary.command, "cleanup");
   assert.equal(summary.dryRun, false);
+  assert.deepEqual(summary.directTargetTags, ["delete-me"]);
   assert.deepEqual(summary.collateralTags, ["keep-me"]);
   assert.equal(summary.fullyDeletableRoots.length, 1);
   assert.equal(summary.untagOnlyRoots.length, 1);
   assert.equal(summary.blockedRoots.length, 1);
-  assert.equal(summary.affectedManifestCount, 2);
   assert.deepEqual(summary.affectedManifests, [{ digest: "sha256:child" }, { digest: "sha256:fully" }]);
   assert.deepEqual(summary.untagOnlyRoots[0]?.matchedTags, ["delete-me"]);
   assert.deepEqual(summary.deletedPackageVersions, [{ versionId: 101, digest: "sha256:fully" }]);
   assert.equal(summary.untaggedTags[0]?.tag, "delete-me");
   assert.equal(summary.blockedRoots[0]?.blockingVersionId, 104);
+});
+
+test("buildCleanupSummary trusts planner-facing direct target tags as already filtered for user output", () => {
+  const summary = buildCleanupSummary(
+    {
+      owner: "acme",
+      packageName: "example",
+      scanCompletedAt: "2026-05-20T10:00:00.000Z",
+      plannerInputs: { deleteTags: [".*"], useRegex: true },
+      directTargetTags: ["release-1"],
+      directTargetRoots: [],
+      rootDecisions: [
+        {
+          versionId: 101,
+          digest: "sha256:fully",
+          selectionMode: "delete-root",
+          selectionReason: "delete-tags-all-tags-selected",
+          validationStatus: "fully-deletable",
+          validationReasonCode: "fully-deletable-no-retained-overlap",
+          validationReason: "No retained overlap"
+        }
+      ],
+      protectedRoots: [],
+      closureManifests: [],
+      blockedRoots: [],
+      fullyDeletableRoots: [],
+      collateralTags: []
+    },
+    {
+      dryRun: true,
+      listRootTags: () => ["release-1"],
+      listAffectedManifestDigests: () => []
+    }
+  );
+
+  assert.deepEqual(summary.directTargetTags, ["release-1"]);
 });

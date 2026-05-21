@@ -96,3 +96,51 @@ test("planner repository lets exclude-tags protect a matched root", () => {
 
   database.close();
 });
+
+test("planner repository excludes digest-tag helper tags from top-level direct target tags", () => {
+  const database = openDatabase(":memory:");
+  const writer = new ScanWriter(database);
+  const repository = new PlannerRepository(database);
+  const rootDigest = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+  writer.startScan("acme", "helper-tags", "2026-05-14T10:00:00.000Z", {
+    rawJson: JSON.stringify({ visibility: "private" })
+  });
+  writer.insertPackageVersion({
+    versionId: 1,
+    createdAt: "2026-05-01T10:00:00.000Z",
+    updatedAt: "2026-05-01T10:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 1,
+    digest: rootDigest,
+    manifestKind: "image_manifest",
+    mediaType: "application/vnd.oci.image.manifest.v1+json"
+  });
+  writer.insertTag({ tag: "release-1", versionId: 1 });
+  writer.insertPackageVersion({
+    versionId: 2,
+    createdAt: "2026-05-01T10:00:00.000Z",
+    updatedAt: "2026-05-01T10:00:00.000Z"
+  });
+  writer.insertManifest({
+    versionId: 2,
+    digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    manifestKind: "artifact_manifest",
+    mediaType: "application/vnd.oci.artifact.manifest.v1+json"
+  });
+  writer.insertTag({
+    tag: "sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.sig",
+    versionId: 2
+  });
+  writer.rebuildManifestReachability();
+  writer.markScanCompleted("2026-05-14T10:00:00.000Z");
+
+  const plan = repository.getDeleteTagsPlanWithCutoff("acme", "helper-tags", [".*"], [], {
+    useRegex: true
+  });
+
+  assert.deepEqual(plan.directTargetTags, ["release-1"]);
+
+  database.close();
+});

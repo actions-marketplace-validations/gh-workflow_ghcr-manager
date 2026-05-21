@@ -31,6 +31,7 @@ JOIN package_scans ps
 LEFT JOIN tags t
   ON t.scan_id = m.scan_id
  AND t.version_id = m.version_id
+ AND t.is_digest_tag = 0
 GROUP BY
   ps.scan_id,
   ps.owner,

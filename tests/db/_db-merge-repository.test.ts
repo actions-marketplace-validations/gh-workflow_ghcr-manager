@@ -22,15 +22,6 @@ function _createPlan(scanCompletedAt: string): DeletePlan {
       deleteTags: [],
       excludeTags: []
     },
-    validationSummary: {
-      directTargetTagCount: 0,
-      directTargetRootCount: 0,
-      deleteRootCandidateCount: 0,
-      untagOnlyRootCount: 0,
-      fullyDeletableRootCount: 0,
-      blockedDeleteRootCount: 0,
-      protectedRootCount: 0
-    },
     directTargetTags: [],
     directTargetRoots: [],
     rootDecisions: [],

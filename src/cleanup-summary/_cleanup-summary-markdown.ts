@@ -22,11 +22,11 @@ export function renderCleanupSummaryMarkdown(
     "| --- | --- |",
     `| 📦 Package | \`${_escapeInlineCode(`${summary.owner}/${summary.packageName}`)}\` |`,
     `| ⚙️ Mode | ${summary.dryRun ? "Cleanup dry-run" : "Cleanup"} |`,
-    `| 🏷️ Matched tags | ${summary.validationSummary.directTargetTagCount} |`,
-    `| 🗑️ Fully deletable roots | ${summary.validationSummary.fullyDeletableRootCount} |`,
-    `| 🔗 Untag-only roots | ${summary.validationSummary.untagOnlyRootCount} |`,
-    `| 🛡️ Blocked roots | ${summary.validationSummary.blockedDeleteRootCount} |`,
-    `| 📄 Affected manifests | ${summary.affectedManifestCount} |`,
+    `| 🏷️ Matched tags | ${summary.directTargetTags.length} |`,
+    `| 🗑️ Fully deletable roots | ${summary.fullyDeletableRoots.length} |`,
+    `| 🔗 Untag-only roots | ${summary.untagOnlyRoots.length} |`,
+    `| 🛡️ Blocked roots | ${summary.blockedRoots.length} |`,
+    `| 📄 Affected manifests | ${summary.affectedManifests.length} |`,
     ""
   ];
 

@@ -14,15 +14,6 @@ test("executeDeletePlan deletes fully deletable roots and returns a summary", as
       deleteTags: [],
       excludeTags: []
     },
-    validationSummary: {
-      directTargetTagCount: 0,
-      directTargetRootCount: 1,
-      deleteRootCandidateCount: 1,
-      untagOnlyRootCount: 0,
-      fullyDeletableRootCount: 1,
-      blockedDeleteRootCount: 0,
-      protectedRootCount: 0
-    },
     directTargetTags: [],
     directTargetRoots: [
       {
@@ -102,15 +93,6 @@ test("executeDeletePlan applies untag-only roots before deleting fully deletable
       deleteUntagged: false,
       deleteTags: ["latest"],
       excludeTags: []
-    },
-    validationSummary: {
-      directTargetTagCount: 1,
-      directTargetRootCount: 1,
-      deleteRootCandidateCount: 0,
-      untagOnlyRootCount: 1,
-      fullyDeletableRootCount: 0,
-      blockedDeleteRootCount: 0,
-      protectedRootCount: 0
     },
     directTargetTags: ["latest"],
     directTargetRoots: [
@@ -281,15 +263,6 @@ test("executeDeletePlan rejects untag-only roots without listRootTags support", 
       deleteTags: ["latest"],
       excludeTags: []
     },
-    validationSummary: {
-      directTargetTagCount: 1,
-      directTargetRootCount: 1,
-      deleteRootCandidateCount: 0,
-      untagOnlyRootCount: 1,
-      fullyDeletableRootCount: 0,
-      blockedDeleteRootCount: 0,
-      protectedRootCount: 0
-    },
     directTargetTags: ["latest"],
     directTargetRoots: [
       {
@@ -341,15 +314,6 @@ test("executeDeletePlan rejects untag-only roots when no selected tags resolve",
       deleteUntagged: false,
       deleteTags: ["latest"],
       excludeTags: []
-    },
-    validationSummary: {
-      directTargetTagCount: 1,
-      directTargetRootCount: 1,
-      deleteRootCandidateCount: 0,
-      untagOnlyRootCount: 1,
-      fullyDeletableRootCount: 0,
-      blockedDeleteRootCount: 0,
-      protectedRootCount: 0
     },
     directTargetTags: ["latest"],
     directTargetRoots: [

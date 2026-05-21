@@ -135,15 +135,6 @@ export interface DeletePlan {
     olderThan?: string;
     cutoffTimestamp?: string;
   };
-  validationSummary: {
-    directTargetTagCount: number;
-    directTargetRootCount: number;
-    deleteRootCandidateCount: number;
-    untagOnlyRootCount: number;
-    fullyDeletableRootCount: number;
-    blockedDeleteRootCount: number;
-    protectedRootCount: number;
-  };
   directTargetTags: string[];
   directTargetRoots: DeletePlanRoot[];
   rootDecisions: DeletePlanRootDecision[];

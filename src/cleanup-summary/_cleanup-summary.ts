@@ -32,13 +32,11 @@ export interface CleanupSummary {
   scanCompletedAt: string;
   dryRun: boolean;
   plannerInputs: DeletePlan["plannerInputs"];
-  validationSummary: DeletePlan["validationSummary"];
   directTargetTags: string[];
   collateralTags: string[];
   fullyDeletableRoots: CleanupSummaryRoot[];
   untagOnlyRoots: CleanupSummaryRoot[];
   blockedRoots: CleanupSummaryRoot[];
-  affectedManifestCount: number;
   affectedManifests: CleanupSummaryAffectedManifest[];
   deletedPackageVersions: DeleteExecutionSummary["deletedPackageVersions"];
   untaggedTags: DeleteExecutionSummary["untaggedTags"];
@@ -59,6 +57,8 @@ export function buildCleanupSummary(
     _mapRootDecision(decision, directTargetTagSet, options.listRootTags)
   );
   const fullyDeletableRoots = roots.filter((root) => root.validationStatus === "fully-deletable");
+  const blockedRoots = roots.filter((root) => root.validationStatus === "blocked");
+  const untagOnlyRoots = roots.filter((root) => root.validationStatus === "untag-only");
   const affectedManifestDigests = options.listAffectedManifestDigests(fullyDeletableRoots.map((root) => root.digest));
 
   return {
@@ -68,13 +68,11 @@ export function buildCleanupSummary(
     scanCompletedAt: plan.scanCompletedAt,
     dryRun: options.dryRun,
     plannerInputs: plan.plannerInputs,
-    validationSummary: plan.validationSummary,
     directTargetTags: plan.directTargetTags,
     collateralTags: plan.collateralTags,
     fullyDeletableRoots,
-    untagOnlyRoots: roots.filter((root) => root.validationStatus === "untag-only"),
-    blockedRoots: roots.filter((root) => root.validationStatus === "blocked"),
-    affectedManifestCount: affectedManifestDigests.length,
+    untagOnlyRoots,
+    blockedRoots,
     affectedManifests: affectedManifestDigests.map((digest) => ({ digest })),
     deletedPackageVersions: options.executionSummary?.deletedPackageVersions ?? [],
     untaggedTags: options.executionSummary?.untaggedTags ?? [],

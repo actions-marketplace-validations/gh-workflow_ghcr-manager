@@ -10,6 +10,7 @@ interface _ManifestEdgeRow {
 }
 
 export function rebuildManifestReachability(database: Database.Database, scanId: number): void {
+  _refreshDigestTagEdges(database, scanId);
   const manifestDigests = _loadManifestDigests(database, scanId);
   const childDigestsByParent = new Map<string, Set<string>>();
   const parentDigestsByChild = new Map<string, Set<string>>();
@@ -97,6 +98,34 @@ export function rebuildManifestReachability(database: Database.Database, scanId:
   });
 
   rebuild();
+}
+
+function _refreshDigestTagEdges(database: Database.Database, scanId: number): void {
+  database.prepare("DELETE FROM manifest_edges WHERE scan_id = ? AND edge_kind = 'digest-tag-referrer'").run(scanId);
+
+  database
+    .prepare(
+      `
+        INSERT OR IGNORE INTO manifest_edges(scan_id, parent_digest, child_digest, edge_kind)
+        SELECT
+          t.scan_id,
+          'sha256:' || SUBSTR(t.tag, 8, 64) AS parent_digest,
+          m.digest AS child_digest,
+          'digest-tag-referrer' AS edge_kind
+        FROM tags t
+        JOIN manifests m
+          ON m.scan_id = t.scan_id
+         AND m.version_id = t.version_id
+        JOIN manifests parent_manifest
+          ON parent_manifest.scan_id = t.scan_id
+         AND parent_manifest.digest = 'sha256:' || SUBSTR(t.tag, 8, 64)
+        WHERE t.scan_id = ?
+          AND t.tag LIKE 'sha256-%'
+          AND LENGTH(t.tag) >= 71
+          AND SUBSTR(t.tag, 8, 64) NOT GLOB '*[^0-9A-Fa-f]*'
+      `
+    )
+    .run(scanId);
 }
 
 function _loadManifestDigests(database: Database.Database, scanId: number): string[] {

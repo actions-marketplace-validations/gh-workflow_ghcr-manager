@@ -104,7 +104,7 @@ function _listLatestBrokenIndexTags(
 }
 
 // Some OCI tooling publishes companion artifacts such as signatures or attestations under
-// digest-derived tags in the same repository, for example `sha256-<digest>.sig`, while the
+// digest tags in the same repository, for example `sha256-<digest>.sig`, while the
 // actual relationship is the artifact's subject/referrer link to the parent digest.
 //
 // Public references:
@@ -127,7 +127,7 @@ function _listLatestOrphanedTags(
     .prepare(
       `
         SELECT DISTINCT dtr.tag
-        FROM v_digest_derived_tag_relations dtr
+        FROM v_digest_tag_relations dtr
         INNER JOIN package_versions pv
           ON pv.scan_id = dtr.scan_id
          AND pv.version_id = dtr.artifact_version_id

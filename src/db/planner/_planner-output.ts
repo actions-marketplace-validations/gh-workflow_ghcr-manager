@@ -13,7 +13,6 @@ export function buildPlanOutputs(
   planArtifacts: PlanArtifacts
 ): Pick<
   DeletePlan,
-  | "validationSummary"
   | "directTargetTags"
   | "directTargetRoots"
   | "rootDecisions"
@@ -25,19 +24,8 @@ export function buildPlanOutputs(
 > {
   const rootDecisions = buildRootDecisions(directTargetRoots, planArtifacts);
   const protectedRoots = buildProtectedRoots(planArtifacts.blockedRoots);
-  const deleteRootCandidateCount = directTargetRoots.filter((root) => root.selectionMode === "delete-root").length;
-  const untagOnlyRootCount = directTargetRoots.length - deleteRootCandidateCount;
 
   return {
-    validationSummary: {
-      directTargetTagCount: directTargetTags.length,
-      directTargetRootCount: directTargetRoots.length,
-      deleteRootCandidateCount,
-      untagOnlyRootCount,
-      fullyDeletableRootCount: planArtifacts.fullyDeletableRoots.length,
-      blockedDeleteRootCount: rootDecisions.filter((decision) => decision.validationStatus === "blocked").length,
-      protectedRootCount: protectedRoots.length
-    },
     directTargetTags,
     directTargetRoots,
     rootDecisions,

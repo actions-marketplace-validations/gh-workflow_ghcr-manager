@@ -41,6 +41,7 @@ export class PlannerDirectTargetRoots {
         SELECT DISTINCT t.version_id, t.tag
         FROM tags t
         WHERE t.scan_id = ?
+          AND t.is_digest_tag = 0
           AND (${selectedTagPredicate.sql})
       `
       : `
@@ -56,6 +57,7 @@ export class PlannerDirectTargetRoots {
         SELECT DISTINCT xt.version_id
         FROM tags xt
         WHERE xt.scan_id = ?
+          AND xt.is_digest_tag = 0
           AND (${excludedTagPredicate.sql})
       `
       : `

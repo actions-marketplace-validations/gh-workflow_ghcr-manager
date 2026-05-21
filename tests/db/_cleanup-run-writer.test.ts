@@ -80,15 +80,6 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
       deleteTags: ["delete-me"],
       excludeTags: ["keep-me"]
     },
-    validationSummary: {
-      directTargetTagCount: 1,
-      directTargetRootCount: 1,
-      deleteRootCandidateCount: 1,
-      untagOnlyRootCount: 0,
-      fullyDeletableRootCount: 0,
-      blockedDeleteRootCount: 1,
-      protectedRootCount: 1
-    },
     directTargetTags: ["delete-me"],
     directTargetRoots: [
       {

@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS tags (
   scan_id INTEGER NOT NULL,
   tag TEXT NOT NULL,
   version_id INTEGER NOT NULL,
+  is_digest_tag INTEGER NOT NULL,
+  CHECK(is_digest_tag IN (0, 1)),
   PRIMARY KEY(scan_id, tag),
   FOREIGN KEY(scan_id, version_id) REFERENCES package_versions(scan_id, version_id)
 );
@@ -89,6 +91,7 @@ CREATE TABLE IF NOT EXISTS manifest_edges (
   parent_digest TEXT NOT NULL,
   child_digest TEXT NOT NULL,
   edge_kind TEXT NOT NULL,
+  CHECK(edge_kind IN ('image-child', 'referrer', 'digest-tag-referrer')),
   PRIMARY KEY(scan_id, parent_digest, child_digest, edge_kind),
   FOREIGN KEY(scan_id, parent_digest) REFERENCES manifests(scan_id, digest),
   FOREIGN KEY(scan_id, child_digest) REFERENCES manifests(scan_id, digest)

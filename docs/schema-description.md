@@ -121,12 +121,14 @@ Important columns:
 - `scan_id`
 - `tag`
 - `version_id`
+- `is_digest_tag`
 
 What this means:
 
 - `latest`, `1.2.3`, `pr-123`, and so on are stored here
 - tags are not free-floating objects in this DB
 - a tag belongs to one package version in one scan
+- `is_digest_tag = 1` marks internal tags that point at manifests.
 
 ## Manifest Tables
 
@@ -296,14 +298,14 @@ Important columns include:
 
 This is the main convenience view for "what are the roots in this scan?"
 
-### `v_digest_derived_tag_relations`
+### `v_digest_tag_relations`
 
 Heuristic helper view for digest-shaped tags such as `sha256-<digest>.sig`.
 
-It infers a likely parent digest from the tag name and compares that with:
+It extracts a parent digest from the tag name and compares that with:
 
 - whether that digest exists in `manifests`
-- whether the artifact's `subject_digest` matches the inferred parent
+- whether the artifact's `subject_digest` matches that parent
 
 This is exploratory/helper data, not authoritative graph structure.
 
@@ -363,7 +365,7 @@ Important columns:
 - `dry_run`
 - `planner_inputs_json`
 - summary counts such as:
-  - `direct_target_tag_count`
+  - `direct_target_root_count`
   - `untag_only_root_count`
   - `fully_deletable_root_count`
   - `blocked_delete_root_count`

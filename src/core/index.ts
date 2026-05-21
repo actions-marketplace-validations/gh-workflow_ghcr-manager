@@ -1,4 +1,5 @@
 export type {
+  ManifestEdgeKind,
   ManifestEdgeRecord,
   ManifestDescriptorRecord,
   ManifestKind,
@@ -10,3 +11,4 @@ export type {
 export type { HttpErrorResponse } from "./_http-error.js";
 export { buildHttpErrorMessage } from "./_http-error.js";
 export { getOwnerURIComponent } from "./_github-package-owner.js";
+export { digestFromDigestTag, isDigestTag } from "./_digest-tag.js";

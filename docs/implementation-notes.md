@@ -160,7 +160,14 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - action summary JSON file-path output
   - optional cleanup JSON artifact upload alongside the DB
   - GitHub step summary rendering from that same JSON
-  - derived `affectedManifestCount` and `affectedManifests` from `manifest_reachability` for fully deletable roots
+  - derived `affectedManifests` from `manifest_reachability` for fully deletable roots
+- [x] Treat digest-tag `sha256-*` helper tags as helper/referrer artifacts:
+  - rebuild `manifest_reachability` after refreshing `digest-tag-referrer` edges in `manifest_edges`
+  - define digest-tag helper-edge SQL in `resources/sql/views` instead of embedding the derivation inline in TypeScript
+  - persist tag classification in `tags.is_digest_tag`
+  - exclude helper-tagged artifacts from normal tag semantics near the DB boundary (`directTargetTags`, root tag counts,
+    root tag listing) once those helper artifacts have an ancestor
+  - keep helper tags auditable in the DB, but do not show them in normal user-facing cleanup tag output
 - [x] Update documentation for the first public release:
   - action usage
   - CLI usage
@@ -188,6 +195,18 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - `schema-description.md` for DB orientation
   - `queries/missing-manifests-queries.md` for a narrow advanced SQL recipe
 - Keep internal planner/semantics notes out of the user-facing doc path.
+- Cleanup summary note:
+  - digest-tag `sha256-*` helper/referrer tags are not shown as ordinary matched tags
+  - the DB still preserves them for audit, and recursive manifest closure now crosses those helper edges
+  - `DeletePlan` no longer carries denormalized `validationSummary` counts
+  - those counts are now derived where needed:
+    - in `buildCleanupSummary()` for user-facing summary JSON / markdown
+    - in `CleanupRunWriter` when persisting `cleanup_runs`
+  - `CleanupSummary` also no longer carries array-plus-count duplicates:
+    - no `validationSummary`
+    - no `affectedManifestCount`
+    - Markdown and tests read counts from array lengths directly
+  - full DB merge scan-copy now also carries `tags.is_digest_tag`
 - Task 04 is effectively complete for now. DB/schema explanation remains intentionally deferred rather than blocking
   release docs.
 - Release workflow note:

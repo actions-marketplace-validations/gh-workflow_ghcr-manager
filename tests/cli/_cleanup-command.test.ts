@@ -42,11 +42,11 @@ test("handleCleanup dry-run does not require a token", async () => {
   const summary = JSON.parse(writes[0] as string) as {
     dryRun: boolean;
     plannerInputs: { deleteUntagged: boolean };
-    affectedManifestCount: number;
+    affectedManifests: Array<{ digest: string }>;
   };
   assert.equal(summary.dryRun, true);
   assert.equal(summary.plannerInputs.deleteUntagged, true);
-  assert.equal(summary.affectedManifestCount, 1);
+  assert.equal(summary.affectedManifests.length, 1);
 
   const persistedDatabase = openDatabase(databasePath);
   const cleanupRun = persistedDatabase
@@ -168,13 +168,12 @@ test("handleCleanup dry-run persists tagged fully-deletable cleanup decisions", 
 
   const summary = JSON.parse(writes[0] as string) as {
     fullyDeletableRoots: Array<{ validationStatus: string; selectionMode: string }>;
-    affectedManifestCount: number;
     affectedManifests: Array<{ digest: string }>;
   };
   assert.equal(summary.fullyDeletableRoots.length, 1);
   assert.equal(summary.fullyDeletableRoots[0]?.validationStatus, "fully-deletable");
   assert.equal(summary.fullyDeletableRoots[0]?.selectionMode, "delete-root");
-  assert.equal(summary.affectedManifestCount, 2);
+  assert.equal(summary.affectedManifests.length, 2);
   assert.deepEqual(
     summary.affectedManifests.map((manifest) => manifest.digest),
     ["sha256:attestation-old", "sha256:index-current"]
