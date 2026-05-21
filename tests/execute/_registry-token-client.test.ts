@@ -7,7 +7,7 @@ test("loadRegistryPushToken requests a push-capable token", async () => {
   const token = await loadRegistryPushToken(
     "acme",
     "example",
-    "github-token",
+    "test-token",
     {
       debug() {},
       info() {},
@@ -39,7 +39,7 @@ test("loadRegistryPushToken surfaces non-retryable HTTP failures", async () => {
       loadRegistryPushToken(
         "acme",
         "example",
-        "github-token",
+        "test-token",
         {
           debug() {},
           info() {},
@@ -70,7 +70,7 @@ test("loadRegistryPushToken rejects responses without a token", async () => {
       loadRegistryPushToken(
         "acme",
         "example",
-        "github-token",
+        "test-token",
         {
           debug() {},
           info() {},
@@ -98,7 +98,7 @@ test("loadRegistryPushToken surfaces transport failures", async () => {
       loadRegistryPushToken(
         "acme",
         "example",
-        "github-token",
+        "test-token",
         {
           debug() {},
           info() {},

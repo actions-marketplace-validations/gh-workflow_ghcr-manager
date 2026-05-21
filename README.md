@@ -36,7 +36,7 @@ jobs:
         uses: gh-workflow/ghcr-manager@0.9.1
         with:
           command: cleanup
-          github-token: ${{ github.token }}
+          token: ${{ github.token }}
           owner: OWNER
           package: PACKAGE
           dry-run: true
@@ -75,7 +75,7 @@ The action supports three commands:
 - uses: gh-workflow/ghcr-manager@0.9.1
   with:
     command: cleanup
-    github-token: ${{ github.token }}
+    token: ${{ github.token }}
     owner: OWNER
     package: PACKAGE
     dry-run: true
@@ -96,7 +96,7 @@ The action supports three commands:
 - uses: gh-workflow/ghcr-manager@0.9.1
   with:
     command: cleanup
-    github-token: ${{ github.token }}
+    token: ${{ github.token }}
     owner: OWNER
     package: PACKAGE
     delete-untagged: true
@@ -115,7 +115,7 @@ Note: the second scan only runs if cleanup actually makes changes.
 - uses: gh-workflow/ghcr-manager@0.9.1
   with:
     command: untag
-    github-token: ${{ github.token }}
+    token: ${{ github.token }}
     owner: OWNER
     package: PACKAGE
     delete-tags: |
@@ -131,7 +131,7 @@ Note: the second scan only runs if cleanup actually makes changes.
 - uses: gh-workflow/ghcr-manager@0.9.1
   with:
     command: scan
-    github-token: ${{ github.token }}
+    token: ${{ github.token }}
     owner: OWNER
     package: PACKAGE
 ```
@@ -145,7 +145,7 @@ Note: the second scan only runs if cleanup actually makes changes.
 | Input                        | Description                         | Cmds | Required    | Default                        |
 | ---------------------------- | ----------------------------------- | ---- | ----------- | ------------------------------ |
 | `command`                    | `scan`, `cleanup`, or `untag`       | all  | Yes         |                                |
-| `github-token`               | GitHub token for API calls          | all  | Yes         | `${{ github.token }}`          |
+| `token`                      | GitHub token for API calls          | all  | Yes         | `${{ github.token }}`          |
 | `owner`                      | Package owner                       | all  | Yes         |                                |
 | `package`                    | Package name                        | all  | Yes         |                                |
 | `db-path`                    | Local SQLite DB path                | s,c  | No          |                                |

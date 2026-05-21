@@ -55,7 +55,7 @@ runs:
       shell: bash
       env:
         ARTIFACT_NAME_PATTERN: ${{ inputs.artifact-name-pattern }}
-        GH_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ github.token }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         GITHUB_RUN_ID: ${{ github.run_id }}
         RUNNER_TEMP: ${{ runner.temp }}
@@ -81,7 +81,7 @@ runs:
       env:
         ARTIFACT_NAME_PATTERN: ${{ inputs.artifact-name-pattern }}
         EXCLUDE_ARTIFACT_ID: ${{ steps.merge.outputs.artifact-id }}
-        GH_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ github.token }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         GITHUB_RUN_ID: ${{ github.run_id }}
       run: |

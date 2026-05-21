@@ -32,7 +32,7 @@ export function hasFlag(args: string[], name: string): boolean {
   return args.includes(name);
 }
 
-export function resolveGitHubToken(args: string[]): string {
+export function resolveToken(args: string[]): string {
   const cliToken = findOption(args, "--token");
   if (cliToken) {
     return cliToken;

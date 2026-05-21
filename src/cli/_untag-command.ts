@@ -1,5 +1,5 @@
 import { listPackageVersionTagSources, untagRootTags, type UntagTagOperation } from "../execute/index.js";
-import { collectRepeatedOption, hasFlag, requireOption, resolveGitHubToken, resolveLogLevel } from "./_args.js";
+import { collectRepeatedOption, hasFlag, requireOption, resolveLogLevel, resolveToken } from "./_args.js";
 import { createLogger } from "./_logger.js";
 
 interface _UntagRootSelection {
@@ -25,7 +25,7 @@ export async function handleUntag(args: string[]): Promise<number> {
     throw new Error("missing required option: --tag");
   }
 
-  const token = resolveGitHubToken(args);
+  const token = resolveToken(args);
   const dryRun = hasFlag(args, "--dry-run");
   const logger = createLogger(resolveLogLevel(args));
   const tagSources = await listPackageVersionTagSources(owner, packageName, requestedTags, token, logger);

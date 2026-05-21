@@ -7,7 +7,7 @@ test("untagRootTags retargets tags and deletes the temporary package versions", 
   let latestVisible = true;
 
   const operations = await untagRootTags("acme", "example", 101, "sha256:source", ["latest"], {
-    token: "github-token",
+    token: "test-token",
     logger: {
       debug() {},
       info() {},

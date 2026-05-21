@@ -1,6 +1,6 @@
 import { ScanWriter, SnapshotRepository, openDatabase } from "../db/index.js";
 import { importGitHubScan } from "../ingest/github/index.js";
-import { findOption, requireOption, resolveGitHubToken, resolveLogLevel } from "./_args.js";
+import { findOption, requireOption, resolveLogLevel, resolveToken } from "./_args.js";
 import { writeGitHubScanOutputs } from "./_github-output.js";
 import { createLogger } from "./_logger.js";
 
@@ -9,7 +9,7 @@ export async function handleScan(args: string[]): Promise<number> {
   const owner = requireOption(args, "--owner");
   const packageName = requireOption(args, "--package");
   const githubOutputPath = findOption(args, "--github-output");
-  const token = resolveGitHubToken(args);
+  const token = resolveToken(args);
   const logger = createLogger(resolveLogLevel(args));
   const database = openDatabase(databasePath);
   const repository = new SnapshotRepository(database);

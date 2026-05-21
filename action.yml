@@ -9,7 +9,7 @@ inputs:
   command:
     description: Action command to run (`scan`, `cleanup`, or `untag`)
     required: true
-  github-token:
+  token:
     description: GitHub token used for GitHub/GHCR API calls
     required: true
     default: ${{ github.token }}
@@ -205,7 +205,7 @@ runs:
           --log-level "${{ inputs.log-level }}"
           --owner "${{ inputs.owner }}"
           --package "${{ inputs.package }}"
-          --token "${{ inputs.github-token }}"
+          --token "${{ inputs.token }}"
           --github-output "$GITHUB_OUTPUT"
         )
         npm run ghcr-manager:dist -- scan \
@@ -241,7 +241,7 @@ runs:
         if [[ "$DRY_RUN" == "true" ]]; then
           cleanup_args+=(--dry-run)
         else
-          cleanup_args+=(--token "${{ inputs.github-token }}")
+          cleanup_args+=(--token "${{ inputs.token }}")
         fi
 
         if [[ "$DELETE_UNTAGGED" == "true" ]]; then
@@ -311,7 +311,7 @@ runs:
           --log-level "${{ inputs.log-level }}"
           --owner "${{ inputs.owner }}"
           --package "${{ inputs.package }}"
-          --token "${{ inputs.github-token }}"
+          --token "${{ inputs.token }}"
         )
 
         if [[ "${{ inputs.dry-run }}" == "true" ]]; then
@@ -376,7 +376,7 @@ runs:
           --log-level "${{ inputs.log-level }}" \
           --owner "${{ inputs.owner }}" \
           --package "${{ inputs.package }}" \
-          --token "${{ inputs.github-token }}" \
+          --token "${{ inputs.token }}" \
           --github-output "$GITHUB_OUTPUT"
 
     - name: Upload DB artifact

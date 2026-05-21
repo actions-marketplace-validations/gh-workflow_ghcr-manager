@@ -1,7 +1,7 @@
 import { buildCleanupSummary } from "../cleanup-summary/index.js";
 import { CleanupRunWriter, openDatabase, PlannerRepository } from "../db/index.js";
 import { executeDeletePlan } from "../execute/index.js";
-import { hasFlag, resolveGitHubToken, resolveLogLevel } from "./_args.js";
+import { hasFlag, resolveLogLevel, resolveToken } from "./_args.js";
 import { createLogger } from "./_logger.js";
 import { loadDeletePlan, resolvePlanCommandInputs } from "./_planner-options.js";
 import { resolveTagSelectors } from "./_tag-selector-resolver.js";
@@ -9,7 +9,7 @@ import { resolveTagSelectors } from "./_tag-selector-resolver.js";
 export async function handleCleanup(args: string[]): Promise<number> {
   const inputs = resolvePlanCommandInputs(args);
   const dryRun = hasFlag(args, "--dry-run");
-  const token = dryRun ? undefined : resolveGitHubToken(args);
+  const token = dryRun ? undefined : resolveToken(args);
   const logger = createLogger(resolveLogLevel(args));
   const database = openDatabase(inputs.databasePath);
   try {

@@ -3,7 +3,7 @@ set -euo pipefail
 
 readonly _GITHUB_API_VERSION="2022-11-28"
 
-: "${GH_TOKEN:?GH_TOKEN is required}"
+: "${GITHUB_TOKEN:?GITHUB_TOKEN is required}"
 : "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required}"
 : "${GITHUB_RUN_ID:?GITHUB_RUN_ID is required}"
 : "${RUNNER_TEMP:?RUNNER_TEMP is required}"

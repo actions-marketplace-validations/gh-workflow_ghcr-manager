@@ -136,7 +136,7 @@ jobs:
         uses: ./
         with:
           command: untag
-          github-token: ${{ secrets.GHCR_TEST_PAT }}
+          token: ${{ secrets.GHCR_TEST_PAT }}
           owner: ${{ vars.GHCR_TEST_OWNER }}
           package: ${{ steps.scenario.outputs.package_name }}
           delete-tags: ${{ steps.scenario.outputs.delete_tags }}
@@ -145,7 +145,7 @@ jobs:
         uses: ./
         with:
           command: scan
-          github-token: ${{ secrets.GHCR_TEST_PAT }}
+          token: ${{ secrets.GHCR_TEST_PAT }}
           owner: ${{ vars.GHCR_TEST_OWNER }}
           package: ${{ steps.scenario.outputs.package_name }}
           db-path: ${{ steps.scenario.outputs.db_path }}

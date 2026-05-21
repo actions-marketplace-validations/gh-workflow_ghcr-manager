@@ -28,7 +28,7 @@ jobs:
         uses: gh-workflow/ghcr-manager@v0
         with:
           command: cleanup
-          github-token: ${{ github.token }}
+          token: ${{ github.token }}
           owner: OWNER
           package: package-one
           dry-run: true
@@ -38,7 +38,7 @@ jobs:
         uses: gh-workflow/ghcr-manager@v0
         with:
           command: cleanup
-          github-token: ${{ github.token }}
+          token: ${{ github.token }}
           owner: OWNER
           package: package-two
           db-path: ${{ steps.first-package.outputs.db-path }}
@@ -73,7 +73,7 @@ jobs:
       - uses: gh-workflow/ghcr-manager@v0
         with:
           command: cleanup
-          github-token: ${{ github.token }}
+          token: ${{ github.token }}
           owner: OWNER
           package: package-a
           dry-run: true
@@ -91,7 +91,7 @@ jobs:
       - uses: gh-workflow/ghcr-manager@v0
         with:
           command: cleanup
-          github-token: ${{ github.token }}
+          token: ${{ github.token }}
           owner: OWNER
           package: package-b
           dry-run: true

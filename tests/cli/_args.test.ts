@@ -4,7 +4,7 @@ import {
   collectRepeatedOption,
   findOption,
   requireOption,
-  resolveGitHubToken,
+  resolveToken,
   resolveLogLevel
 } from "../../src/cli/_args.js";
 
@@ -19,12 +19,12 @@ test("collectRepeatedOption reads repeated options in order", () => {
   assert.deepEqual(collectRepeatedOption(args, "--exclude-tag"), ["one", "two"]);
 });
 
-test("resolveGitHubToken prefers CLI input over the environment", () => {
-  assert.equal(resolveGitHubToken(["--token", "cli-token"]), "cli-token");
+test("resolveToken prefers CLI input", () => {
+  assert.equal(resolveToken(["--token", "cli-token"]), "cli-token");
 });
 
-test("resolveGitHubToken requires a CLI token", () => {
-  assert.throws(() => resolveGitHubToken([]), /missing required option: --token/);
+test("resolveToken requires a CLI token", () => {
+  assert.throws(() => resolveToken([]), /missing required option: --token/);
 });
 
 test("requireOption throws for a missing value", () => {
