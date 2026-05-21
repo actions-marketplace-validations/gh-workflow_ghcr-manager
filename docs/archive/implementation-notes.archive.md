@@ -474,9 +474,9 @@ This section is the canonical place for session-to-session continuity.
   still use the target folder's `index.ts` for any other cross-folder import.
 - File naming rule in `src/`: every non-public implementation file must be named `_*.ts`.
 - Test mapping rule: `tests/` mirrors `src/` one-to-one, with `src/.../*.ts` mapped to `tests/.../*.test.ts`.
-- Cleanup planning roadmap: [docs/cleanup-roadmap.md](../cleanup-roadmap.md)
-- Cleanup semantics note: [docs/cleanup-semantics.md](../cleanup-semantics.md)
-- Planner data model: [docs/planner-data-model.md](../planner-data-model.md)
+- Cleanup planning roadmap: [docs/cleanup-roadmap.md](cleanup-roadmap.md)
+- Cleanup semantics note: [docs/cleanup-semantics.md](../terminology.md)
+- Planner data model: [docs/planner-data-model.md](../schema-description.md)
 - GHCR test org setup reference: [docs/test-org-setup.md](../test-org-setup.md)
 
 ### Current Module Layout
@@ -656,15 +656,14 @@ src/
   - fully selected tagged roots being blocked by retained-root overlap
   - `older-than` filtering for untagged and exact-match tag-driven planning
   - CLI dispatch and JSON output for the new `plan` command
-- Added [docs/planner-data-model.md](../planner-data-model.md) to define the canonical dry-run planner result sets:
+- Added [docs/planner-data-model.md](../schema-description.md) to define the canonical dry-run planner result sets:
   `direct_target_tags`, `direct_target_roots`, `closure_manifests`, `blocked_roots`, `fully_deletable_roots`, and
   `collateral_tags`.
 - Chosen planner-query shape:
   - stable scan-scoped base views for roots, closures, and overlaps
   - request-scoped CTEs or temporary views for actual cleanup inputs
   - existing `v_tags_delete_*` views remain exploratory and should not become the canonical planner interface
-- Added [docs/cleanup-semantics.md](../cleanup-semantics.md) to lock the cleanup model before planner and execution
-  work.
+- Added [docs/cleanup-semantics.md](../terminology.md) to lock the cleanup model before planner and execution work.
 - Chosen cleanup semantics for the first planner track:
   - planning is rooted in package-version-backed root manifests
   - deletion safety is decided on manifest closures, not on tag names alone
@@ -672,7 +671,7 @@ src/
   - destructive cleanup should require explicit intent, with no implicit default "delete all untagged" mode
 - Deferred upstream parity features for later planner phases: ghost/partial/orphaned image cleanup, multi-package
   expansion, and validate-mode parity.
-- Added [docs/cleanup-roadmap.md](../cleanup-roadmap.md) to turn the broad cleanup reimplementation goal into ordered,
+- Added [docs/cleanup-roadmap.md](cleanup-roadmap.md) to turn the broad cleanup reimplementation goal into ordered,
   session-sized subtasks with explicit deliverables and acceptance focus.
 - Chosen documentation shape for the cleanup track:
   - `docs/implementation-notes.md` remains the canonical handoff checklist
