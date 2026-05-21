@@ -307,6 +307,42 @@ test("cleanup run writer stores planner decisions and protected roots", () => {
     }
   ]);
 
+  const readableDecisions = database
+    .prepare(
+      `
+        SELECT
+          root_digest,
+          selection_mode_label,
+          selection_reason_label,
+          validation_status_label,
+          validation_reason_code_label,
+          selected_tag_count,
+          selected_tags
+        FROM v_cleanup_root_decision_readable
+        WHERE cleanup_run_id = ?
+      `
+    )
+    .all(cleanupRunId) as Array<{
+    root_digest: string;
+    selection_mode_label: string;
+    selection_reason_label: string;
+    validation_status_label: string;
+    validation_reason_code_label: string;
+    selected_tag_count: number;
+    selected_tags: string;
+  }>;
+  assert.deepEqual(readableDecisions, [
+    {
+      root_digest: "sha256:delete-root",
+      selection_mode_label: "delete root",
+      selection_reason_label: "all tags on this root were selected",
+      validation_status_label: "root deletion is blocked",
+      validation_reason_code_label: "a retained root still requires an overlapping manifest",
+      selected_tag_count: 1,
+      selected_tags: "delete-me"
+    }
+  ]);
+
   _restoreEnv("GITHUB_SERVER_URL", previousServerUrl);
   _restoreEnv("GITHUB_REPOSITORY", previousRepository);
   _restoreEnv("GITHUB_RUN_ID", previousRunId);

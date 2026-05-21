@@ -320,6 +320,20 @@ It joins:
 
 This is the query-friendly explanation layer for "why was this root blocked?"
 
+### `v_cleanup_root_decision_readable`
+
+Derived readable view for persisted cleanup root decisions.
+
+It adds:
+
+- plain-language labels for `selection_mode`
+- plain-language labels for `selection_reason`
+- plain-language labels for `validation_status`
+- plain-language labels for `validation_reason_code`
+- `selected_tag_count` and comma-joined `selected_tags` per resolved root
+
+Use it when the raw audit codes are too terse to inspect directly.
+
 ## Cleanup Audit Tables
 
 ### `cleanup_runs`
