@@ -84,6 +84,9 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - `keep-n-untagged` remains incompatible with `delete-untagged`
   - the older planner helper layer for separate tagged/untagged root-target selection was removed after the SQL
     composition refactor so `src/db/planner` reflects the live repository path instead of carrying dead adapters
+- Coverage note:
+  - CLI dispatch, cleanup-summary markdown branches, and planner repository wrapper methods now have explicit tests so
+    post-refactor line coverage reflects the live surface more closely
 
 ## Current Action / DB Notes
 

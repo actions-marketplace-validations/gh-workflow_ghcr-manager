@@ -59,3 +59,90 @@ test("renderCleanupSummaryMarkdown renders sections and truncates long lists", (
   assert.doesNotMatch(markdown, /<summary>🔗 Untag-only roots<\/summary>/);
   assert.doesNotMatch(markdown, /<summary>🛡️ Blocked roots<\/summary>/);
 });
+
+test("renderCleanupSummaryMarkdown renders blocked, untag-only, and live-effect details", () => {
+  const markdown = renderCleanupSummaryMarkdown(
+    {
+      command: "cleanup",
+      owner: "acme`team",
+      packageName: "example",
+      scanCompletedAt: "2026-05-20T10:00:00.000Z",
+      dryRun: false,
+      plannerInputs: { deleteUntagged: true },
+      validationSummary: {
+        directTargetTagCount: 0,
+        directTargetRootCount: 2,
+        deleteRootCandidateCount: 2,
+        untagOnlyRootCount: 1,
+        fullyDeletableRootCount: 0,
+        blockedDeleteRootCount: 1,
+        protectedRootCount: 0
+      },
+      directTargetTags: [],
+      collateralTags: [],
+      fullyDeletableRoots: [],
+      untagOnlyRoots: [
+        {
+          versionId: 201,
+          digest: "sha256:short",
+          rootTags: [],
+          matchedTags: ["keep|me"],
+          selectionMode: "untag-only",
+          selectionReason: "partial",
+          validationStatus: "untag-only",
+          validationReasonCode: "selected-tags-detach-root-retained",
+          validationReason: "detaches"
+        }
+      ],
+      blockedRoots: [
+        {
+          versionId: 202,
+          digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          rootTags: ["line1\nline2"],
+          matchedTags: [],
+          selectionMode: "delete-root",
+          selectionReason: "blocked",
+          validationStatus: "blocked",
+          validationReasonCode: "blocked-by-retained-root",
+          validationReason: "blocked",
+          blockingDigest: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          overlapDigest: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          versionId: 203,
+          digest: "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          rootTags: [],
+          matchedTags: [],
+          selectionMode: "delete-root",
+          selectionReason: "blocked",
+          validationStatus: "blocked",
+          validationReasonCode: "blocked-by-retained-root",
+          validationReason: "blocked",
+          blockingDigest: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      ],
+      deletedPackageVersions: [202],
+      untaggedTags: ["keep|me"],
+      unsupportedUntagRoots: [999]
+    },
+    {
+      maxDirectTargetTags: 5,
+      maxRootsPerSection: 5,
+      maxTagsPerRoot: 5
+    }
+  );
+
+  assert.match(markdown, /`acme\\`team\/example`/);
+  assert.match(markdown, /<summary>🔗 Untag-only roots<\/summary>/);
+  assert.match(markdown, /<summary>🛡️ Blocked roots<\/summary>/);
+  assert.match(markdown, /\(untagged\)/);
+  assert.match(markdown, /keep\\\|me/);
+  assert.match(markdown, /line1 line2/);
+  assert.match(markdown, /Selected tags detach; root remains/);
+  assert.match(markdown, /Blocked by sha256:cccccccc\.\.\.cccccccc via sha256:dddddddd\.\.\.dddddddd/);
+  assert.match(markdown, /`sha256:short`/);
+  assert.match(markdown, /### Applied changes/);
+  assert.match(markdown, /Deleted package versions: 1/);
+  assert.match(markdown, /Detached tags: 1/);
+  assert.match(markdown, /Unsupported untag roots: 1/);
+});

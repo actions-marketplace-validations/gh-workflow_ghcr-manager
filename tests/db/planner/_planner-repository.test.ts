@@ -74,6 +74,68 @@ test("planner repository can combine tagged and untagged delete selectors in one
   database.close();
 });
 
+test("planner repository getLatestCompletedScanId returns the latest completed scan id", async () => {
+  const database = openDatabase(":memory:");
+  const writer = new ScanWriter(database);
+  const repository = new PlannerRepository(database);
+
+  await importFileScan("tests/fixtures/sample-package.json", writer);
+
+  assert.equal(repository.getLatestCompletedScanId("acme", "example"), 1);
+
+  database.close();
+});
+
+test("planner repository preserves keep planner inputs across combined and wrapper paths", async () => {
+  const database = openDatabase(":memory:");
+  const writer = new ScanWriter(database);
+  const repository = new PlannerRepository(database);
+
+  await importFileScan("tests/fixtures/sample-package.json", writer);
+
+  const keepTaggedPlan = repository.getCleanupPlanWithCutoff("acme", "example", {
+    keepNTagged: 1,
+    excludeTags: ["keep-me"],
+    olderThan: "30 days",
+    cutoffTimestamp: "2026-04-14T10:00:00.000Z"
+  });
+  const keepUntaggedPlan = repository.getKeepNUntaggedPlanWithCutoff("acme", "example", 0, {
+    olderThan: "30 days",
+    cutoffTimestamp: "2026-04-14T10:00:00.000Z"
+  });
+
+  assert.equal(keepTaggedPlan.plannerInputs.keepNTagged, 1);
+  assert.deepEqual(keepTaggedPlan.plannerInputs.excludeTags, ["keep-me"]);
+  assert.equal(keepTaggedPlan.plannerInputs.olderThan, "30 days");
+  assert.equal(keepTaggedPlan.plannerInputs.cutoffTimestamp, "2026-04-14T10:00:00.000Z");
+
+  assert.equal(keepUntaggedPlan.plannerInputs.keepNUntagged, 0);
+  assert.equal(keepUntaggedPlan.plannerInputs.olderThan, "30 days");
+  assert.equal(keepUntaggedPlan.plannerInputs.cutoffTimestamp, "2026-04-14T10:00:00.000Z");
+
+  database.close();
+});
+
+test("planner repository omits empty and unset planner inputs from cleanup plans", async () => {
+  const database = openDatabase(":memory:");
+  const writer = new ScanWriter(database);
+  const repository = new PlannerRepository(database);
+
+  await importFileScan("tests/fixtures/sample-package.json", writer);
+
+  const plan = repository.getCleanupPlanWithCutoff("acme", "example", {
+    deleteTags: [],
+    excludeTags: [],
+    deleteTagsRequested: false,
+    deleteUntagged: false,
+    useRegex: false
+  });
+
+  assert.deepEqual(plan.plannerInputs, {});
+
+  database.close();
+});
+
 test("planner repository logs raw SQL statements and params at trace level", async () => {
   const database = openDatabase(":memory:");
   const writer = new ScanWriter(database);

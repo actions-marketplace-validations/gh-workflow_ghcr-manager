@@ -42,10 +42,6 @@ export class PlannerRepository {
     return this.getKeepNUntaggedPlanWithCutoff(owner, packageName, keepCount);
   }
 
-  getKeepNTaggedPlan(owner: string, packageName: string, keepCount: number): DeletePlan {
-    return this.getKeepNTaggedPlanWithCutoff(owner, packageName, keepCount, []);
-  }
-
   getDeleteUntaggedPlanWithCutoff(
     owner: string,
     packageName: string,
@@ -72,24 +68,6 @@ export class PlannerRepository {
   ): DeletePlan {
     return this.getCleanupPlanWithCutoff(owner, packageName, {
       keepNUntagged: keepCount,
-      olderThan: options?.olderThan,
-      cutoffTimestamp: options?.cutoffTimestamp
-    });
-  }
-
-  getKeepNTaggedPlanWithCutoff(
-    owner: string,
-    packageName: string,
-    keepCount: number,
-    excludeTags: string[],
-    options?: {
-      olderThan?: string;
-      cutoffTimestamp?: string;
-    }
-  ): DeletePlan {
-    return this.getCleanupPlanWithCutoff(owner, packageName, {
-      excludeTags,
-      keepNTagged: keepCount,
       olderThan: options?.olderThan,
       cutoffTimestamp: options?.cutoffTimestamp
     });
@@ -195,9 +173,6 @@ function _buildPlannerInputs(inputs: DeletePlan["plannerInputs"]): DeletePlan["p
   return Object.fromEntries(
     Object.entries(inputs).filter(([, value]) => {
       if (value === undefined) {
-        return false;
-      }
-      if (value === false) {
         return false;
       }
       return !(Array.isArray(value) && value.length === 0);
