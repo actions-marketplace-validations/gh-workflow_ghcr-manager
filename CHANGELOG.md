@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.5] - 2026-05-21
+
+### Changed
+
+- Renamed `upload-db-artifact` to `upload-artifacts`.
+- Raised cleanup summary defaults to 100 matched tags and 100 roots per section.
+
 ## [0.9.4] - 2026-05-21
 
 ### Changed
