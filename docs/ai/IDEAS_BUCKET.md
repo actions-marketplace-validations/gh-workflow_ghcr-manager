@@ -30,3 +30,8 @@ Then maybe something like see JSON on click or such.
 ## Document older-than format better
 
 The day, days, ... format is a bit undocumented and unclear.
+
+## Clean up string enums
+
+Search for `" | "` and `| "` ... many such string types are inlined in objects and thus their string values used
+plain-text in code.
