@@ -1,5 +1,6 @@
 import { listPackageVersionTagSources, untagRootTags, type UntagTagOperation } from "../execute/index.js";
 import { collectRepeatedOption, hasFlag, requireOption, resolveLogLevel, resolveToken } from "./_args.js";
+import { writeJsonOutput } from "./_json-output.js";
 import { createLogger } from "./_logger.js";
 
 interface _UntagRootSelection {
@@ -56,7 +57,7 @@ export async function handleUntag(args: string[]): Promise<number> {
     roots,
     untaggedTags
   };
-  console.log(JSON.stringify(summary));
+  writeJsonOutput(args, "--summary-json-path", summary);
   return 0;
 }
 

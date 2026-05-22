@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -71,6 +71,52 @@ test("handleCleanup dry-run does not require a token", async () => {
   assert.equal(cleanupRun.dry_run, 1);
   assert.equal(cleanupRun.direct_target_root_count, 1);
   persistedDatabase.close();
+  rmSync(tempDirectory, { recursive: true, force: true });
+});
+
+test("handleCleanup writes summary JSON to a file when requested", async () => {
+  const tempDirectory = mkdtempSync(join(tmpdir(), "ghcr-manager-"));
+  const databasePath = join(tempDirectory, "scan.sqlite");
+  const summaryPath = join(tempDirectory, "cleanup-summary.json");
+  const database = openDatabase(databasePath);
+  const writer = new ScanWriter(database);
+  await importFileScan("tests/fixtures/sample-package.json", writer);
+  database.close();
+
+  const originalLog = console.log;
+  const writes: string[] = [];
+  console.log = (message?: unknown) => {
+    writes.push(String(message));
+  };
+
+  try {
+    assert.equal(
+      await handleCleanup([
+        "--db",
+        databasePath,
+        "--owner",
+        "acme",
+        "--package",
+        "example",
+        "--dry-run",
+        "--delete-untagged",
+        "--summary-json-path",
+        summaryPath
+      ]),
+      0
+    );
+  } finally {
+    console.log = originalLog;
+  }
+
+  assert.deepEqual(writes, []);
+  const summary = JSON.parse(readFileSync(summaryPath, "utf8")) as {
+    dryRun: boolean;
+    plannerInputs: { deleteUntagged: boolean };
+  };
+  assert.equal(summary.dryRun, true);
+  assert.equal(summary.plannerInputs.deleteUntagged, true);
+
   rmSync(tempDirectory, { recursive: true, force: true });
 });
 

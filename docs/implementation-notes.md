@@ -149,8 +149,8 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - after descriptor/edge ingest, a DB refinement pass upgrades only real multi-arch roots to `cross_arch_manifest`
   - helper-tagged indexes are intentionally left as generic `index_manifest`
 - Scenario assertion note:
-  - cleanup and untag live-scenario definitions now expect real Docker/OCI multi-arch roots as
-    `cross_arch_manifest`, not the older `image_index` label
+  - cleanup and untag live-scenario definitions now expect real Docker/OCI multi-arch roots as `cross_arch_manifest`,
+    not the older `image_index` label
 - Cleanup selected-tag audit note:
   - `cleanup_selected_tags` rows are inserted with `is_deleted = 0`
   - the follow-up audit update only touches selected tags that belong to a persisted root decision
@@ -238,6 +238,11 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
 - Cleanup summary note:
   - digest-tag `sha256-*` helper/referrer tags are not shown as ordinary matched tags
   - the DB still preserves them for audit, and recursive manifest closure now crosses those helper edges
+- Root action argv note:
+  - the root action now prepares `cleanup`/`untag` argv in `tools/prepare-action-args.mjs`
+  - `action.yml` still shows the direct public CLI invocation with `npm run ... ghcr-manager:dist -- cleanup|untag`
+  - prepared argv is handed to the visible run step through a NUL-delimited temp file so log printing and execution use
+    the exact same argument list
   - the user-facing Markdown summary now emphasizes planned tag/image/cross-arch delete counts and uses item-oriented
     wording instead of planner-internal `root` / `closure` language
   - `DeletePlan` no longer carries denormalized `validationSummary` counts

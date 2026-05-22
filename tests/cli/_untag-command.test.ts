@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import { handleUntag } from "../../src/cli/_untag-command.js";
 
@@ -214,6 +217,87 @@ test("handleUntag removes tags and verifies they disappear", async () => {
     summary.untaggedTags.map((operation) => operation.tag),
     ["latest"]
   );
+});
+
+test("handleUntag writes summary JSON to a file when requested", async () => {
+  const tempDirectory = mkdtempSync(join(tmpdir(), "ghcr-manager-"));
+  const summaryPath = join(tempDirectory, "untag-summary.json");
+  const originalFetch = globalThis.fetch;
+  const originalLog = console.log;
+  const writes: string[] = [];
+
+  globalThis.fetch = async (input, init) => {
+    const url = String(input);
+    if (url === "https://api.github.com/users/acme") {
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        async json() {
+          return { type: "Organization" };
+        }
+      } as Response;
+    }
+    if (url === "https://api.github.com/orgs/acme/packages/container/example/versions?per_page=100&page=1") {
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "content-type": "application/json" }),
+        async json() {
+          return [
+            {
+              id: 101,
+              name: "sha256:root-a",
+              metadata: {
+                container: {
+                  tags: ["keep-me", "latest"]
+                }
+              }
+            }
+          ];
+        }
+      } as Response;
+    }
+
+    throw new Error(`unexpected fetch during dry-run: ${url} ${init?.method ?? "GET"}`);
+  };
+  console.log = (message?: unknown) => {
+    writes.push(String(message));
+  };
+
+  try {
+    assert.equal(
+      await handleUntag([
+        "--owner",
+        "acme",
+        "--package",
+        "example",
+        "--token",
+        "token",
+        "--dry-run",
+        "--tag",
+        "latest",
+        "--summary-json-path",
+        summaryPath
+      ]),
+      0
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.log = originalLog;
+  }
+
+  assert.deepEqual(writes, []);
+  const summary = JSON.parse(readFileSync(summaryPath, "utf8")) as {
+    dryRun: boolean;
+    roots: Array<{ tags: string[] }>;
+  };
+  assert.equal(summary.dryRun, true);
+  assert.deepEqual(
+    summary.roots.map((root) => root.tags),
+    [["latest"]]
+  );
+  rmSync(tempDirectory, { recursive: true, force: true });
 });
 
 async function _sha256(value: string): Promise<string> {

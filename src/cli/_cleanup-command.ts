@@ -3,6 +3,7 @@ import { buildCleanupSummary } from "../cleanup-summary/index.js";
 import { CleanupRunWriter, openDatabase, PlannerRepository } from "../db/index.js";
 import { executeDeletePlan } from "../execute/index.js";
 import { hasFlag, resolveLogLevel, resolveToken } from "./_args.js";
+import { writeJsonOutput } from "./_json-output.js";
 import { createLogger } from "./_logger.js";
 import { loadDeletePlan, resolvePlanCommandInputs } from "./_planner-options.js";
 import { resolveTagSelectors } from "./_tag-selector-resolver.js";
@@ -36,7 +37,7 @@ export async function handleCleanup(args: string[]): Promise<number> {
         changes: _loadSummaryChanges(database, cleanupRunId)
       });
       logger.debug(`Completed dry-run cleanup for ${inputs.owner}/${inputs.packageName}`);
-      console.log(JSON.stringify(summary));
+      writeJsonOutput(args, "--summary-json-path", summary);
       return 0;
     }
 
@@ -52,7 +53,7 @@ export async function handleCleanup(args: string[]): Promise<number> {
       executionSummary
     });
     logger.debug(`Completed cleanup for ${inputs.owner}/${inputs.packageName}`);
-    console.log(JSON.stringify(summary));
+    writeJsonOutput(args, "--summary-json-path", summary);
     return 0;
   } finally {
     database.close();

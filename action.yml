@@ -92,8 +92,8 @@ outputs:
   summary-json-path:
     description: Path to the command summary JSON file for commands that emit one
     value:
-      ${{ inputs.command == 'cleanup' && steps.run-cleanup.outputs.summary_path || steps.run-untag.outputs.summary_path
-      }}
+      ${{ inputs.command == 'cleanup' && steps.prepare-cleanup.outputs.summary_path ||
+      steps.prepare-untag.outputs.summary_path }}
 
 runs:
   using: composite
@@ -213,8 +213,8 @@ runs:
         npm run ghcr-manager:dist -- scan \
           "${scan_args[@]}"
 
-    - name: Run cleanup
-      id: run-cleanup
+    - name: Prepare cleanup args
+      id: prepare-cleanup
       if: ${{ inputs.command == 'cleanup' }}
       shell: bash
       working-directory: ${{ github.action_path }}
@@ -229,114 +229,62 @@ runs:
         EXCLUDE_TAGS: ${{ inputs.exclude-tags }}
         KEEP_N_TAGGED: ${{ inputs.keep-n-tagged }}
         KEEP_N_UNTAGGED: ${{ inputs.keep-n-untagged }}
+        LOG_LEVEL: ${{ inputs.log-level }}
         OLDER_THAN: ${{ inputs.older-than }}
+        OWNER: ${{ inputs.owner }}
+        PACKAGE: ${{ inputs.package }}
+        RUNNER_TEMP: ${{ runner.temp }}
+        TOKEN: ${{ inputs.token }}
         USE_REGEX: ${{ inputs.use-regex }}
       run: |
         set -euo pipefail
+        node tools/prepare-action-args.mjs cleanup
 
-        cleanup_args=(
-          --db "${{ steps.prepare-db.outputs.db_path }}"
-          --log-level "${{ inputs.log-level }}"
-          --owner "${{ inputs.owner }}"
-          --package "${{ inputs.package }}"
-        )
+    - name: Run cleanup
+      id: run-cleanup
+      if: ${{ inputs.command == 'cleanup' }}
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        mapfile -d '' -t cleanup_args < "${{ steps.prepare-cleanup.outputs.args_path }}"
+        printf 'Running CLI command: ghcr-manager cleanup'
+        printf ' %q' "${cleanup_args[@]}"
+        printf '\n'
+        npm run --silent ghcr-manager:dist -- cleanup "${cleanup_args[@]}"
+        cat "${{ steps.prepare-cleanup.outputs.summary_path }}" | jq . >&2
 
-        if [[ "$DRY_RUN" == "true" ]]; then
-          cleanup_args+=(--dry-run)
-        else
-          cleanup_args+=(--token "${{ inputs.token }}")
-        fi
-
-        if [[ "$DELETE_UNTAGGED" == "true" ]]; then
-          cleanup_args+=(--delete-untagged)
-        fi
-        if [[ "$DELETE_GHOST_IMAGES" == "true" ]]; then
-          cleanup_args+=(--delete-ghost-images)
-        fi
-        if [[ "$DELETE_PARTIAL_IMAGES" == "true" ]]; then
-          cleanup_args+=(--delete-partial-images)
-        fi
-        if [[ "$DELETE_ORPHANED_IMAGES" == "true" ]]; then
-          cleanup_args+=(--delete-orphaned-images)
-        fi
-        if [[ "$USE_REGEX" == "true" ]]; then
-          cleanup_args+=(--use-regex)
-        fi
-        if [[ -n "$KEEP_N_TAGGED" ]]; then
-          cleanup_args+=(--keep-n-tagged "$KEEP_N_TAGGED")
-        fi
-        if [[ -n "$KEEP_N_UNTAGGED" ]]; then
-          cleanup_args+=(--keep-n-untagged "$KEEP_N_UNTAGGED")
-        fi
-        if [[ -n "$OLDER_THAN" ]]; then
-          cleanup_args+=(--older-than "$OLDER_THAN")
-        fi
-
-        append_line_args() {
-          local option="$1"
-          local raw_values="$2"
-          local value=""
-          if [[ -z "$raw_values" ]]; then
-            return
-          fi
-          while IFS= read -r value || [[ -n "$value" ]]; do
-            # left and right trim
-            value="${value#"${value%%[![:space:]]*}"}"
-            value="${value%"${value##*[![:space:]]}"}"
-            if [[ -n "$value" ]]; then
-              cleanup_args+=("$option" "$value")
-            fi
-          done <<< "$raw_values"
-        }
-
-        append_line_args --delete-tag "$DELETE_TAGS"
-        append_line_args --exclude-tag "$EXCLUDE_TAGS"
-
-        cleanup_summary_json="$(npm run --silent ghcr-manager:dist -- cleanup "${cleanup_args[@]}")"
-        printf '%s\n' "$cleanup_summary_json" | jq . >&2
-
-        summary_path="${DB_PATH}--cleanup-summary.json"
-        summary_file="$(basename "$summary_path")"
-        printf '%s\n' "$cleanup_summary_json" > "$summary_path"
-        echo "summary_file=$summary_file" >> "$GITHUB_OUTPUT"
-        echo "summary_path=$summary_path" >> "$GITHUB_OUTPUT"
+    - name: Prepare untag args
+      id: prepare-untag
+      if: ${{ inputs.command == 'untag' }}
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      env:
+        DELETE_TAGS: ${{ inputs.delete-tags }}
+        DRY_RUN: ${{ inputs.dry-run }}
+        LOG_LEVEL: ${{ inputs.log-level }}
+        OWNER: ${{ inputs.owner }}
+        PACKAGE: ${{ inputs.package }}
+        RUNNER_TEMP: ${{ runner.temp }}
+        SUMMARY_PATH: ${{ runner.temp }}/ghcr-manager-untag-summary.json
+        TOKEN: ${{ inputs.token }}
+      run: |
+        set -euo pipefail
+        node tools/prepare-action-args.mjs untag
 
     - name: Run untag
       id: run-untag
       if: ${{ inputs.command == 'untag' }}
       shell: bash
       working-directory: ${{ github.action_path }}
-      env:
-        DELETE_TAGS: ${{ inputs.delete-tags }}
-        RUNNER_TEMP: ${{ runner.temp }}
       run: |
         set -euo pipefail
-
-        untag_args=(
-          --log-level "${{ inputs.log-level }}"
-          --owner "${{ inputs.owner }}"
-          --package "${{ inputs.package }}"
-          --token "${{ inputs.token }}"
-        )
-
-        if [[ "${{ inputs.dry-run }}" == "true" ]]; then
-          untag_args+=(--dry-run)
-        fi
-
-        while IFS= read -r value || [[ -n "$value" ]]; do
-          value="${value#"${value%%[![:space:]]*}"}"
-          value="${value%"${value##*[![:space:]]}"}"
-          if [[ -n "$value" ]]; then
-            untag_args+=(--tag "$value")
-          fi
-        done <<< "$DELETE_TAGS"
-
-        summary_json="$(npm run --silent ghcr-manager:dist -- untag "${untag_args[@]}")"
-        printf '%s\n' "$summary_json" | jq . >&2
-
-        summary_path="$(mktemp -p "$RUNNER_TEMP" ghcr-manager-untag-summary-XXXXXX.json)"
-        printf '%s\n' "$summary_json" > "$summary_path"
-        echo "summary_path=$summary_path" >> "$GITHUB_OUTPUT"
+        mapfile -d '' -t untag_args < "${{ steps.prepare-untag.outputs.args_path }}"
+        printf 'Running CLI command: ghcr-manager untag'
+        printf ' %q' "${untag_args[@]}"
+        printf '\n'
+        npm run --silent ghcr-manager:dist -- untag "${untag_args[@]}"
+        cat "${{ steps.prepare-untag.outputs.summary_path }}" | jq . >&2
 
     - name: Scan after live cleanup
       id: scan-after
@@ -369,8 +317,8 @@ runs:
       if: ${{ inputs.command == 'cleanup' && steps.resolve-upload.outputs.upload_artifacts == 'true' }}
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
-        name: ${{ steps.run-cleanup.outputs.summary_file }}
-        path: ${{ steps.run-cleanup.outputs.summary_path }}
+        name: ${{ steps.prepare-cleanup.outputs.summary_file }}
+        path: ${{ steps.prepare-cleanup.outputs.summary_path }}
         retention-days:
           ${{ inputs.db-artifact-retention-days != '' && inputs.db-artifact-retention-days || github.retention_days }}
 
@@ -382,4 +330,4 @@ runs:
         set -euo pipefail
         node tools/write-cleanup-step-summary.mjs \
           --step-summary-path "$GITHUB_STEP_SUMMARY" \
-          --summary-json-path "${{ steps.run-cleanup.outputs.summary_path }}"
+          --summary-json-path "${{ steps.prepare-cleanup.outputs.summary_path }}"
