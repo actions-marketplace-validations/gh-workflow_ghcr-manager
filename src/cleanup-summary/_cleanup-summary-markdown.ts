@@ -23,10 +23,10 @@ export function renderCleanupSummaryMarkdown(
     `| 📦 Package | \`${_escapeInlineCode(`${summary.owner}/${summary.packageName}`)}\` |`,
     `| ⚙️ Mode | ${summary.dryRun ? "Cleanup dry-run" : "Cleanup"} |`,
     `| 🏷️ Selected tags | ${summary.directTargetTags.length} |`,
-    `| 🔖 Planned tag removals | ${summary.plannedChanges.tagRemovals} |`,
-    `| 🖼️ Planned image deletes | ${summary.plannedChanges.imageDeletes} |`,
-    `| 📚 Planned cross-arch deletes | ${summary.plannedChanges.crossArchDeletes} |`,
-    `| 📄 Planned item deletes | ${summary.plannedChanges.totalManifestDeletes} |`,
+    `| 🔖 Deleted tags | ${summary.plannedChanges.tagRemovals} |`,
+    `| 🖼️ Deleted images | ${summary.plannedChanges.imageDeletes} |`,
+    `| 📚 Deleted cross-arch manifests | ${summary.plannedChanges.crossArchDeletes} |`,
+    `| 📄 Deleted items | ${summary.plannedChanges.totalManifestDeletes} |`,
     `| 🔗 Tag-only updates | ${summary.untagOnlyRoots.length} |`,
     `| 🛡️ Blocked items | ${summary.blockedRoots.length} |`,
     ""
@@ -61,7 +61,7 @@ function _renderPlannedDeleteBreakdown(summary: CleanupSummary): string[] {
 
   return [
     "<details>",
-    "<summary>📦 Planned delete breakdown</summary>",
+    "<summary>📦 Deleted item breakdown</summary>",
     "",
     "| Type | Count |",
     "| --- | --- |",
@@ -78,6 +78,7 @@ function _renderPlannedDeleteBreakdown(summary: CleanupSummary): string[] {
 
 function _renderPlannerInputs(plannerInputs: CleanupSummary["plannerInputs"]): string[] {
   const rows = _getPlannerInputRows(plannerInputs);
+  const patternLines = _getPlannerPatternLines(plannerInputs);
 
   return [
     "<details>",
@@ -86,6 +87,7 @@ function _renderPlannerInputs(plannerInputs: CleanupSummary["plannerInputs"]): s
     "| Filter | Value |",
     "| --- | --- |",
     ...(rows.length > 0 ? rows : ["| (none) | No cleanup filters recorded |"]),
+    ...(patternLines.length > 0 ? ["", ...patternLines] : []),
     "",
     "</details>",
     ""
@@ -226,7 +228,11 @@ function _plannerInputLabel(key: string): string {
 
 function _formatPlannerInputValue(value: unknown): string {
   if (Array.isArray(value)) {
-    return value.length > 0 ? value.join(", ") : "(none)";
+    if (value.length === 0) {
+      return "(none)";
+    }
+
+    return value.length === 1 ? "1 pattern" : `${value.length} patterns`;
   }
 
   if (typeof value === "boolean") {
@@ -234,6 +240,23 @@ function _formatPlannerInputValue(value: unknown): string {
   }
 
   return String(value);
+}
+
+function _getPlannerPatternLines(plannerInputs: CleanupSummary["plannerInputs"]): string[] {
+  const lines: string[] = [];
+
+  for (const [key, value] of Object.entries(plannerInputs)) {
+    if (!Array.isArray(value) || value.length === 0) {
+      continue;
+    }
+
+    lines.push(`- ${_plannerInputLabel(key)}:`);
+    for (const item of value) {
+      lines.push(`  - \`${_escapeInlineCode(String(item))}\``);
+    }
+  }
+
+  return lines;
 }
 
 function _describeManifestKind(manifestKind?: string): string {

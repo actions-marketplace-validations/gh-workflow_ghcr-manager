@@ -148,6 +148,8 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - derive planned delete counts for tags, images, cross-arch manifests, and optional artifact/signature classes from
     one SQL query keyed by the persisted `cleanup_run_id`
   - render cleanup filters as a table instead of a JSON blob in the Markdown summary
+  - summarize long array-based filter values in the table and list the actual patterns below it so regex-heavy runs stay
+    readable
 - [x] Remove built-in DB artifact encryption and decryption support across actions, workflows, and docs.
 - [x] Remove active visibility ballast that only served the old encrypted-artifact model.
 - [x] Reframe the doc-refactor task brief around layered user docs, action-first entry, and task-oriented DB guidance.

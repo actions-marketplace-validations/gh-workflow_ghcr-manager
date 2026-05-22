@@ -56,14 +56,17 @@ test("renderCleanupSummaryMarkdown renders user-facing counts and truncates long
 
   assert.match(markdown, /## Cleanup Summary/);
   assert.match(markdown, /\| 📦 Package \| `acme\/example` \|/);
-  assert.match(markdown, /\| 🔖 Planned tag removals \| 3 \|/);
-  assert.match(markdown, /\| 🖼️ Planned image deletes \| 1 \|/);
-  assert.match(markdown, /\| 📚 Planned cross-arch deletes \| 1 \|/);
-  assert.match(markdown, /\| 📄 Planned item deletes \| 3 \|/);
-  assert.match(markdown, /<summary>📦 Planned delete breakdown<\/summary>/);
+  assert.match(markdown, /\| 🔖 Deleted tags \| 3 \|/);
+  assert.match(markdown, /\| 🖼️ Deleted images \| 1 \|/);
+  assert.match(markdown, /\| 📚 Deleted cross-arch manifests \| 1 \|/);
+  assert.match(markdown, /\| 📄 Deleted items \| 3 \|/);
+  assert.match(markdown, /<summary>📦 Deleted item breakdown<\/summary>/);
   assert.match(markdown, /<summary>⚙️ Cleanup filter<\/summary>/);
-  assert.match(markdown, /\| Delete tags \| a, b \|/);
+  assert.match(markdown, /\| Delete tags \| 2 patterns \|/);
   assert.match(markdown, /\| Use regex \| yes \|/);
+  assert.match(markdown, /- Delete tags:/);
+  assert.match(markdown, /`a`/);
+  assert.match(markdown, /`b`/);
   assert.match(markdown, /<summary>🏷️ Selected tags<\/summary>/);
   assert.match(markdown, /<summary>🗑️ Items to delete<\/summary>/);
   assert.match(markdown, /Showing first 2 of 3 selected tags/);
