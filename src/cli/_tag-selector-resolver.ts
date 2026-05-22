@@ -62,7 +62,6 @@ function _listLatestBrokenIndexTags(
           FROM v_latest_scan_per_package
           WHERE owner = ?
             AND package_name = ?
-          LIMIT 1
         ),
         ghost_roots AS (
           SELECT
