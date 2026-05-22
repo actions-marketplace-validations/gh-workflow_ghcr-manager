@@ -54,7 +54,8 @@ CREATE TABLE IF NOT EXISTS manifests (
   platform_variant TEXT,
   manifest_kind TEXT,
   CHECK(manifest_kind IN (
-    'image_index',
+    'index_manifest',
+    'cross_arch_manifest',
     'image_manifest',
     'artifact_manifest',
     'attestation_manifest',

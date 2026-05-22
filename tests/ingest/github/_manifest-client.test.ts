@@ -60,7 +60,7 @@ test("manifest client maps child and referrer edges", async () => {
   assert.equal(manifest.record.digest, "sha256:index");
   assert.deepEqual(manifest.record, {
     digest: "sha256:index",
-    manifestKind: ManifestKinds.imageIndex,
+    manifestKind: ManifestKinds.indexManifest,
     mediaType: "application/vnd.oci.image.index.v1+json",
     artifactType: undefined,
     configMediaType: "application/vnd.oci.empty.v1+json",

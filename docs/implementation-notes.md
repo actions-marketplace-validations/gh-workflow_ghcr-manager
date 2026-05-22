@@ -144,6 +144,10 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - `DeletePlanValidationStatuses`
   - `DeletePlanValidationReasonCodes`
   - broken-index resolver modes
+- Manifest kind note:
+  - ingest now stores OCI/Docker index-list payloads as generic `index_manifest` first
+  - after descriptor/edge ingest, a DB refinement pass upgrades only real multi-arch roots to `cross_arch_manifest`
+  - helper-tagged indexes are intentionally left as generic `index_manifest`
 
 ## Current Next Plan
 
@@ -180,6 +184,9 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - `validationStatus`
   - `validationReasonCode`
   - broken-index resolver mode
+- [x] Split broad image-index classification into:
+  - `index_manifest` for generic OCI/Docker index-list documents
+  - `cross_arch_manifest` only when the stored graph shows direct child image manifests and no helper digest tag
 - [x] Implement user-facing run output for `cleanup`:
   - stable cleanup summary JSON from the CLI
   - action summary JSON file-path output

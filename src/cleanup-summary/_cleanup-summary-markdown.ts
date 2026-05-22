@@ -27,6 +27,7 @@ export function renderCleanupSummaryMarkdown(
     `| 🏷️ Selected tags | ${summary.directTargetTags.length} |`,
     `| 🔖 Deleted tags | ${summary.plannedChanges.tagRemovals} |`,
     `| 🖼️ Deleted images | ${summary.plannedChanges.imageDeletes} |`,
+    `| 🧱 Deleted indexes | ${summary.plannedChanges.indexDeletes} |`,
     `| 📚 Deleted cross-arch manifests | ${summary.plannedChanges.crossArchDeletes} |`,
     `| 📄 Deleted items | ${summary.plannedChanges.totalManifestDeletes} |`,
     `| 🔗 Tag-only updates | ${summary.untagOnlyRoots.length} |`,
@@ -54,6 +55,7 @@ export function renderCleanupSummaryMarkdown(
 
 function _renderPlannedDeleteBreakdown(summary: CleanupSummary): string[] {
   if (
+    summary.plannedChanges.indexDeletes === 0 &&
     summary.plannedChanges.signatureDeletes === 0 &&
     summary.plannedChanges.attestationDeletes === 0 &&
     summary.plannedChanges.artifactDeletes === 0
@@ -68,6 +70,7 @@ function _renderPlannedDeleteBreakdown(summary: CleanupSummary): string[] {
     "| Type | Count |",
     "| --- | --- |",
     `| Images | ${summary.plannedChanges.imageDeletes} |`,
+    `| Generic indexes | ${summary.plannedChanges.indexDeletes} |`,
     `| Cross-arch manifests | ${summary.plannedChanges.crossArchDeletes} |`,
     `| Signatures | ${summary.plannedChanges.signatureDeletes} |`,
     `| Attestations | ${summary.plannedChanges.attestationDeletes} |`,
@@ -265,8 +268,10 @@ function _describeManifestKind(manifestKind?: string): string {
   switch (manifestKind) {
     case ManifestKinds.imageManifest:
       return "image";
-    case ManifestKinds.imageIndex:
+    case ManifestKinds.crossArchManifest:
       return "cross-arch";
+    case ManifestKinds.indexManifest:
+      return "index";
     case ManifestKinds.signatureManifest:
       return "signature";
     case ManifestKinds.attestationManifest:

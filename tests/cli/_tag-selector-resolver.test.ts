@@ -64,7 +64,7 @@ function _insertVersionWithManifest(
   options: {
     mediaType: string;
     manifestKind:
-      | typeof ManifestKinds.imageIndex
+      | typeof ManifestKinds.indexManifest
       | typeof ManifestKinds.imageManifest
       | typeof ManifestKinds.signatureManifest;
     tag?: string;
@@ -220,7 +220,7 @@ test("resolveTagSelectors resolves ghost image tags when all image index childre
     });
     _insertVersionWithManifest(writer, 201, "sha256:ghost-index", "2026-05-10T00:00:00.000Z", {
       mediaType: "application/vnd.oci.image.index.v1+json",
-      manifestKind: ManifestKinds.imageIndex,
+      manifestKind: ManifestKinds.indexManifest,
       tag: "ghost"
     });
     writer.insertManifestDescriptor({
@@ -237,7 +237,7 @@ test("resolveTagSelectors resolves ghost image tags when all image index childre
     });
     _insertVersionWithManifest(writer, 202, "sha256:partial-index", "2026-05-11T00:00:00.000Z", {
       mediaType: "application/vnd.oci.image.index.v1+json",
-      manifestKind: ManifestKinds.imageIndex,
+      manifestKind: ManifestKinds.indexManifest,
       tag: "partial"
     });
     writer.insertManifestDescriptor({
@@ -281,7 +281,7 @@ test("resolveTagSelectors resolves partial image tags when some image index chil
     });
     _insertVersionWithManifest(writer, 201, "sha256:partial-index", "2026-05-10T00:00:00.000Z", {
       mediaType: "application/vnd.oci.image.index.v1+json",
-      manifestKind: ManifestKinds.imageIndex,
+      manifestKind: ManifestKinds.indexManifest,
       tag: "partial"
     });
     writer.insertManifestDescriptor({
@@ -303,7 +303,7 @@ test("resolveTagSelectors resolves partial image tags when some image index chil
     });
     _insertVersionWithManifest(writer, 203, "sha256:ghost-index", "2026-05-12T00:00:00.000Z", {
       mediaType: "application/vnd.oci.image.index.v1+json",
-      manifestKind: ManifestKinds.imageIndex,
+      manifestKind: ManifestKinds.indexManifest,
       tag: "ghost"
     });
     writer.insertManifestDescriptor({

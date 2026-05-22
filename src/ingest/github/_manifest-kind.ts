@@ -24,7 +24,7 @@ export function classifyManifestKind(document: _RegistryManifestDocument): Manif
     document.mediaType === "application/vnd.oci.image.index.v1+json" ||
     document.mediaType === "application/vnd.docker.distribution.manifest.list.v2+json"
   ) {
-    return ManifestKinds.imageIndex;
+    return ManifestKinds.indexManifest;
   }
 
   if (_isSignatureManifest(document)) {

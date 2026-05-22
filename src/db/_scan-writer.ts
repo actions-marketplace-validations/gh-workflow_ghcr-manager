@@ -9,6 +9,7 @@ import type {
   TagRecord
 } from "../core/index.js";
 import { resolveGitHubActionsRunUrl } from "./_github-actions-run-url.js";
+import { refineManifestKinds } from "./_manifest-kind-refinement.js";
 import { rebuildManifestReachability } from "./_manifest-reachability.js";
 
 export class ScanWriter {
@@ -208,7 +209,9 @@ export class ScanWriter {
   }
 
   rebuildManifestReachability(): void {
-    rebuildManifestReachability(this.#database, this.#requireScanId());
+    const scanId = this.#requireScanId();
+    rebuildManifestReachability(this.#database, scanId);
+    refineManifestKinds(this.#database, scanId);
   }
 
   getActiveScanId(): number {

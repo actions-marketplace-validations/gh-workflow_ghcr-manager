@@ -34,6 +34,7 @@ export interface CleanupSummaryAffectedManifest {
 export interface CleanupSummaryPlannedChanges {
   tagRemovals: number;
   imageDeletes: number;
+  indexDeletes: number;
   crossArchDeletes: number;
   artifactDeletes: number;
   attestationDeletes: number;

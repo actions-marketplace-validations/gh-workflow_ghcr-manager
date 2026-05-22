@@ -19,7 +19,7 @@ test("rebuildManifestReachability builds reachability bottom-up from direct mani
   writer.insertManifest({
     versionId: 1,
     digest: "sha256:index",
-    manifestKind: ManifestKinds.imageIndex,
+    manifestKind: ManifestKinds.indexManifest,
     mediaType: "application/vnd.oci.image.index.v1+json"
   });
   writer.insertPackageVersion({
@@ -206,7 +206,7 @@ test("rebuildManifestReachability stitches digest-tag helper edges into recursiv
   writer.insertManifest({
     versionId: 1,
     digest: rootDigest,
-    manifestKind: ManifestKinds.imageIndex,
+    manifestKind: ManifestKinds.indexManifest,
     mediaType: "application/vnd.oci.image.index.v1+json"
   });
   writer.insertPackageVersion({

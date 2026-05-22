@@ -62,7 +62,8 @@ This is how the planner knows which digests are tagged.
 - One row per package-version manifest fetched from GHCR.
 - That can be an image index, an image manifest, or an artifact manifest.
 - `manifest_kind` provides an optional best-effort category for debugging:
-  - `image_index`
+  - `index_manifest`
+  - `cross_arch_manifest`
   - `image_manifest`
   - `artifact_manifest`
   - `attestation_manifest`

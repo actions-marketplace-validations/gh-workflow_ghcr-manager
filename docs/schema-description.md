@@ -155,7 +155,7 @@ What this means:
 
 - a package version points to exactly one fetched root manifest row
 - this row represents one of:
-  - a multi-arch image index
+  - a generic index/list manifest or a refined cross-arch image manifest
   - a single-platform image manifest
   - an OCI artifact manifest
   - a signature or attestation-like artifact
@@ -165,7 +165,8 @@ matters, trust the actual manifest payload fields first.
 
 Current values:
 
-- `image_index`
+- `index_manifest`
+- `cross_arch_manifest`
 - `image_manifest`
 - `artifact_manifest`
 - `attestation_manifest`

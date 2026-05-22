@@ -19,7 +19,7 @@ test("renderCleanupSummaryMarkdown renders user-facing counts and truncates long
         {
           versionId: 101,
           digest: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          manifestKind: ManifestKinds.imageIndex,
+          manifestKind: ManifestKinds.crossArchManifest,
           rootTags: ["a", "b", "c"],
           matchedTags: ["a"],
           selectionMode: "delete-root",
@@ -32,13 +32,14 @@ test("renderCleanupSummaryMarkdown renders user-facing counts and truncates long
       untagOnlyRoots: [],
       blockedRoots: [],
       affectedManifests: [
-        { digest: "sha256:a", manifestKind: ManifestKinds.imageIndex },
+        { digest: "sha256:a", manifestKind: ManifestKinds.crossArchManifest },
         { digest: "sha256:b", manifestKind: ManifestKinds.imageManifest },
         { digest: "sha256:c", manifestKind: ManifestKinds.signatureManifest }
       ],
       plannedChanges: {
         tagRemovals: 3,
         imageDeletes: 1,
+        indexDeletes: 1,
         crossArchDeletes: 1,
         artifactDeletes: 0,
         attestationDeletes: 0,
@@ -60,6 +61,7 @@ test("renderCleanupSummaryMarkdown renders user-facing counts and truncates long
   assert.match(markdown, /\| 📦 Package \| `acme\/example` \|/);
   assert.match(markdown, /\| 🔖 Deleted tags \| 3 \|/);
   assert.match(markdown, /\| 🖼️ Deleted images \| 1 \|/);
+  assert.match(markdown, /\| 🧱 Deleted indexes \| 1 \|/);
   assert.match(markdown, /\| 📚 Deleted cross-arch manifests \| 1 \|/);
   assert.match(markdown, /\| 📄 Deleted items \| 3 \|/);
   assert.match(markdown, /<summary>📦 Deleted item breakdown<\/summary>/);
@@ -141,6 +143,7 @@ test("renderCleanupSummaryMarkdown renders blocked, tag-only, and live-effect de
       plannedChanges: {
         tagRemovals: 1,
         imageDeletes: 0,
+        indexDeletes: 0,
         crossArchDeletes: 0,
         artifactDeletes: 0,
         attestationDeletes: 0,
@@ -232,6 +235,7 @@ test("renderCleanupSummaryMarkdown notes when a root section is truncated", () =
       plannedChanges: {
         tagRemovals: 1,
         imageDeletes: 1,
+        indexDeletes: 0,
         crossArchDeletes: 0,
         artifactDeletes: 0,
         attestationDeletes: 0,
@@ -270,6 +274,7 @@ test("renderCleanupSummaryMarkdown does not show digest-tag helper tags in user-
       plannedChanges: {
         tagRemovals: 0,
         imageDeletes: 0,
+        indexDeletes: 0,
         crossArchDeletes: 0,
         artifactDeletes: 0,
         attestationDeletes: 0,

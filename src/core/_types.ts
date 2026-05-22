@@ -1,5 +1,6 @@
 export const ManifestKinds = {
-  imageIndex: "image_index",
+  indexManifest: "index_manifest",
+  crossArchManifest: "cross_arch_manifest",
   imageManifest: "image_manifest",
   artifactManifest: "artifact_manifest",
   attestationManifest: "attestation_manifest",

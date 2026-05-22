@@ -83,6 +83,7 @@ function _loadPlannedChanges(
 ): {
   tagRemovals: number;
   imageDeletes: number;
+  indexDeletes: number;
   crossArchDeletes: number;
   artifactDeletes: number;
   attestationDeletes: number;
@@ -133,7 +134,8 @@ function _loadPlannedChanges(
   return {
     tagRemovals,
     imageDeletes: countsByKind.get(ManifestKinds.imageManifest) ?? 0,
-    crossArchDeletes: countsByKind.get(ManifestKinds.imageIndex) ?? 0,
+    indexDeletes: countsByKind.get(ManifestKinds.indexManifest) ?? 0,
+    crossArchDeletes: countsByKind.get(ManifestKinds.crossArchManifest) ?? 0,
     artifactDeletes: countsByKind.get(ManifestKinds.artifactManifest) ?? 0,
     attestationDeletes: countsByKind.get(ManifestKinds.attestationManifest) ?? 0,
     signatureDeletes: countsByKind.get(ManifestKinds.signatureManifest) ?? 0,

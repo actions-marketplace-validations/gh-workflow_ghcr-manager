@@ -4,13 +4,16 @@ import { ManifestKinds } from "../../../src/core/index.js";
 import { classifyManifestKind } from "../../../src/ingest/github/_manifest-kind.js";
 
 test("classifyManifestKind identifies image indexes", () => {
-  assert.equal(classifyManifestKind({ mediaType: "application/vnd.oci.image.index.v1+json" }), ManifestKinds.imageIndex);
+  assert.equal(
+    classifyManifestKind({ mediaType: "application/vnd.oci.image.index.v1+json" }),
+    ManifestKinds.indexManifest
+  );
 });
 
 test("classifyManifestKind identifies docker manifest lists as image indexes", () => {
   assert.equal(
     classifyManifestKind({ mediaType: "application/vnd.docker.distribution.manifest.list.v2+json" }),
-    ManifestKinds.imageIndex
+    ManifestKinds.indexManifest
   );
 });
 

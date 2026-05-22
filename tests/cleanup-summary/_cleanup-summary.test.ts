@@ -52,7 +52,7 @@ test("buildCleanupSummary groups root decisions and carries live execution effec
           sourceDigest: "sha256:fully",
           memberVersionId: 101,
           memberDigest: "sha256:fully",
-          memberManifestKind: ManifestKinds.imageIndex,
+          memberManifestKind: ManifestKinds.crossArchManifest,
           hopsFromRoot: 0,
           memberRole: "root"
         },
@@ -87,6 +87,7 @@ test("buildCleanupSummary groups root decisions and carries live execution effec
       plannedChanges: {
         tagRemovals: 1,
         imageDeletes: 1,
+        indexDeletes: 0,
         crossArchDeletes: 1,
         artifactDeletes: 0,
         attestationDeletes: 0,
@@ -123,11 +124,12 @@ test("buildCleanupSummary groups root decisions and carries live execution effec
   assert.equal(summary.blockedRoots.length, 1);
   assert.deepEqual(summary.affectedManifests, [
     { digest: "sha256:child", manifestKind: ManifestKinds.imageManifest },
-    { digest: "sha256:fully", manifestKind: ManifestKinds.imageIndex }
+    { digest: "sha256:fully", manifestKind: ManifestKinds.crossArchManifest }
   ]);
   assert.deepEqual(summary.plannedChanges, {
     tagRemovals: 1,
     imageDeletes: 1,
+    indexDeletes: 0,
     crossArchDeletes: 1,
     artifactDeletes: 0,
     attestationDeletes: 0,
@@ -182,6 +184,7 @@ test("buildCleanupSummary trusts planner-facing direct target tags as already fi
       plannedChanges: {
         tagRemovals: 1,
         imageDeletes: 1,
+        indexDeletes: 0,
         crossArchDeletes: 0,
         artifactDeletes: 0,
         attestationDeletes: 0,
