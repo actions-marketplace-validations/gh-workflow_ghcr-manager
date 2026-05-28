@@ -1,21 +1,15 @@
-# Test Org Setup
+# Test Package Setup
 
-This document records the intended external setup for GHCR live test execution in a dedicated organization namespace.
+This document records the intended external setup for GHCR live test execution in dedicated test package namespaces.
 
 ## Purpose
 
-Use a separate organization for destructive and scenario-based GHCR tests so test packages do not appear under the main
-repository's package list.
+Use separate test package namespaces for destructive and scenario-based GHCR tests so test packages do not appear under
+the main repository's package list.
 
 Current intended organization:
 
 - `gh-workflow-test`
-
-Visibility intent:
-
-- scenario and seeded fixture packages are normally made `public` after publishing
-- private-package behavior is covered by dedicated hardening-focused workflows rather than by a separate artifact
-  protection path
 
 ## Configuration Names
 
@@ -56,11 +50,12 @@ Notes:
 
 ## Ownership Model
 
-When test-org configuration is enabled, live scenario workflows publish and mutate packages under the configured test
-owner rather than the repository owner.
+When test package configuration is enabled, live scenario workflows publish and mutate packages under the configured
+test owner rather than the repository owner.
 
 Intended behavior:
 
 - publish scenario packages to `ghcr.io/<GHCR_TEST_OWNER>/...`
 - delete scenario packages via the org-scoped GitHub Packages API for `GHCR_TEST_OWNER`
 - scan and execute against packages owned by `GHCR_TEST_OWNER`
+- when a workflow runs with a user-owner mode, it seeds and mutates packages owned by `GHCR_TEST_PAT_USERNAME`

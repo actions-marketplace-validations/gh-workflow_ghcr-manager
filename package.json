@@ -12,7 +12,7 @@
   "version": "0.9.7",
   "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=24.0.0"
   },
   "files": [
     "dist",
@@ -26,7 +26,6 @@
   },
   "scripts": {
     "build": "tsc --project tsconfig.json",
-    "coverage": "c8 --src src --reporter=text --reporter=text-summary node --import tsx --test",
     "ghcr-manager": "tsx src/cli/index.ts",
     "ghcr-manager:dist": "node dist/cli/index.js",
     "format": "prettier --write .",
@@ -38,7 +37,8 @@
     "lint:yaml": "eslint \".github/**/*.yml\" \"*.yml\"",
     "lint:markdown": "markdownlint-cli2",
     "typecheck": "tsc --noEmit --project tsconfig.json",
-    "test": "node --import tsx --test"
+    "test": "node --import tsx --test",
+    "coverage": "c8 --src src --reporter=text --reporter=text-summary node --import tsx --test"
   },
   "dependencies": {
     "better-sqlite3": "^12.9.0"
@@ -46,7 +46,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^25.6.0",
+    "@types/node": "^24.12.4",
     "c8": "^11.0.0",
     "eslint": "^10.2.1",
     "eslint-plugin-yml": "^3.3.2",
