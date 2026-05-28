@@ -64,7 +64,7 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - untag scenario execution is serialized per `scenario`
   - user-owner cleanup now has its own dedicated concurrency group because it mutates one fixed package
 - Test maintenance workflow note:
-  - manual workflow `test_delete-test-org-packages.yml` deletes container packages from `GHCR_TEST_OWNER`, optionally
+  - manual workflow `test_delete-test-org-packages.yml` deletes container packages from `GH_TEST_ORG`, optionally
     filtered by a literal substring on package name
 - User-owner workflow note:
   - `test_user-owner-cleanup.yml` now clears a fixed user-owned package, seeds two tagged images, deletes `delete-me`,

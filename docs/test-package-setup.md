@@ -15,20 +15,20 @@ Current intended organization:
 
 Use these repository-level configuration names:
 
-- variable: `GHCR_TEST_OWNER`
-- variable: `GHCR_TEST_PAT_USERNAME`
-- secret: `GHCR_TEST_PAT`
+- variable: `GH_TEST_ORG`
+- variable: `GH_TEST_PAT_USERNAME`
+- secret: `GH_TEST_PAT`
 
 Recommended value mapping:
 
-- `GHCR_TEST_OWNER=gh-workflow-test`
-- `GHCR_TEST_PAT_USERNAME=<username that owns GHCR_TEST_PAT>`
-- `GHCR_TEST_PAT=<classic PAT for a user that can administer packages in gh-workflow-test>`
+- `GH_TEST_ORG=gh-workflow-test`
+- `GH_TEST_PAT_USERNAME=<username that owns GH_TEST_PAT>`
+- `GH_TEST_PAT=<classic PAT for a user that can administer packages in gh-workflow-test>`
 
 Current workflow expectation:
 
 - the GHCR live test workflows require both values
-- the GHCR live test workflows also require `GHCR_TEST_PAT_USERNAME`
+- the GHCR live test workflows also require `GH_TEST_PAT_USERNAME`
 - they fail fast when either value is missing
 - they do not fall back to the repository owner namespace
 
@@ -46,7 +46,7 @@ Notes:
 
 - The token owner needs permission to create, update, and delete GHCR packages in `gh-workflow-test`.
 - Keep this token scoped to test-package workflows only.
-- `GHCR_TEST_PAT_USERNAME` must match the user account that owns `GHCR_TEST_PAT`.
+- `GH_TEST_PAT_USERNAME` must match the user account that owns `GH_TEST_PAT`.
 
 ## Ownership Model
 
@@ -55,7 +55,7 @@ test owner rather than the repository owner.
 
 Intended behavior:
 
-- publish scenario packages to `ghcr.io/<GHCR_TEST_OWNER>/...`
-- delete scenario packages via the org-scoped GitHub Packages API for `GHCR_TEST_OWNER`
-- scan and execute against packages owned by `GHCR_TEST_OWNER`
-- when a workflow runs with a user-owner mode, it seeds and mutates packages owned by `GHCR_TEST_PAT_USERNAME`
+- publish scenario packages to `ghcr.io/<GH_TEST_ORG>/...`
+- delete scenario packages via the org-scoped GitHub Packages API for `GH_TEST_ORG`
+- scan and execute against packages owned by `GH_TEST_ORG`
+- when a workflow runs with a user-owner mode, it seeds and mutates packages owned by `GH_TEST_PAT_USERNAME`
