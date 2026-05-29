@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.8] - 2026-05-29
+
 ### Removed
 
 - The public `untag` CLI command, root-action mode, and dedicated direct-untag workflow coverage were removed. Internal
