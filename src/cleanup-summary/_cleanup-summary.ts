@@ -56,9 +56,8 @@ export interface CleanupSummary {
   blockedRoots: CleanupSummaryRoot[];
   affectedManifests: CleanupSummaryAffectedManifest[];
   changes: CleanupSummaryChanges;
-  deletedPackageVersions: DeleteExecutionSummary["deletedPackageVersions"];
-  untaggedTags: DeleteExecutionSummary["untaggedTags"];
-  unsupportedUntagRoots: DeleteExecutionSummary["unsupportedUntagRoots"];
+  deletedPackageVersionCount: DeleteExecutionSummary["deletedPackageVersionCount"];
+  detachedTagCount: DeleteExecutionSummary["detachedTagCount"];
 }
 
 export function buildCleanupSummary(
@@ -98,9 +97,8 @@ export function buildCleanupSummary(
     blockedRoots,
     affectedManifests,
     changes: options.changes,
-    deletedPackageVersions: options.executionSummary?.deletedPackageVersions ?? [],
-    untaggedTags: options.executionSummary?.untaggedTags ?? [],
-    unsupportedUntagRoots: options.executionSummary?.unsupportedUntagRoots ?? []
+    deletedPackageVersionCount: options.executionSummary?.deletedPackageVersionCount ?? 0,
+    detachedTagCount: options.executionSummary?.detachedTagCount ?? 0
   };
 }
 

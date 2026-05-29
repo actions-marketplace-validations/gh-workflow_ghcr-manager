@@ -40,7 +40,7 @@ export function renderCleanupSummaryMarkdown(
   lines.push(..._renderRootSection("🔗 Tags removed only", summary.untagOnlyRoots, maxRootsPerSection));
   lines.push(..._renderRootSection("🛡️ Blocked items", summary.blockedRoots, maxRootsPerSection));
 
-  if (!summary.dryRun && (summary.deletedPackageVersions.length > 0 || summary.untaggedTags.length > 0)) {
+  if (!summary.dryRun && (summary.deletedPackageVersionCount > 0 || summary.detachedTagCount > 0)) {
     lines.push(..._renderLiveEffects(summary));
   }
 
@@ -132,11 +132,8 @@ function _renderRootSection(title: string, roots: CleanupSummaryRoot[], maxRoots
 
 function _renderLiveEffects(summary: CleanupSummary): string[] {
   const lines = ["### Applied changes", ""];
-  lines.push(`- Deleted package versions: ${summary.deletedPackageVersions.length}`);
-  lines.push(`- Detached tags: ${summary.untaggedTags.length}`);
-  if (summary.unsupportedUntagRoots.length > 0) {
-    lines.push(`- Unsupported untag roots: ${summary.unsupportedUntagRoots.length}`);
-  }
+  lines.push(`- Deleted package versions: ${summary.deletedPackageVersionCount}`);
+  lines.push(`- Detached tags: ${summary.detachedTagCount}`);
   lines.push("");
   return lines;
 }

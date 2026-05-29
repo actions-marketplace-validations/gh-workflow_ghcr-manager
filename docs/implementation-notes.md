@@ -163,6 +163,9 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
 - [x] Remove the standalone public `untag` CLI command and root-action mode:
   - delete the direct command implementation, docs, and dedicated workflow/test helpers
   - keep internal tag detachment for partial-tag cleanup matches inside the `cleanup` execution path
+- [x] Reduce cleanup live-effect summary payloads to counts only:
+  - remove detailed execution arrays for deleted package versions and detached tags from the cleanup summary JSON
+  - keep plan-level detail in roots/manifests and keep applied live effects summarized as counts
 - [x] Replace the custom current-run artifact download helper in `merge-run-artifacts` with `actions/download-artifact`
       and switch its selector input to glob semantics.
 - [x] Align workflow callers with `artifact-name-glob` and bump `actions/download-artifact` to `v8.0.1` to avoid Node 20

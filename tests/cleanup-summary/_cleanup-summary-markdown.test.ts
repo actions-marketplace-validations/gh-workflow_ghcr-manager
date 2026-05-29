@@ -46,9 +46,8 @@ test("renderCleanupSummaryMarkdown renders user-facing counts and truncates long
         deletedSignatures: 1,
         deletedTotal: 3
       },
-      deletedPackageVersions: [],
-      untaggedTags: [],
-      unsupportedUntagRoots: []
+      deletedPackageVersionCount: 0,
+      detachedTagCount: 0
     },
     {
       maxDirectTargetTags: 2,
@@ -156,25 +155,8 @@ test("renderCleanupSummaryMarkdown renders blocked, tag-only, and live-effect de
         deletedSignatures: 0,
         deletedTotal: 0
       },
-      deletedPackageVersions: [
-        { versionId: 202, digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
-      ],
-      untaggedTags: [
-        {
-          tag: "keep|me",
-          sourceVersionId: 201,
-          sourceDigest: "sha256:short",
-          detachedVersionId: 301,
-          detachedDigest: "sha256:detached"
-        }
-      ],
-      unsupportedUntagRoots: [
-        {
-          versionId: 999,
-          digest: "sha256:unsupported",
-          reason: "unsupported"
-        }
-      ]
+      deletedPackageVersionCount: 1,
+      detachedTagCount: 1
     },
     {
       maxDirectTargetTags: 5,
@@ -194,7 +176,6 @@ test("renderCleanupSummaryMarkdown renders blocked, tag-only, and live-effect de
   assert.match(markdown, /### Applied changes/);
   assert.match(markdown, /Deleted package versions: 1/);
   assert.match(markdown, /Detached tags: 1/);
-  assert.match(markdown, /Unsupported untag roots: 1/);
 });
 
 test("renderCleanupSummaryMarkdown notes when a root section is truncated", () => {
@@ -247,9 +228,8 @@ test("renderCleanupSummaryMarkdown notes when a root section is truncated", () =
         deletedSignatures: 0,
         deletedTotal: 1
       },
-      deletedPackageVersions: [],
-      untaggedTags: [],
-      unsupportedUntagRoots: []
+      deletedPackageVersionCount: 0,
+      detachedTagCount: 0
     },
     {
       maxDirectTargetTags: 5,
@@ -285,9 +265,8 @@ test("renderCleanupSummaryMarkdown does not show digest-tag helper tags in user-
         deletedSignatures: 0,
         deletedTotal: 0
       },
-      deletedPackageVersions: [],
-      untaggedTags: [],
-      unsupportedUntagRoots: []
+      deletedPackageVersionCount: 0,
+      detachedTagCount: 0
     },
     {}
   );

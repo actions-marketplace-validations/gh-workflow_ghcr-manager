@@ -92,18 +92,9 @@ test("buildCleanupSummary groups root decisions and carries live execution effec
         packageName: "example",
         scanCompletedAt: "2026-05-20T10:00:00.000Z",
         plannerInputs: { deleteTags: ["delete-me"] },
-        deletedPackageVersions: [{ versionId: 101, digest: "sha256:fully" }],
-        untaggedTags: [
-          {
-            tag: "delete-me",
-            sourceVersionId: 102,
-            sourceDigest: "sha256:untag",
-            detachedVersionId: 202,
-            detachedDigest: "sha256:detached"
-          }
-        ],
-        blockedRoots: [],
-        unsupportedUntagRoots: []
+        deletedPackageVersionCount: 1,
+        detachedTagCount: 1,
+        blockedRoots: []
       }
     }
   );
@@ -130,8 +121,8 @@ test("buildCleanupSummary groups root decisions and carries live execution effec
     deletedTotal: 2
   });
   assert.deepEqual(summary.untagOnlyRoots[0]?.matchedTags, ["delete-me"]);
-  assert.deepEqual(summary.deletedPackageVersions, [{ versionId: 101, digest: "sha256:fully" }]);
-  assert.equal(summary.untaggedTags[0]?.tag, "delete-me");
+  assert.equal(summary.deletedPackageVersionCount, 1);
+  assert.equal(summary.detachedTagCount, 1);
   assert.equal(summary.blockedRoots[0]?.blockingVersionId, 104);
 });
 
