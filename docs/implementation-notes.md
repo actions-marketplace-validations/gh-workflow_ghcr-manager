@@ -13,15 +13,14 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
 - Runtime: Node.js and TypeScript.
 - Persistence model: local SQLite database per run.
 - Core public surfaces:
-  - CLI: `scan`, `cleanup`, `untag`
-  - root action: `command: scan | cleanup | untag`
+  - CLI: `scan`, `cleanup`
+  - root action: `command: scan | cleanup`
   - helper actions: `db-merge`, `merge-run-artifacts`
 - Live package support:
   - org-owned and user-owned GitHub container packages
   - explicit owner-kind lookup through `GET /users/{owner}`
 - Current test/workflow surfaces:
   - cleanup scenario executor + matrix workflows
-  - direct untag executor + matrix workflows
   - dedicated cross-owner upstream repro workflows
 
 ## Current Release Track
@@ -42,12 +41,6 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - do not create workflow-managed release commits that add `dist/`
   - keep the tag-push release model and let the action/npm paths build or install at runtime as they do today
 - `delete-tags` and `exclude-tags` on the root action are newline-separated.
-- `untag` is a real public command and action mode:
-  - it does not use a scan DB
-  - it uses direct GitHub Packages + GHCR calls
-  - it verifies postconditions after the rewrite/delete flow
-- Direct untag live validation stays separate from cleanup scenarios.
-- Untag live tests now use dedicated untag scenario IDs/package suffixes/tag prefixes so uploaded DBs are readable.
 - Untag live tests reuse the shared seed implementation underneath rather than carrying a separate seed action.
 - Test-only helper scripts now live under `tools/tests`; `tools/` root is reserved for runtime, repo-maintenance, and
   action-facing helpers.
@@ -61,7 +54,6 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - digest-selector scenarios require repo dependencies before pre-scan and digest resolution helper scripts run
 - Scenario workflow concurrency note:
   - cleanup scenario execution is serialized per `scenario + executor`
-  - untag scenario execution is serialized per `scenario`
   - user-owner cleanup now has its own dedicated concurrency group because it mutates one fixed package
 - Test maintenance workflow note:
   - manual workflow `test_delete-test-org-packages.yml` deletes container packages from `GH_TEST_ORG`, optionally
@@ -69,11 +61,6 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
 - User-owner workflow note:
   - `test_user-owner-cleanup.yml` now clears a fixed user-owned package, seeds two tagged images, deletes `delete-me`,
     uploads the post-cleanup DB artifact, and asserts the latest-scan view keeps only `keep-me`
-- Untag seed note:
-  - direct untag scenarios now use dedicated seed strategy IDs instead of borrowing cleanup scenario IDs for tag names
-- Untag assertion note:
-  - untag scenario verification now queries `v_latest_scan_per_package` directly instead of resolving latest scans in ad
-    hoc helper logic
 - Tagged cleanup seed note:
   - digest and wildcard tagged-delete scenarios now use dedicated seed strategy IDs instead of borrowing
     `tagged-fully-deletable`
@@ -117,7 +104,6 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - the root action exposes the file path to that JSON via `summary-json-path`
   - the same JSON can be uploaded as a run artifact alongside the DB when `upload-artifacts` is enabled
   - the GitHub step summary is rendered from that same JSON
-- `untag` does not support DB artifact upload.
 - `db-merge`:
   - takes `source-db-dir` plus required `db-file`
   - creates the merged DB in a random temp directory
@@ -148,8 +134,8 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - `classifyManifestKind(document)` now sets `cross_arch_manifest` directly from the fetched index payload when more
     than one direct descriptor carries a real platform; single-platform indexes remain `index_manifest`
 - Scenario assertion note:
-  - cleanup and untag live-scenario definitions now expect real Docker/OCI multi-arch roots as `cross_arch_manifest`,
-    not the older `image_index` label
+  - cleanup live-scenario definitions now expect real Docker/OCI multi-arch roots as `cross_arch_manifest`, not the
+    older `image_index` label
 - Cleanup selected-tag audit note:
   - `cleanup_selected_tags` rows are inserted with `is_deleted = 0`
   - the follow-up audit update only touches selected tags that belong to a persisted root decision
@@ -174,6 +160,9 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
 - [x] Remove regex-based package filtering from the manual test-org package cleanup workflow.
 - [x] Move untag scenario verification onto `v_latest_scan_per_package` and align the user-owner cleanup workflow with
       post-cleanup DB upload.
+- [x] Remove the standalone public `untag` CLI command and root-action mode:
+  - delete the direct command implementation, docs, and dedicated workflow/test helpers
+  - keep internal tag detachment for partial-tag cleanup matches inside the `cleanup` execution path
 - [x] Replace the custom current-run artifact download helper in `merge-run-artifacts` with `actions/download-artifact`
       and switch its selector input to glob semantics.
 - [x] Align workflow callers with `artifact-name-glob` and bump `actions/download-artifact` to `v8.0.1` to avoid Node 20
@@ -216,7 +205,6 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - action usage
   - CLI usage
   - DB artifact / merge workflow
-  - direct untag behavior and caveats
 - [ ] Revisit DB/schema onboarding later with example-driven guidance if release feedback shows users need it.
 - [ ] Review release workflow and public-facing metadata before the first release tag.
 - [x] Catch up release metadata for `0.9.7` after the post-`0.9.6` commit range:
@@ -255,8 +243,8 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - tagged-root planning treats digest-tag-only artifact roots as tagged when those orphaned digest tags are the matched
     selected tags for that selector family
 - Root action argv note:
-  - the root action now prepares `cleanup`/`untag` argv in `tools/prepare-action-args.mjs`
-  - `action.yml` still shows the direct public CLI invocation with `npm run ... ghcr-manager:dist -- cleanup|untag`
+  - the root action now prepares `cleanup` argv in `tools/prepare-action-args.mjs`
+  - `action.yml` still shows the direct public CLI invocation with `npm run ... ghcr-manager:dist -- cleanup`
   - prepared argv is handed to the visible run step through a NUL-delimited temp file so log printing and execution use
     the exact same argument list
 - Older-than doc note:
@@ -282,11 +270,9 @@ Historical notes were compacted into [docs/implementation-notes.archive.md](arch
   - release now requires these workflow-backed live checks before npm publish and GitHub release:
     - `test_scenario-executor-matrix.yml` with `executors: ghcr-manager`
     - `test_user-owner-cleanup.yml`
-    - `test_untag-matrix.yml`
   - release tag / version / changelog verification now runs before those live checks so obvious release-prep mistakes
     fail fast
-  - `test_scenario-executor-matrix.yml` and `test_user-owner-cleanup.yml` now run in parallel, then
-    `test_untag-matrix.yml` runs last so its SQLite artifact bundling sees both earlier runs
+  - `test_scenario-executor-matrix.yml` and `test_user-owner-cleanup.yml` now run in parallel
   - release validation now checks that the tag commit is on `main`
   - release validation checks `README.md` and `.github/workflows/manual-run_scan.yml` for exact action refs
   - `CHANGELOG.md` must already contain the concrete release heading before tagging

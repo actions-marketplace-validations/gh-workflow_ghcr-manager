@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Removed
+
+- The public `untag` CLI command, root-action mode, and dedicated direct-untag workflow coverage were removed. Internal
+  tag detachment for partial-tag cleanup matches remains part of `cleanup`.
+
 ## [0.9.7] - 2026-05-23
 
 ### Added

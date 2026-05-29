@@ -81,19 +81,6 @@ Notes:
 - `--exclude-tag` requires at least one tagged selector family
 - `--delete-untagged` and `--keep-n-untagged` cannot be combined
 
-## Untag
-
-```sh
-ghcr-manager untag \
-  --owner OWNER \
-  --package PACKAGE \
-  --token "$GITHUB_TOKEN" \
-  --tag old-tag \
-  --tag test-tag
-```
-
-Unlike `cleanup`, `untag` does not take `--db`.
-
 ## DB Merge
 
 ```sh
